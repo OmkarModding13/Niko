@@ -1,4 +1,4 @@
-import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
