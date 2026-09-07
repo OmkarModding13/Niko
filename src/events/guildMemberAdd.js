@@ -53,28 +53,47 @@ export default {
                         content: messageContent || welcomeMessage
                     });
                 } else {
-                    const embed = new EmbedBuilder()
-                        .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-                        .setTitle(embedTitle)
-                        .setDescription(welcomeMessage)
-                        .setThumbnail(user.displayAvatarURL())
-                        .addFields(
-                            { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
-                        )
-                        .setTimestamp()
-                        .setFooter({ text: embedFooter });
-                    
-                    if (welcomeConfig.welcomeImage) {
-                        embed.setImage(welcomeConfig.welcomeImage);
-                    } else if (welcomeConfig.welcomeEmbed?.image?.url) {
-                        embed.setImage(welcomeConfig.welcomeEmbed.image.url);
-                    }
-                    
-                    await channel.send({ 
-                        content: messageContent,
-                        embeds: [embed] 
-                    });
+                    let welcomeAttachment = null;
+
+const backgroundUrl =
+    welcomeConfig.welcomeImage ||
+    welcomeConfig.welcomeEmbed?.image?.url;
+
+if (backgroundUrl) {
+    try {
+        const imageBuffer = await generateWelcomeImage({
+            backgroundUrl,
+            avatarUrl: user.displayAvatarURL({ extension: 'png', size: 256 }),
+            username: user.username,
+            memberCount: guild.memberCount
+        });
+
+        welcomeAttachment = new AttachmentBuilder(imageBuffer, {
+            name: 'welcome.png'
+        });
+    } catch (error) {
+        logger.error('Failed to generate dynamic welcome image:', error);
+    }
+}
+
+const embed = new EmbedBuilder()
+    .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
+    .setTitle(embedTitle)
+    .setDescription(welcomeMessage)
+    .setTimestamp()
+    .setFooter({ text: embedFooter });
+
+if (welcomeAttachment) {
+    embed.setImage('attachment://welcome.png');
+} else if (backgroundUrl) {
+    embed.setImage(backgroundUrl);
+}
+
+await channel.send({
+    content: messageContent,
+    embeds: [embed],
+    files: welcomeAttachment ? [welcomeAttachment] : []
+});
                 }
             }
         }
