@@ -1,3 +1,4 @@
+// Dynamic welcome banner enabled
 import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
