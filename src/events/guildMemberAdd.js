@@ -78,26 +78,15 @@ if (backgroundUrl) {
     }
 }
 
-const embed = new EmbedBuilder()
-    .setColor(welcomeConfig.welcomeEmbed?.color || getColor('success'))
-    .setTitle(embedTitle)
-    .setDescription(welcomeMessage)
-    .setTimestamp()
-    .setFooter({ text: embedFooter });
+const plainWelcomeMessage = [
+    messageContent,
+    `**${embedTitle}**`,
+    welcomeMessage
+].filter(Boolean).join('\n');
 
-// Send dynamic banner as a separate full-width image
-if (welcomeAttachment) {
-    await channel.send({
-        files: [welcomeAttachment]
-    });
-} else if (backgroundUrl) {
-    embed.setImage(backgroundUrl);
-}
-
-// Send welcome message separately
 await channel.send({
-    content: messageContent,
-    embeds: [embed]
+    content: plainWelcomeMessage,
+    files: welcomeAttachment ? [welcomeAttachment] : []
 });
                 }
             }
