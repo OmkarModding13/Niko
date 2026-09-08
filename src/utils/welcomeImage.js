@@ -32,6 +32,7 @@ export async function generateWelcomeImage({
         throw new Error('Welcome background image is not configured.');
     }
 
+    // Background
     const backgroundBuffer = await downloadImage(backgroundUrl);
 
     const background = await sharp(backgroundBuffer)
@@ -42,7 +43,7 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    // Large avatar
+    // Avatar
     const avatarSize = 300;
     const avatarBuffer = await downloadImage(avatarUrl);
 
@@ -53,7 +54,7 @@ export async function generateWelcomeImage({
         .composite([
             {
                 input: Buffer.from(`
-                    <svg width="${avatarSize}" height="${avatarSize}">
+                    <svg width="300" height="300">
                         <circle
                             cx="150"
                             cy="150"
@@ -68,7 +69,7 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    // Convert text into SVG paths using Anton font
+    // Text paths using Anton font
     const welcomePath = textToSVG.getD('WELCOME', {
         fontSize: 72,
         anchor: 'center baseline'
@@ -84,27 +85,40 @@ export async function generateWelcomeImage({
         anchor: 'center baseline'
     });
 
-    const textOverlay = Buffer.from(`
+    // Text + visible avatar border
+    const overlay = Buffer.from(`
         <svg width="1200" height="500">
 
-            <g fill="white">
+            <!-- White avatar border -->
+            <circle
+                cx="600"
+                cy="155"
+                r="143"
+                fill="none"
+                stroke="white"
+                stroke-width="10"
+            />
 
-                <path
-                    d="${welcomePath}"
-                    transform="translate(600, 345)"
-                />
+            <!-- Welcome text -->
+            <path
+                d="${welcomePath}"
+                transform="translate(600, 390)"
+                fill="white"
+            />
 
-                <path
-                    d="${usernamePath}"
-                    transform="translate(600, 415)"
-                />
+            <!-- Username -->
+            <path
+                d="${usernamePath}"
+                transform="translate(600, 440)"
+                fill="white"
+            />
 
-                <path
-                    d="${memberPath}"
-                    transform="translate(600, 465)"
-                />
-
-            </g>
+            <!-- Member number -->
+            <path
+                d="${memberPath}"
+                transform="translate(600, 480)"
+                fill="white"
+            />
 
         </svg>
     `);
@@ -117,7 +131,7 @@ export async function generateWelcomeImage({
                 top: 5
             },
             {
-                input: textOverlay,
+                input: overlay,
                 left: 0,
                 top: 0
             }
