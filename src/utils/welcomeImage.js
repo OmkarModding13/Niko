@@ -102,21 +102,21 @@ const memberPath = textToSVG.getD(`MEMBER #${memberCount}`, {
             <!-- Welcome text -->
             <path
                 d="${welcomePath}"
-                transform="translate(600, 350)"
+                transform="translate(600, 370)"
                 fill="white"
             />
 
             <!-- Username -->
             <path
                 d="${usernamePath}"
-                transform="translate(600, 395)"
+                transform="translate(600, 415)"
                 fill="white"
             />
 
             <!-- Member number -->
             <path
                 d="${memberPath}"
-                transform="translate(600, 435)"
+                transform="translate(600, 455)"
                 fill="white"
             />
 
