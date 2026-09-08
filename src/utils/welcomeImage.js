@@ -71,19 +71,19 @@ export async function generateWelcomeImage({
 
     // Text paths using Anton font
     const welcomePath = textToSVG.getD('WELCOME', {
-        fontSize: 72,
-        anchor: 'center baseline'
-    });
+    fontSize: 58,
+    anchor: 'center baseline'
+});
 
-    const usernamePath = textToSVG.getD(String(username), {
-        fontSize: 60,
-        anchor: 'center baseline'
-    });
+const usernamePath = textToSVG.getD(String(username), {
+    fontSize: 46,
+    anchor: 'center baseline'
+});
 
-    const memberPath = textToSVG.getD(`MEMBER #${memberCount}`, {
-        fontSize: 34,
-        anchor: 'center baseline'
-    });
+const memberPath = textToSVG.getD(`MEMBER #${memberCount}`, {
+    fontSize: 30,
+    anchor: 'center baseline'
+});
 
     // Text + visible avatar border
     const overlay = Buffer.from(`
@@ -102,21 +102,21 @@ export async function generateWelcomeImage({
             <!-- Welcome text -->
             <path
                 d="${welcomePath}"
-                transform="translate(600, 390)"
+                transform="translate(600, 350)"
                 fill="white"
             />
 
             <!-- Username -->
             <path
                 d="${usernamePath}"
-                transform="translate(600, 440)"
+                transform="translate(600, 395)"
                 fill="white"
             />
 
             <!-- Member number -->
             <path
                 d="${memberPath}"
-                transform="translate(600, 480)"
+                transform="translate(600, 435)"
                 fill="white"
             />
 
