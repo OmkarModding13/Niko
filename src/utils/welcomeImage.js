@@ -1,22 +1,16 @@
 import sharp from 'sharp';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const TextToSVG = require('text-to-svg');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const fontPath = path.join(__dirname, '../../fonts/Anton-Regular.ttf');
-const antonFont = fs.readFileSync(fontPath).toString('base64');
-
-function escapeXml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-}
+const textToSVG = TextToSVG.loadSync(fontPath);
 
 async function downloadImage(url) {
     const response = await fetch(url);
@@ -74,54 +68,46 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    const safeUsername = escapeXml(username);
-    const safeMemberCount = escapeXml(memberCount);
+    // Convert text into SVG paths using Anton font
+    const welcomePath = textToSVG.getD('WELCOME', {
+        fontSize: 72,
+        anchor: 'center baseline'
+    });
 
-       const textOverlay = Buffer.from(`
-    <svg width="1200" height="500">
+    const usernamePath = textToSVG.getD(String(username), {
+        fontSize: 60,
+        anchor: 'center baseline'
+    });
 
-        <defs>
-            <style>
-                @font-face {
-                    font-family: 'Anton';
-                    src: url(data:font/ttf;base64,${antonFont});
-                }
-            </style>
-        </defs>
+    const memberPath = textToSVG.getD(`MEMBER #${memberCount}`, {
+        fontSize: 34,
+        anchor: 'center baseline'
+    });
 
-        <text
-            x="600"
-            y="345"
-            text-anchor="middle"
-            fill="white"
-            font-family="Anton"
-            font-size="72">
-            WELCOME
-        </text>
+    const textOverlay = Buffer.from(`
+        <svg width="1200" height="500">
 
-        <text
-            x="600"
-            y="415"
-            text-anchor="middle"
-            fill="white"
-            font-family="Anton"
-            font-size="60">
-            ${safeUsername}
-        </text>
+            <g fill="white">
 
-        <text
-            x="600"
-            y="465"
-            text-anchor="middle"
-            fill="white"
-            font-family="Anton"
-            font-size="34"
-            letter-spacing="3">
-            MEMBER #${safeMemberCount}
-        </text>
+                <path
+                    d="${welcomePath}"
+                    transform="translate(600, 345)"
+                />
 
-    </svg>
-`);
+                <path
+                    d="${usernamePath}"
+                    transform="translate(600, 415)"
+                />
+
+                <path
+                    d="${memberPath}"
+                    transform="translate(600, 465)"
+                />
+
+            </g>
+
+        </svg>
+    `);
 
     return sharp(background)
         .composite([
