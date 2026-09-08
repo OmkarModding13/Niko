@@ -29,10 +29,8 @@ export async function generateWelcomeImage({
         throw new Error('Welcome background image is not configured.');
     }
 
-    // Download background
     const backgroundBuffer = await downloadImage(backgroundUrl);
 
-    // Create fixed Discord-friendly banner
     const background = await sharp(backgroundBuffer)
         .resize(1200, 500, {
             fit: 'cover',
@@ -41,18 +39,25 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    // Download and prepare avatar
+    // Large circular avatar
+    const avatarSize = 230;
+
     const avatarBuffer = await downloadImage(avatarUrl);
 
     const avatar = await sharp(avatarBuffer)
-        .resize(150, 150, {
+        .resize(avatarSize, avatarSize, {
             fit: 'cover'
         })
         .composite([
             {
                 input: Buffer.from(`
-                    <svg width="150" height="150">
-                        <circle cx="75" cy="75" r="75" fill="white"/>
+                    <svg width="${avatarSize}" height="${avatarSize}">
+                        <circle
+                            cx="${avatarSize / 2}"
+                            cy="${avatarSize / 2}"
+                            r="${avatarSize / 2 - 5}"
+                            fill="white"
+                        />
                     </svg>
                 `),
                 blend: 'dest-in'
@@ -61,55 +66,47 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    // Dynamic text
     const safeUsername = escapeXml(username);
     const safeMemberCount = escapeXml(memberCount);
 
     const textOverlay = Buffer.from(`
         <svg width="1200" height="500">
-            <defs>
-                <linearGradient id="overlay" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="black" stop-opacity="0.15"/>
-                    <stop offset="1" stop-color="black" stop-opacity="0.35"/>
-                </linearGradient>
-            </defs>
-
-            <rect width="1200" height="500" fill="url(#overlay)"/>
 
             <text
                 x="600"
-                y="285"
+                y="330"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="42"
-                font-weight="700"
-                letter-spacing="6">
+                font-size="58"
+                font-weight="800"
+                letter-spacing="5">
                 WELCOME
             </text>
 
             <text
                 x="600"
-                y="350"
+                y="395"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="52"
+                font-size="48"
                 font-weight="800">
                 ${safeUsername}
             </text>
 
             <text
                 x="600"
-                y="405"
+                y="445"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="26"
-                font-weight="600"
+                font-size="30"
+                font-weight="700"
                 letter-spacing="3">
                 MEMBER #${safeMemberCount}
             </text>
+
         </svg>
     `);
 
@@ -117,8 +114,8 @@ export async function generateWelcomeImage({
         .composite([
             {
                 input: avatar,
-                left: 525,
-                top: 55
+                left: 485,
+                top: 25
             },
             {
                 input: textOverlay,
