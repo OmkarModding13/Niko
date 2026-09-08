@@ -1,4 +1,13 @@
 import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const fontPath = path.join(__dirname, '../../fonts/Anton-Regular.ttf');
+const antonFont = fs.readFileSync(fontPath).toString('base64');
 
 function escapeXml(value) {
     return String(value ?? '')
@@ -71,14 +80,22 @@ export async function generateWelcomeImage({
        const textOverlay = Buffer.from(`
     <svg width="1200" height="500">
 
+        <defs>
+            <style>
+                @font-face {
+                    font-family: 'Anton';
+                    src: url(data:font/ttf;base64,${antonFont});
+                }
+            </style>
+        </defs>
+
         <text
             x="600"
             y="345"
             text-anchor="middle"
             fill="white"
-            font-family="DejaVu Sans"
-            font-size="72"
-            font-weight="bold">
+            font-family="Anton"
+            font-size="72">
             WELCOME
         </text>
 
@@ -87,9 +104,8 @@ export async function generateWelcomeImage({
             y="415"
             text-anchor="middle"
             fill="white"
-            font-family="DejaVu Sans"
-            font-size="60"
-            font-weight="bold">
+            font-family="Anton"
+            font-size="60">
             ${safeUsername}
         </text>
 
@@ -98,9 +114,8 @@ export async function generateWelcomeImage({
             y="465"
             text-anchor="middle"
             fill="white"
-            font-family="DejaVu Sans"
+            font-family="Anton"
             font-size="34"
-            font-weight="bold"
             letter-spacing="3">
             MEMBER #${safeMemberCount}
         </text>
