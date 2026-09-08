@@ -39,9 +39,8 @@ export async function generateWelcomeImage({
         .png()
         .toBuffer();
 
-    // Large circular avatar
-    const avatarSize = 230;
-
+    // Large avatar
+    const avatarSize = 300;
     const avatarBuffer = await downloadImage(avatarUrl);
 
     const avatar = await sharp(avatarBuffer)
@@ -53,9 +52,9 @@ export async function generateWelcomeImage({
                 input: Buffer.from(`
                     <svg width="${avatarSize}" height="${avatarSize}">
                         <circle
-                            cx="${avatarSize / 2}"
-                            cy="${avatarSize / 2}"
-                            r="${avatarSize / 2 - 5}"
+                            cx="150"
+                            cy="150"
+                            r="143"
                             fill="white"
                         />
                     </svg>
@@ -74,34 +73,34 @@ export async function generateWelcomeImage({
 
             <text
                 x="600"
-                y="330"
+                y="345"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="58"
+                font-size="72"
                 font-weight="800"
-                letter-spacing="5">
+                letter-spacing="6">
                 WELCOME
             </text>
 
             <text
                 x="600"
-                y="395"
+                y="415"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="48"
+                font-size="60"
                 font-weight="800">
                 ${safeUsername}
             </text>
 
             <text
                 x="600"
-                y="445"
+                y="465"
                 text-anchor="middle"
                 fill="white"
                 font-family="Arial, sans-serif"
-                font-size="30"
+                font-size="34"
                 font-weight="700"
                 letter-spacing="3">
                 MEMBER #${safeMemberCount}
@@ -114,8 +113,8 @@ export async function generateWelcomeImage({
         .composite([
             {
                 input: avatar,
-                left: 485,
-                top: 25
+                left: 450,
+                top: 5
             },
             {
                 input: textOverlay,
