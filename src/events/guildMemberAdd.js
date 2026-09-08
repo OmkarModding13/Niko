@@ -78,14 +78,8 @@ if (backgroundUrl) {
     }
 }
 
-const plainWelcomeMessage = [
-    messageContent,
-    `**${embedTitle}**`,
-    welcomeMessage
-].filter(Boolean).join('\n');
-
 await channel.send({
-    content: plainWelcomeMessage,
+    content: welcomeMessage,
     files: welcomeAttachment ? [welcomeAttachment] : []
 });
                 }
