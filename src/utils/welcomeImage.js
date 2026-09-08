@@ -69,59 +69,42 @@ export async function generateWelcomeImage({
     const safeMemberCount = escapeXml(memberCount);
 
     const textOverlay = Buffer.from(`
-        <svg width="1200" height="500">
+    <svg width="1200" height="500">
 
-            <text
-                x="600"
-                y="345"
-                text-anchor="middle"
-                fill="white"
-                font-family="Arial, sans-serif"
-                font-size="72"
-                font-weight="800"
-                letter-spacing="6">
-                WELCOME
-            </text>
+        <text
+            x="600"
+            y="345"
+            text-anchor="middle"
+            fill="white"
+            font-family="DejaVu Sans"
+            font-size="72"
+            font-weight="bold">
+            WELCOME
+        </text>
 
-            <text
-                x="600"
-                y="415"
-                text-anchor="middle"
-                fill="white"
-                font-family="Arial, sans-serif"
-                font-size="60"
-                font-weight="800">
-                ${safeUsername}
-            </text>
+        <text
+            x="600"
+            y="415"
+            text-anchor="middle"
+            fill="white"
+            font-family="DejaVu Sans"
+            font-size="60"
+            font-weight="bold">
+            ${safeUsername}
+        </text>
 
-            <text
-                x="600"
-                y="465"
-                text-anchor="middle"
-                fill="white"
-                font-family="Arial, sans-serif"
-                font-size="34"
-                font-weight="700"
-                letter-spacing="3">
-                MEMBER #${safeMemberCount}
-            </text>
+        <text
+            x="600"
+            y="465"
+            text-anchor="middle"
+            fill="white"
+            font-family="DejaVu Sans"
+            font-size="34"
+            font-weight="bold"
+            letter-spacing="3">
+            MEMBER #${safeMemberCount}
+        </text>
 
-        </svg>
-    `);
-
-    return sharp(background)
-        .composite([
-            {
-                input: avatar,
-                left: 450,
-                top: 5
-            },
-            {
-                input: textOverlay,
-                left: 0,
-                top: 0
-            }
-        ])
-        .png()
-        .toBuffer();
+    </svg>
+`);
 }
