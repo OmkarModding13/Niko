@@ -85,16 +85,19 @@ const embed = new EmbedBuilder()
     .setTimestamp()
     .setFooter({ text: embedFooter });
 
+// Send dynamic banner as a separate full-width image
 if (welcomeAttachment) {
-    embed.setImage('attachment://welcome.png');
+    await channel.send({
+        files: [welcomeAttachment]
+    });
 } else if (backgroundUrl) {
     embed.setImage(backgroundUrl);
 }
 
+// Send welcome message separately
 await channel.send({
     content: messageContent,
-    embeds: [embed],
-    files: welcomeAttachment ? [welcomeAttachment] : []
+    embeds: [embed]
 });
                 }
             }
