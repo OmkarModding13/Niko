@@ -68,7 +68,7 @@ export async function generateWelcomeImage({
     const safeUsername = escapeXml(username);
     const safeMemberCount = escapeXml(memberCount);
 
-    const textOverlay = Buffer.from(`
+       const textOverlay = Buffer.from(`
     <svg width="1200" height="500">
 
         <text
@@ -107,4 +107,20 @@ export async function generateWelcomeImage({
 
     </svg>
 `);
+
+    return sharp(background)
+        .composite([
+            {
+                input: avatar,
+                left: 450,
+                top: 5
+            },
+            {
+                input: textOverlay,
+                left: 0,
+                top: 0
+            }
+        ])
+        .png()
+        .toBuffer();
 }
