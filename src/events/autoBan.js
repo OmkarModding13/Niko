@@ -9,6 +9,67 @@ import {
 
 const AUTO_BAN_CHANNEL_ID = '1530876980873007178';
 
+async function updateAutoBanEmbed(message, banCount) {
+    try {
+        const channel = message.channel;
+
+        const embed = new EmbedBuilder()
+            .setColor('#ff0000')
+            .setTitle('🚨 Anti Bot Channel 🚨')
+            .setDescription(
+                '**DO NOT TYPE IN HERE**\n\n' +
+                '**If you type in here, you will be automatically blocked from the server**\n\n' +
+                'This channel is monitored automatically for spam bots, compromised accounts, and automated raid tools.'
+            )
+            .addFields({
+                name: 'Members Blocked',
+                value: `**${banCount}**`,
+                inline: false
+            })
+            .setFooter({
+                text: `Hollow Devils Domain Anti-Bot System • Updates automatically • ${new Date().toLocaleString('en-GB')}`
+            });
+
+        const savedEmbed = await getAutoBanEmbed(
+            message.client,
+            message.guild.id
+        );
+
+        // Existing embed ko update karo
+        if (savedEmbed?.messageId) {
+            try {
+                const existingMessage = await channel.messages.fetch(
+                    savedEmbed.messageId
+                );
+
+                await existingMessage.edit({
+                    embeds: [embed]
+                });
+
+                return;
+            } catch {
+                // Old embed nahi mila, naya create karenge
+            }
+        }
+
+        // First time: new embed create karo
+        const newMessage = await channel.send({
+            embeds: [embed]
+        });
+
+        await saveAutoBanEmbed(
+            message.client,
+            message.guild.id,
+            {
+                messageId: newMessage.id,
+                channelId: channel.id
+            }
+        );
+    } catch (error) {
+        logger.error('[Auto-Ban] Failed to update anti-bot embed:', error);
+    }
+}
+
 export default {
     name: 'messageCreate',
 
