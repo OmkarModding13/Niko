@@ -1,6 +1,11 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { incrementAutoBanCounter } from '../utils/database.js';
+import { EmbedBuilder } from 'discord.js';
+import {
+    getAutoBanEmbed,
+    saveAutoBanEmbed
+} from '../utils/database.js';
 
 const AUTO_BAN_CHANNEL_ID = '1530876980873007178';
 
