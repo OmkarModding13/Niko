@@ -6,7 +6,7 @@ import {
     getAutoBanEmbed,
     saveAutoBanEmbed
 } from '../utils/database.js';
-import { resetAutoBanCounter } from '../utils/database.js';
+
 
 const AUTO_BAN_CHANNEL_ID = '1530876980873007178';
 
@@ -99,10 +99,7 @@ if (message.guild?.ownerId === message.author.id) return;
     });
 
                 
-    await resetAutoBanCounter(
-    message.client,
-    message.guild.id
-);
+
 
 const banCount = await incrementAutoBanCounter(
     message.client,
