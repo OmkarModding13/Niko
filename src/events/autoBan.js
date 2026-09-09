@@ -34,18 +34,27 @@ async function updateAutoBanEmbed(message, banCount) {
         
 
         // First time: new embed create karo
-        const newMessage = await channel.send({
+        const savedEmbed = await getAutoBanEmbed(
+    message.client,
+    message.guild.id
+);
+
+// Existing embed ko update karo
+if (savedEmbed?.messageId) {
+    try {
+        const existingMessage = await channel.messages.fetch(
+            savedEmbed.messageId
+        );
+
+        await existingMessage.edit({
             embeds: [embed]
         });
 
-        await saveAutoBanEmbed(
-            message.client,
-            message.guild.id,
-            {
-                messageId: newMessage.id,
-                channelId: channel.id
-            }
-        );
+        return;
+    } catch {
+        // Old embed nahi mila, naya create karenge
+    }
+}
     } catch (error) {
         logger.error('[Auto-Ban] Failed to update anti-bot embed:', error);
     }
