@@ -15,7 +15,7 @@ async function updateAutoBanEmbed(message, banCount) {
 
         const embed = new EmbedBuilder()
             .setColor('#ff0000')
-            .setTitle('🚨 Anti Bot Channel 🚨')
+            .setTitle('\u{1F6A8} Anti Bot Channel \u{1F6A8}')
 .setDescription(
     '# **DO NOT TYPE IN HERE**\n\n' +
     '**If you type in here, you will be automatically blocked from the server**\n\n' +
