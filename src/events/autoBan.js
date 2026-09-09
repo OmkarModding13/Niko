@@ -1,5 +1,6 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { logger } from '../utils/logger.js';
+import { incrementAutoBanCounter } from '../utils/database.js';
 
 const AUTO_BAN_CHANNEL_ID = '1530876980873007178';
 
@@ -22,14 +23,24 @@ if (message.guild?.ownerId === message.author.id) return;
 
             // Ban the member
             if (message.member?.bannable) {
-                await message.member.ban({
-                    reason: 'Sent a message in the Anti-Bot / Auto-Ban channel.'
-                });
+    await message.member.ban({
+        reason: 'Sent a message in the Anti-Bot / Auto-Ban channel.'
+    });
 
-                logger.info(
-                    `[Auto-Ban] Banned ${message.author.tag} for messaging in Auto-Ban channel.`
-                );
-            } else {
+    const banCount = await incrementAutoBanCounter(
+        message.client,
+        message.guild.id
+    );
+
+    logger.info(
+        `[Auto-Ban] Permanent ban count: ${banCount}`
+    );
+
+    logger.info(
+        `[Auto-Ban] Banned ${message.author.tag} for messaging in Auto-Ban channel.`
+    );
+}
+            else {
                 logger.warn(
                     `[Auto-Ban] Could not ban ${message.author.tag}. Missing permission or member is not bannable.`
                 );
