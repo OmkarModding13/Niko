@@ -12,6 +12,9 @@ export default {
 
         // Only work in the Auto-Ban channel
         if (message.channel.id !== AUTO_BAN_CHANNEL_ID) return;
+        
+        // Protect server owner
+if (message.guild?.ownerId === message.author.id) return;
 
         try {
             // Delete the message first
