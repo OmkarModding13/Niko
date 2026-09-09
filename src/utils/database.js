@@ -1246,17 +1246,4 @@ export async function saveAutoBanEmbed(client, guildId, embedData) {
     }
 }
 
-export async function resetAutoBanCounter(client, guildId) {
-    try {
-        const key = `guild:${guildId}:autoban:counter`;
 
-        await client.db.set(key, 0);
-
-        logger.info(`[Auto-Ban] Counter reset to 0 for guild ${guildId}`);
-
-        return true;
-    } catch (error) {
-        logger.error(`Error resetting auto-ban counter for guild ${guildId}:`, error);
-        return false;
-    }
-}
