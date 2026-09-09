@@ -94,13 +94,16 @@ if (message.guild?.ownerId === message.author.id) return;
     });
 
     const banCount = await incrementAutoBanCounter(
-        message.client,
-        message.guild.id
-    );
+    message.client,
+    message.guild.id
+);
 
-    logger.info(
-        `[Auto-Ban] Permanent ban count: ${banCount}`
-    );
+logger.info(
+    `[Auto-Ban] Permanent ban count: ${banCount}`
+);
+
+await updateAutoBanEmbed(message, banCount);
+                
 
     logger.info(
         `[Auto-Ban] Banned ${message.author.tag} for messaging in Auto-Ban channel.`
