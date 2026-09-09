@@ -1194,3 +1194,30 @@ formatted = formatted.substring(0, 100);
 function generateCaseId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 4)}`;
 }
+
+export async function getAutoBanCounter(client, guildId) {
+    try {
+        const key = `guild:${guildId}:autoban:counter`;
+        const data = await client.db.get(key, 0);
+
+        return Number(data) || 0;
+    } catch (error) {
+        logger.error(`Error getting auto-ban counter for guild ${guildId}:`, error);
+        return 0;
+    }
+}
+
+export async function incrementAutoBanCounter(client, guildId) {
+    try {
+        const key = `guild:${guildId}:autoban:counter`;
+        const current = await getAutoBanCounter(client, guildId);
+        const newCount = current + 1;
+
+        await client.db.set(key, newCount);
+
+        return newCount;
+    } catch (error) {
+        logger.error(`Error incrementing auto-ban counter for guild ${guildId}:`, error);
+        return null;
+    }
+}
