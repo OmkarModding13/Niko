@@ -116,6 +116,10 @@ export function getServerCountersKey(guildId) {
     return `guild:${guildId}:counters`;
 }
 
+export function getAutoBanCounterKey(guildId) {
+    return `guild:${guildId}:autoban:counter`;
+}
+
 export function getGiveawayEntryKey(userId, giveawayId) {
     return `giveaway:${userId}:${giveawayId}`;
 }
