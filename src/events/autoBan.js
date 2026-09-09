@@ -31,27 +31,7 @@ async function updateAutoBanEmbed(message, banCount) {
                 text: `Hollow Devils Domain Anti-Bot System • Updates automatically • ${new Date().toLocaleString('en-GB')}`
             });
 
-        const savedEmbed = await getAutoBanEmbed(
-            message.client,
-            message.guild.id
-        );
-
-        // Existing embed ko update karo
-        if (savedEmbed?.messageId) {
-            try {
-                const existingMessage = await channel.messages.fetch(
-                    savedEmbed.messageId
-                );
-
-                await existingMessage.edit({
-                    embeds: [embed]
-                });
-
-                return;
-            } catch {
-                // Old embed nahi mila, naya create karenge
-            }
-        }
+        
 
         // First time: new embed create karo
         const newMessage = await channel.send({
