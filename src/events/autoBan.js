@@ -55,6 +55,20 @@ if (savedEmbed?.messageId) {
         // Old embed nahi mila, naya create karenge
     }
 }
+
+// Embed nahi mila toh naya create karo
+const newMessage = await channel.send({
+    embeds: [embed]
+});
+
+await saveAutoBanEmbed(
+    message.client,
+    message.guild.id,
+    {
+        messageId: newMessage.id,
+        channelId: channel.id
+    }
+);
     } catch (error) {
         logger.error('[Auto-Ban] Failed to update anti-bot embed:', error);
     }
