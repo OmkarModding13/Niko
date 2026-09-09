@@ -16,11 +16,12 @@ async function updateAutoBanEmbed(message, banCount) {
         const embed = new EmbedBuilder()
             .setColor('#ff0000')
             .setTitle('🚨 Anti Bot Channel 🚨')
-            .setDescription(
-                '**DO NOT TYPE IN HERE**\n\n' +
-                '**If you type in here, you will be automatically blocked from the server**\n\n' +
-                'This channel is monitored automatically for spam bots, compromised accounts, and automated raid tools.'
-            )
+.setDescription(
+    '# **DO NOT TYPE IN HERE**\n\n' +
+    '**If you type in here, you will be automatically blocked from the server**\n\n' +
+    'This channel is monitored automatically for spam bots, compromised accounts,\n' +
+    'and automated raid tools.'
+)
             .addFields({
                 name: 'Members Blocked',
                 value: `**${banCount}**`,
