@@ -1221,3 +1221,27 @@ export async function incrementAutoBanCounter(client, guildId) {
         return null;
     }
 }
+export async function getAutoBanEmbed(client, guildId) {
+    try {
+        const key = `guild:${guildId}:autoban:embed`;
+        const data = await client.db.get(key, null);
+
+        return data || null;
+    } catch (error) {
+        logger.error(`Error getting auto-ban embed for guild ${guildId}:`, error);
+        return null;
+    }
+}
+
+export async function saveAutoBanEmbed(client, guildId, embedData) {
+    try {
+        const key = `guild:${guildId}:autoban:embed`;
+
+        await client.db.set(key, embedData);
+
+        return true;
+    } catch (error) {
+        logger.error(`Error saving auto-ban embed for guild ${guildId}:`, error);
+        return false;
+    }
+}
