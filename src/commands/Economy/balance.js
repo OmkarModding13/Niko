@@ -1,3 +1,4 @@
+import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
@@ -61,7 +62,7 @@ export default {
                 .addFields(
                     
                     {
-    name: "💀 Souls",
+    name: `${botConfig.economy.currency.emoji} Souls`,
     value: `${wallet.toLocaleString()} Souls`,
     inline: true,
 },
