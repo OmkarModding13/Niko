@@ -82,6 +82,7 @@ if (lastDaily === 0) {
 
             userData.wallet = (userData.wallet || 0) + earned;
             userData.lastDaily = now;
+    userData.dailyStreak = newDailyStreak;
 
             await setEconomyData(client, guildId, userId, userData);
 
