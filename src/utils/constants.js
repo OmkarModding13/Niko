@@ -1,7 +1,6 @@
 // constants.js
 
 export const DEFAULT_ECONOMY_DATA = {
-    export const DEFAULT_ECONOMY_DATA = {
     wallet: 0,
     bank: 0,
     bankLevel: 0,
@@ -19,6 +18,7 @@ export const DEFAULT_ECONOMY_DATA = {
     lastDeposit: 0,
     lastWithdraw: 0,
 
+    // Chat economy
     lastChatReward: 0,
     activityStart: 0,
     lastActivity: 0,
@@ -39,9 +39,16 @@ export const DEFAULT_GUILD_CONFIG = {
     autoRole: null,
     logging: {
         enabled: false,
-        channels: { audit: null, applications: null, reports: null },
-        ignore: { users: [], channels: [] },
-        enabledEvents: {},
+        channels: {
+            audit: null,
+            applications: null,
+            reports: null
+        },
+        ignore: {
+            users: [],
+            channels: []
+        },
+        enabledEvents: {}
     },
     verification: {
         enabled: false
@@ -49,9 +56,9 @@ export const DEFAULT_GUILD_CONFIG = {
 };
 
 export const INTERACTION_TIMEOUTS = {
-    EXPIRE: 15 * 60 * 1000,  
-    DEFER_TIMEOUT: 3000,      
-    REPLY_TIMEOUT: 3000       
+    EXPIRE: 15 * 60 * 1000,
+    DEFER_TIMEOUT: 3000,
+    REPLY_TIMEOUT: 3000
 };
 
 export const STORAGE_LIMITS = {
@@ -62,7 +69,6 @@ export const STORAGE_LIMITS = {
     MAX_EMBED_FIELD_VALUE: 1024,
     MAX_BUTTON_LABEL: 80,
     MAX_BUTTON_CUSTOM_ID: 100,
-    MAX_SELECT_PLACEHOLDER: 150,
     MAX_USER_INPUT: 2000,
     MAX_CUSTOM_ID_PATTERN: /^[a-zA-Z0-9_-]+$/,
     MAX_BUTTONS_PER_ROW: 5
