@@ -72,7 +72,7 @@ export default {
     inline: true,
 },
 {
-    name: "💀 Total Souls",
+    name: "<:Total:1547545479628333086> Total Souls",
     value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
     inline: true,
 }
