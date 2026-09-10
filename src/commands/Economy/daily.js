@@ -40,6 +40,15 @@ export default {
             
             const lastDaily = userData.lastDaily || 0;
     const dailyStreak = userData.dailyStreak || 0;
+    let newDailyStreak = dailyStreak;
+
+if (lastDaily === 0) {
+    newDailyStreak = 1;
+} else if (now - lastDaily <= 48 * 60 * 60 * 1000) {
+    newDailyStreak += 1;
+} else {
+    newDailyStreak = 1;
+}
 
             if (now < lastDaily + DAILY_COOLDOWN) {
                 const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
