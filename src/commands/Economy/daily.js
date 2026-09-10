@@ -39,6 +39,7 @@ export default {
             }
             
             const lastDaily = userData.lastDaily || 0;
+    const dailyStreak = userData.dailyStreak || 0;
 
             if (now < lastDaily + DAILY_COOLDOWN) {
                 const timeRemaining = lastDaily + DAILY_COOLDOWN - now;
