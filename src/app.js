@@ -7,18 +7,32 @@ import cron from 'node-cron';
 import config from './config/application.js';
 import { initializeDatabase } from './utils/database.js';
 import { getGuildConfig } from './services/config/guildConfig.js';
-import { getServerCounters, saveServerCounters, updateCounter } from './services/serverstatsService.js';
+import {
+    getServerCounters,
+    saveServerCounters,
+    updateCounter
+} from './services/serverstatsService.js';
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { checkDailyReminders } from './services/dailyReminderService.js';
 import { checkVoiceEconomy } from './services/voiceEconomyService.js';
-import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
-import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
+import {
+    loadCommands,
+    registerCommands as registerSlashCommands
+} from './handlers/loaders/commandLoader.js';
+import {
+    runSafeTask,
+    handleTaskError,
+    ErrorCodes
+} from './utils/errorHandler.js';
 import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
-import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
+import {
+    EXPECTED_SCHEMA_VERSION,
+    EXPECTED_SCHEMA_LABEL
+} from './config/database/schemaVersion.js';
 
 
 class TitanBot extends Client {
@@ -166,6 +180,7 @@ class TitanBot extends Client {
         });
 
         const requestCounts = new Map();
+
         const windowMs =
             this.config.api?.rateLimit?.windowMs || 60000;
 
@@ -382,6 +397,15 @@ class TitanBot extends Client {
             runSafeTask(
                 'daily_reminder_check',
                 () => checkDailyReminders(this)
+            )
+        );
+
+        // Voice economy check - runs every minute
+        cron.schedule(
+            '* * * * *',
+            runSafeTask(
+                'voice_economy_check',
+                () => checkVoiceEconomy(this)
             )
         );
 
