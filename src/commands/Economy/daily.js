@@ -1,4 +1,3 @@
-import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder } from 'discord.js';
 import {
     createEmbed,
