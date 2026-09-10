@@ -15,7 +15,7 @@ import {
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 
-const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
+const DAILY_COOLDOWN = 2 * 60 * 1000;
 
 export default {
     data: new SlashCommandBuilder()
