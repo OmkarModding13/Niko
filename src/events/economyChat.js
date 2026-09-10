@@ -6,7 +6,7 @@ import {
 } from '../utils/economy.js';
 
 const CHAT_REWARD = 2;
-const CHAT_COOLDOWN = 1 * 60 * 1000; // 10 minutes
+const CHAT_COOLDOWN = 10 * 60 * 1000; // 10 minutes
 
 // Activity system
 const ACTIVITY_WINDOWS_REQUIRED = 6;
