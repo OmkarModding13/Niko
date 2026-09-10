@@ -1,7 +1,7 @@
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 
-const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
+const DAILY_COOLDOWN = 2 * 60 * 1000;
 const COMMAND_CHANNEL_ID = '1547531709959118911';
 
 export async function checkDailyReminders(client) {
