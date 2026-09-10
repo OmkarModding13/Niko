@@ -221,7 +221,7 @@ export default {
 
         const embed = successEmbed(
             '✅ Daily Claimed!',
-            `You have claimed your daily **${earned.toLocaleString()} Souls**!${bonusMessage}`
+            `You have claimed your daily **${botConfig.economy.currency.emoji} ${earned.toLocaleString()} Souls**!${bonusMessage}`
         )
             .addFields(
                 {
