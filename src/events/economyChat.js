@@ -1,11 +1,14 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
-import { getEconomyData, addMoney } from '../utils/economy.js';
+import {
+    getEconomyData,
+    setEconomyData
+} from '../utils/economy.js';
 
 const CHAT_REWARD = 2;
 const CHAT_COOLDOWN = 10 * 60 * 1000; // 10 minutes
 
-// Per-user temporary anti-spam tracking
+// Temporary anti-spam tracking
 const recentMessages = new Map();
 
 export default {
@@ -13,7 +16,6 @@ export default {
 
     async execute(message, client) {
         try {
-            // Ignore bots, DMs and empty messages
             if (message.author.bot || !message.guild) return;
 
             if (!message.content || message.content.trim().length === 0) {
@@ -24,11 +26,10 @@ export default {
             const userId = message.author.id;
             const now = Date.now();
 
-            // Anti-spam:
-            // Same exact message repeatedly won't generate rewards
             const userKey = `${guildId}:${userId}`;
             const messageContent = message.content.trim().toLowerCase();
 
+            // Prevent repeated identical messages
             const previous = recentMessages.get(userKey);
 
             if (previous?.content === messageContent) {
@@ -40,7 +41,6 @@ export default {
                 timestamp: now
             });
 
-            // Get economy data
             const userData = await getEconomyData(
                 client,
                 guildId,
@@ -56,18 +56,12 @@ export default {
                 return;
             }
 
-            // Give 2 Souls
-            await addMoney(
-                client,
-                guildId,
-                userId,
-                CHAT_REWARD
-            );
-
-            // Save reward timestamp
+            // Add Souls directly to the loaded data
+            userData.wallet = (userData.wallet || 0) + CHAT_REWARD;
             userData.lastChatReward = now;
 
-            await setEconomyChatData(
+            // Save everything together
+            await setEconomyData(
                 client,
                 guildId,
                 userId,
@@ -86,19 +80,3 @@ export default {
         }
     }
 };
-
-async function setEconomyChatData(
-    client,
-    guildId,
-    userId,
-    data
-) {
-    const { setEconomyData } = await import('../utils/economy.js');
-
-    await setEconomyData(
-        client,
-        guildId,
-        userId,
-        data
-    );
-}
