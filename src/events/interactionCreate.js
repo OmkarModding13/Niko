@@ -59,6 +59,16 @@ export default {
         ResponseCoordinator.attach(interaction);
 
         if (interaction.isChatInputCommand()) {
+          const COMMAND_CHANNEL_ID = '1547531709959118911';
+
+if (interaction.guild && interaction.channelId !== COMMAND_CHANNEL_ID) {
+    await interaction.reply({
+        content: `❌ Please use commands in <#${COMMAND_CHANNEL_ID}>.`,
+        flags: MessageFlags.Ephemeral
+    });
+
+    return;
+}
           try {
             logger.info(`Command executed: /${interaction.commandName} by ${interaction.user.tag}`, {
               event: 'interaction.command.received',
