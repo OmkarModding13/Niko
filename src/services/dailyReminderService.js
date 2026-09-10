@@ -2,6 +2,7 @@ import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
+const COMMAND_CHANNEL_ID = '1547531709959118911';
 
 export async function checkDailyReminders(client) {
     if (!client?.db || !client?.guilds) return;
@@ -39,9 +40,32 @@ export async function checkDailyReminders(client) {
                     const lastDaily = userData.lastDaily || 0;
                     const readyAt = lastDaily + DAILY_COOLDOWN;
 
-                    if (now < readyAt) continue;
+                    // If the user has claimed /daily since the last
+                    // reminder was scheduled, move the reminder forward.
+                    if (
+                        !userData.reminderNextAt ||
+                        readyAt > userData.reminderNextAt
+                    ) {
+                        userData.reminderNextAt = readyAt;
 
-                    const user = await client.users.fetch(userId).catch(() => null);
+                        await setEconomyData(
+                            client,
+                            guildId,
+                            userId,
+                            userData
+                        );
+
+                        continue;
+                    }
+
+                    const nextReminderAt = userData.reminderNextAt;
+
+                    // Daily reward is not ready for reminder yet.
+                    if (now < nextReminderAt) continue;
+
+                    const user = await client.users
+                        .fetch(userId)
+                        .catch(() => null);
 
                     if (!user) continue;
 
@@ -50,14 +74,15 @@ export async function checkDailyReminders(client) {
                             title: '🔔 Daily Reward Ready!',
                             description:
                                 `Your daily reward is ready to claim!\n\n` +
-                                `Use **/daily** in <#${guild.channels.cache.find(c => c.isTextBased?.())?.id || ''}> to claim your Souls.`,
+                                `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
                             color: 0x5865F2
                         }]
                     });
 
-                    // Prevent repeated DMs every minute.
-                    // The next reminder will be scheduled from the next daily claim.
-                    userData.reminderNextAt = readyAt + DAILY_COOLDOWN;
+                    // Schedule the next reminder for the next
+                    // 24-hour cycle so it cannot DM every minute.
+                    userData.reminderNextAt =
+                        nextReminderAt + DAILY_COOLDOWN;
 
                     await setEconomyData(
                         client,
@@ -77,6 +102,7 @@ export async function checkDailyReminders(client) {
                     );
                 }
             }
+
         } catch (error) {
             logger.error(
                 `[DAILY_REMINDER] Failed for guild ${guildId}:`,
