@@ -1,6 +1,7 @@
 // constants.js
 
 export const DEFAULT_ECONOMY_DATA = {
+    export const DEFAULT_ECONOMY_DATA = {
     wallet: 0,
     bank: 0,
     bankLevel: 0,
@@ -17,6 +18,12 @@ export const DEFAULT_ECONOMY_DATA = {
     lastWeekly: 0,
     lastDeposit: 0,
     lastWithdraw: 0,
+
+    lastChatReward: 0,
+    activityStart: 0,
+    lastActivity: 0,
+    chatStreak: 0,
+
     inventory: {},
     upgrades: {},
     cooldowns: {}
