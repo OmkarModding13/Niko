@@ -1,23 +1,26 @@
-import { SlashCommandBuilder } from 'discord.js';
-import { getEconomyData } from '../../utils/economy.js';
+import {
+    SlashCommandBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle
+} from 'discord.js';
+
+import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import {
     successEmbed,
     infoEmbed,
-    warningEmbed
+    warningEmbed,
+    formatDuration
 } from '../../utils/embeds.js';
-import { formatDuration } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
 
-// Prevent duplicate reminders
-const activeReminders = new Map();
-
 export default {
     data: new SlashCommandBuilder()
         .setName('remindme')
-        .setDescription('Get a DM reminder when your daily reward is ready'),
+        .setDescription('Enable daily reward reminders'),
 
     async execute(interaction, config, client) {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -35,102 +38,89 @@ export default {
             );
 
             if (!userData) {
-                await InteractionHelper.safeEditReply(
-                    interaction,
-                    {
-                        embeds: [
-                            warningEmbed(
-                                '⚠️ Error',
-                                'Could not load your economy data.'
-                            )
-                        ]
-                    }
-                );
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        warningEmbed(
+                            '⚠️ Reminder Failed',
+                            'Could not load your economy data.'
+                        )
+                    ]
+                });
                 return;
             }
 
+            const now = Date.now();
             const lastDaily = userData.lastDaily || 0;
             const readyAt = lastDaily + DAILY_COOLDOWN;
-            const now = Date.now();
 
-            // Daily is already ready
+            userData.reminderEnabled = true;
+
+            // If daily is already ready, schedule it immediately.
             if (now >= readyAt) {
-                await InteractionHelper.safeEditReply(
-                    interaction,
-                    {
-                        embeds: [
-                            successEmbed(
-                                '✅ Daily Ready!',
-                                'Your daily reward is already ready to claim!'
-                            )
-                        ]
-                    }
-                );
+                userData.reminderNextAt = now;
+            } else {
+                userData.reminderNextAt = readyAt;
+            }
+
+            await setEconomyData(
+                client,
+                guildId,
+                userId,
+                userData
+            );
+
+            const stopButton = new ButtonBuilder()
+                .setCustomId(`daily_reminder_stop:${userId}`)
+                .setLabel('Stop Reminders')
+                .setStyle(ButtonStyle.Secondary);
+
+            const row = new ActionRowBuilder()
+                .addComponents(stopButton);
+
+            if (now >= readyAt) {
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [
+                        successEmbed(
+                            '🔔 Daily Reminders Enabled',
+                            'Your daily reward is already ready!\n\nI will send you a DM reminder.'
+                        )
+                    ],
+                    components: [row]
+                });
+
                 return;
             }
 
             const timeRemaining = readyAt - now;
-            const reminderKey = `${guildId}:${userId}`;
 
-            // Cancel existing reminder
-            if (activeReminders.has(reminderKey)) {
-                clearTimeout(activeReminders.get(reminderKey));
-            }
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [
+                    infoEmbed(
+                        '🔔 Daily Reminders Enabled',
+                        `I'll send you a DM when your daily reward is ready.\n\n**Next reminder:** ${formatDuration(timeRemaining)}`
+                    )
+                ],
+                components: [row]
+            });
 
-            const timer = setTimeout(async () => {
-                try {
-                    await interaction.user.send({
-                        embeds: [
-                            successEmbed(
-                                '💀 Daily Reward Ready!',
-                                'Your daily Souls reward is ready to claim!\n\nUse **/daily** to collect it.'
-                            )
-                        ]
-                    });
-
-                    logger.info(
-                        `[DAILY_REMINDER] Sent reminder to ${interaction.user.tag}`
-                    );
-                } catch (error) {
-                    logger.warn(
-                        `[DAILY_REMINDER] Could not DM ${interaction.user.tag}`
-                    );
-                }
-
-                activeReminders.delete(reminderKey);
-            }, timeRemaining);
-
-            activeReminders.set(reminderKey, timer);
-
-            await InteractionHelper.safeEditReply(
-                interaction,
-                {
-                    embeds: [
-                        infoEmbed(
-                            '⏰ Reminder Set!',
-                            `I'll send you a DM when your daily reward is ready.\n\n**Time remaining:** ${formatDuration(timeRemaining)}`
-                        )
-                    ]
-                }
+            logger.info(
+                `[DAILY_REMINDER] Enabled for ${interaction.user.tag}`
             );
 
         } catch (error) {
             logger.error(
-                '[DAILY_REMINDER] Error setting reminder:',
+                '[DAILY_REMINDER] Failed to enable reminder:',
                 error
             );
 
-            await InteractionHelper.safeEditReply(
-                interaction,
-                {
-                    embeds: [
-                        warningEmbed(
-                            '⚠️ Reminder Failed',
-                            'I could not set your reminder. Please try again.'
-                        )
-                    ]
-                }
-            );
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [
+                    warningEmbed(
+                        '⚠️ Reminder Failed',
+                        'I could not enable your daily reminder. Please try again.'
+                    )
+                ]
+            });
         }
     }
 };
