@@ -1,3 +1,4 @@
+import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder } from 'discord.js';
 import {
     createEmbed,
@@ -229,7 +230,7 @@ export default {
                     inline: true
                 },
                 {
-                    name: '💀 New Souls Balance',
+                    name: `${botConfig.economy.currency.emoji} New Souls Balance`,
                     value: `${userData.wallet.toLocaleString()} Souls`,
                     inline: true
                 }
