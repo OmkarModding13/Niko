@@ -64,6 +64,17 @@ if (lastDaily === 0) {
             const PREMIUM_ROLE_ID = guildConfig.premiumRoleId;
 
             let earned = DAILY_AMOUNT;
+    if (newDailyStreak % 3 === 0) {
+    earned += 15;
+}
+
+if (newDailyStreak % 7 === 0) {
+    earned += 40;
+}
+
+if (newDailyStreak % 30 === 0) {
+    earned += 150;
+}
             let bonusMessage = "";
             let hasPremiumRole = false;
 
