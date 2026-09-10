@@ -76,6 +76,13 @@ if (newDailyStreak % 30 === 0) {
     earned += 150;
 }
             let bonusMessage = "";
+    if (newDailyStreak % 30 === 0) {
+    bonusMessage = `\n🔥 **30-Day Streak Bonus:** +150 Souls`;
+} else if (newDailyStreak % 7 === 0) {
+    bonusMessage = `\n🔥 **7-Day Streak Bonus:** +40 Souls`;
+} else if (newDailyStreak % 3 === 0) {
+    bonusMessage = `\n🔥 **3-Day Streak Bonus:** +15 Souls`;
+}
             let hasPremiumRole = false;
 
             if (
@@ -87,7 +94,7 @@ if (newDailyStreak % 30 === 0) {
                     DAILY_AMOUNT * PREMIUM_BONUS_PERCENTAGE,
                 );
                 earned += bonusAmount;
-                bonusMessage = `\n✨ **Premium Bonus:** +$${bonusAmount.toLocaleString()}`;
+                bonusMessage = `\n✨ **Premium Bonus:** +${bonusAmount.toLocaleString()} Souls`;
                 hasPremiumRole = true;
             }
 
@@ -108,13 +115,20 @@ if (newDailyStreak % 30 === 0) {
 
             const embed = successEmbed(
                 "✅ Daily Claimed!",
-                `You have claimed your daily **$${earned.toLocaleString()}**!${bonusMessage}`
+                `You have claimed your daily **${earned.toLocaleString()} Souls**!${bonusMessage}`
             )
-                .addFields({
-                    name: "New Cash Balance",
-                    value: `$${userData.wallet.toLocaleString()}`,
-                    inline: true,
-                })
+                .addFields(
+    {
+        name: "🔥 Daily Streak",
+        value: `**${newDailyStreak} days**`,
+        inline: true,
+    },
+    {
+        name: "New Souls Balance",
+        value: `${userData.wallet.toLocaleString()} Souls`,
+        inline: true,
+    }
+)
                 .setFooter({
                     text: hasPremiumRole
                         ? `Next claim in 24 hours. (Premium Active)`
