@@ -63,17 +63,17 @@ export default {
                     
                     {
     name: `${botConfig.economy.currency.emoji} Souls`,
-    value: `${wallet.toLocaleString()} Souls`,
+    value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
     inline: true,
 },
 {
     name: "🏦 Soul Bank",
-    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} Souls`,
+    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
     inline: true,
 },
 {
     name: "💀 Total Souls",
-    value: `${(wallet + bank).toLocaleString()} Souls`,
+    value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
     inline: true,
 }
                 )
