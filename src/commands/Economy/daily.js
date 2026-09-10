@@ -9,13 +9,13 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
-const DAILY_AMOUNT = botConfig.economy?.dailyAmount ?? 100;
+const DAILY_AMOUNT = 25;
 const PREMIUM_BONUS_PERCENTAGE = 0.1;
 
 export default {
     data: new SlashCommandBuilder()
         .setName('daily')
-        .setDescription('Claim your daily cash reward'),
+        .setDescription('Claim your daily Souls reward')
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
