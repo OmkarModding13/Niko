@@ -59,21 +59,22 @@ export default {
                 description: `Here is the current financial status for ${targetUser.username}.`,
             })
                 .addFields(
+                    
                     {
-                        name: "💵 Cash",
-                        value: `$${wallet.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "🏦 Bank",
-                        value: `$${bank.toLocaleString()} / $${maxBank.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "💰 Total",
-                        value: `$${(wallet + bank).toLocaleString()}`,
-                        inline: true,
-                    }
+    name: "💀 Souls",
+    value: `${wallet.toLocaleString()} Souls`,
+    inline: true,
+},
+{
+    name: "🏦 Soul Bank",
+    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} Souls`,
+    inline: true,
+},
+{
+    name: "💀 Total Souls",
+    value: `${(wallet + bank).toLocaleString()} Souls`,
+    inline: true,
+}
                 )
                 .setFooter({
                     text: `Requested by ${interaction.user.tag}`,
