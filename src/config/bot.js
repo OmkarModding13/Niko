@@ -160,14 +160,18 @@ export const botConfig = {
   // =========================
   economy: {
     currency: {
-      // Currency display name.
-      name: "coins",
-      // Plural display name.
-      namePlural: "coins",
-      // Currency symbol shown in balances.
-      symbol: "$",
-    },
+  // Currency display name.
+  name: "Souls",
 
+  // Plural display name.
+  namePlural: "Souls",
+
+  // Currency symbol.
+  symbol: "",
+
+  // Custom Souls emoji.
+  emoji: "<:Souls:1547510037621112894>",
+},
     // Starting balance for new users.
     startingBalance: 0,
 
