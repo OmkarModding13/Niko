@@ -85,6 +85,7 @@ export const EconomyDataSchema = z
     wallet: z.number().nonnegative().default(0),
     bank: z.number().nonnegative().default(0),
     bankLevel: z.number().int().nonnegative().default(0),
+
     dailyStreak: z.number().int().nonnegative().default(0),
     lastDaily: z.number().int().nonnegative().default(0),
     lastWeekly: z.number().int().nonnegative().default(0),
@@ -93,22 +94,46 @@ export const EconomyDataSchema = z
     lastRob: z.number().int().nonnegative().default(0),
     lastDeposit: z.number().int().nonnegative().default(0),
     lastWithdraw: z.number().int().nonnegative().default(0),
+
     xp: z.number().int().nonnegative().default(0),
     level: z.number().int().nonnegative().default(1),
+
+    // Temporary shop color role
+    activeColorRole: z
+      .object({
+        roleId: z.string(),
+        roleName: z.string(),
+        expiresAt: z.number().int().nonnegative()
+      })
+      .nullable()
+      .default(null),
+
     inventory: z.record(z.any()).default({}),
+    upgrades: z.record(z.any()).default({}),
     cooldowns: z.record(z.number().int().nonnegative()).default({})
   })
   .passthrough();
 
 const DEFAULT_LOGGING = {
   enabled: false,
-  channels: { audit: null, applications: null, reports: null },
-  ignore: { users: [], channels: [] },
+  channels: {
+    audit: null,
+    applications: null,
+    reports: null
+  },
+  ignore: {
+    users: [],
+    channels: []
+  },
   enabledEvents: {},
 };
 
 function migrateLoggingConfig(raw = {}, legacy = {}) {
-  const base = typeof raw === 'object' && raw !== null ? raw : {};
+  const base =
+    typeof raw === 'object' && raw !== null
+      ? raw
+      : {};
+
   const {
     logChannelId,
     reportChannelId,
@@ -122,7 +147,9 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     logChannelId ??
     null;
 
-  const applicationsChannel = base.channels?.applications ?? null;
+  const applicationsChannel =
+    base.channels?.applications ??
+    null;
 
   const reportsChannel =
     base.channels?.reports ??
@@ -130,35 +157,64 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     null;
 
   const ignore = {
-    users: base.ignore?.users ?? logIgnore?.users ?? [],
-    channels: base.ignore?.channels ?? logIgnore?.channels ?? [],
+    users:
+      base.ignore?.users ??
+      logIgnore?.users ??
+      [],
+
+    channels:
+      base.ignore?.channels ??
+      logIgnore?.channels ??
+      [],
   };
 
-  let enabled = base.enabled ?? false;
+  let enabled =
+    base.enabled ??
+    false;
+
   if (enableLogging === false) {
     enabled = false;
-  } else if (auditChannel && base.enabled === undefined && enableLogging !== false) {
-    enabled = base.enabled ?? Boolean(enableLogging);
+  } else if (
+    auditChannel &&
+    base.enabled === undefined &&
+    enableLogging !== false
+  ) {
+    enabled =
+      base.enabled ??
+      Boolean(enableLogging);
   }
 
-  const { channelId: _legacyChannelId, ignore: _ignore, channels: _channels, ...rest } = base;
+  const {
+    channelId: _legacyChannelId,
+    ignore: _ignore,
+    channels: _channels,
+    ...rest
+  } = base;
 
   return {
     ...DEFAULT_LOGGING,
     ...rest,
     enabled,
+
     channels: {
       audit: auditChannel,
       applications: applicationsChannel,
       reports: reportsChannel,
     },
+
     ignore,
-    enabledEvents: base.enabledEvents ?? {},
+
+    enabledEvents:
+      base.enabledEvents ??
+      {},
   };
 }
 
 export function stripLegacyLoggingFields(config) {
-  if (!config || typeof config !== 'object') {
+  if (
+    !config ||
+    typeof config !== 'object'
+  ) {
     return config;
   }
 
@@ -170,53 +226,141 @@ export function stripLegacyLoggingFields(config) {
     ...rest
   } = config;
 
-  if (rest.logging && typeof rest.logging === 'object') {
-    const { channelId: _channelId, ...loggingRest } = rest.logging;
+  if (
+    rest.logging &&
+    typeof rest.logging === 'object'
+  ) {
+    const {
+      channelId: _channelId,
+      ...loggingRest
+    } = rest.logging;
+
     rest.logging = loggingRest;
   }
 
   return rest;
 }
 
-export function normalizeGuildConfig(raw, defaults = {}) {
-  const base = typeof raw === 'object' && raw !== null ? raw : {};
-  const merged = { ...defaults, ...base };
+export function normalizeGuildConfig(
+  raw,
+  defaults = {}
+) {
+  const base =
+    typeof raw === 'object' &&
+    raw !== null
+      ? raw
+      : {};
 
-  merged.logging = migrateLoggingConfig(merged.logging, {
-    logChannelId: merged.logChannelId,
-    reportChannelId: merged.reportChannelId,
-    enableLogging: merged.enableLogging,
-    logIgnore: merged.logIgnore,
-  });
+  const merged = {
+    ...defaults,
+    ...base
+  };
 
-  const parsed = GuildConfigSchema.safeParse(merged);
-  const normalized = parsed.success ? parsed.data : { ...defaults, ...merged };
+  merged.logging =
+    migrateLoggingConfig(
+      merged.logging,
+      {
+        logChannelId:
+          merged.logChannelId,
 
-  normalized.logging = migrateLoggingConfig(normalized.logging, {
-    logChannelId: normalized.logChannelId,
-    reportChannelId: normalized.reportChannelId,
-    enableLogging: normalized.enableLogging,
-    logIgnore: normalized.logIgnore,
-  });
+        reportChannelId:
+          merged.reportChannelId,
 
-  return stripLegacyLoggingFields(normalized);
+        enableLogging:
+          merged.enableLogging,
+
+        logIgnore:
+          merged.logIgnore,
+      }
+    );
+
+  const parsed =
+    GuildConfigSchema.safeParse(
+      merged
+    );
+
+  const normalized =
+    parsed.success
+      ? parsed.data
+      : {
+          ...defaults,
+          ...merged
+        };
+
+  normalized.logging =
+    migrateLoggingConfig(
+      normalized.logging,
+      {
+        logChannelId:
+          normalized.logChannelId,
+
+        reportChannelId:
+          normalized.reportChannelId,
+
+        enableLogging:
+          normalized.enableLogging,
+
+        logIgnore:
+          normalized.logIgnore,
+      }
+    );
+
+  return stripLegacyLoggingFields(
+    normalized
+  );
 }
 
-export function normalizeEconomyData(raw, defaults = {}) {
-  const base = typeof raw === 'object' && raw !== null ? raw : {};
-  const merged = { ...defaults, ...base };
-  const parsed = EconomyDataSchema.safeParse(merged);
-  return parsed.success ? parsed.data : { ...defaults, ...base };
+export function normalizeEconomyData(
+  raw,
+  defaults = {}
+) {
+  const base =
+    typeof raw === 'object' &&
+    raw !== null
+      ? raw
+      : {};
+
+  const merged = {
+    ...defaults,
+    ...base
+  };
+
+  const parsed =
+    EconomyDataSchema.safeParse(
+      merged
+    );
+
+  return parsed.success
+    ? parsed.data
+    : {
+        ...defaults,
+        ...base
+      };
 }
 
-export function validateGuildConfigOrThrow(rawConfig, context = {}) {
-  const normalized = normalizeGuildConfig(rawConfig);
-  const parsed = GuildConfigSchema.safeParse(normalized);
+export function validateGuildConfigOrThrow(
+  rawConfig,
+  context = {}
+) {
+  const normalized =
+    normalizeGuildConfig(
+      rawConfig
+    );
+
+  const parsed =
+    GuildConfigSchema.safeParse(
+      normalized
+    );
 
   if (parsed.success) {
     return stripLegacyLoggingFields({
       ...normalized,
-      logging: migrateLoggingConfig(normalized.logging, {}),
+
+      logging:
+        migrateLoggingConfig(
+          normalized.logging,
+          {}
+        ),
     });
   }
 
@@ -226,12 +370,23 @@ export function validateGuildConfigOrThrow(rawConfig, context = {}) {
     'Configuration payload is invalid. Please review provided values and try again.',
     {
       ...context,
-      errorCode: 'VALIDATION_FAILED',
-      issues: parsed.error.issues.map((issue) => ({
-        path: issue.path.join('.'),
-        message: issue.message,
-        code: issue.code
-      }))
+
+      errorCode:
+        'VALIDATION_FAILED',
+
+      issues:
+        parsed.error.issues.map(
+          (issue) => ({
+            path:
+              issue.path.join('.'),
+
+            message:
+              issue.message,
+
+            code:
+              issue.code
+          })
+        )
     }
   );
 }
