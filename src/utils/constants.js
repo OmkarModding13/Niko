@@ -23,10 +23,13 @@ export const DEFAULT_ECONOMY_DATA = {
     activityStart: 0,
     lastActivity: 0,
     chatStreak: 0,
-    
+
     // Daily reminder
     reminderEnabled: false,
     reminderNextAt: 0,
+
+    // Temporary shop color role
+    activeColorRole: null,
 
     inventory: {},
     upgrades: {},
