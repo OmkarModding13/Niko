@@ -54,13 +54,13 @@ function getItemsForCategory(categoryId) {
 }
 
 function getDisplayName(item) {
-    const emoji = ITEM_EMOJIS[item.id] || '';
-
     let name = item.name || item.id;
 
-    // Remove any existing emoji from the beginning
     name = name
-        .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u, '')
+        .replace(
+            /^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u,
+            ''
+        )
         .trim();
 
     return name;
@@ -120,24 +120,8 @@ function createShopEmbed(categoryId, userData) {
         const price =
             getPrice(item, userData);
 
-        let description =
+        const description =
             getItemDescription(item);
-
-        if (
-            item.effect?.type ===
-            'temporary_color_role'
-        ) {
-            description +=
-                '\n⏳ Duration: **7 Days**';
-        }
-
-        if (
-            item.effect?.type ===
-            'bank_capacity'
-        ) {
-            description +=
-                '\n📈 Increase: **+50,000 Bank Capacity**';
-        }
 
         embed.addFields({
             name:
@@ -186,18 +170,16 @@ function createCategoryMenu(selectedCategory) {
     );
 }
 
-function createItemMenu(categoryId) {
+function createItemMenu(categoryId, userData = null) {
     const items =
         getItemsForCategory(categoryId);
 
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            // IMPORTANT:
-            // No ":" here.
-            // This allows interactionCreate.js to ignore
-            // this collector-managed component.
             .setCustomId('shop_item')
-            .setPlaceholder('Select an item to purchase...')
+            .setPlaceholder(
+                'Select an item to purchase...'
+            )
             .addOptions(
                 items.map(item => ({
                     label:
@@ -207,10 +189,11 @@ function createItemMenu(categoryId) {
                         item.id,
 
                     description:
-                        `${getPrice(item).toLocaleString()} Souls`,
+                        `${getPrice(item, userData).toLocaleString()} Souls`,
 
                     emoji:
-                        ITEM_EMOJIS[item.id] || '🛍️'
+                        ITEM_EMOJIS[item.id] ||
+                        '🛍️'
                 }))
             )
     );
@@ -248,10 +231,18 @@ export default {
                     currentCategory
                 ),
                 createItemMenu(
-                    currentCategory
+                    currentCategory,
+                    userData
                 )
             ];
 
+            /*
+             * PUBLIC SHOP MESSAGE
+             *
+             * Everyone can see the shop.
+             * Only the user who opened it can use
+             * the dropdowns.
+             */
             await interaction.reply({
                 embeds: [
                     createShopEmbed(
@@ -260,10 +251,7 @@ export default {
                     )
                 ],
                 components:
-                    getComponents(),
-
-                flags:
-                    MessageFlags.Ephemeral
+                    getComponents()
             });
 
             const message =
@@ -278,6 +266,10 @@ export default {
                 'collect',
                 async componentInteraction => {
                     try {
+                        /*
+                         * Only the original user can
+                         * control this shop.
+                         */
                         if (
                             componentInteraction.user.id !==
                             userId
@@ -293,7 +285,7 @@ export default {
                         }
 
                         /*
-                         * CATEGORY
+                         * CATEGORY SELECT
                          */
                         if (
                             componentInteraction.customId ===
@@ -320,7 +312,7 @@ export default {
                         }
 
                         /*
-                         * ITEM
+                         * ITEM SELECT
                          */
                         if (
                             componentInteraction.customId ===
@@ -408,7 +400,7 @@ export default {
                                     `\n\n❌ You need **${SOULS_EMOJI} ${needed.toLocaleString()}** more Souls.`;
                             } else {
                                 content +=
-                                    `\n\n✅ You can afford this item.`;
+                                    '\n\n✅ You can afford this item.';
 
                                 content +=
                                     `\nUse **/buy item_id:${item.id}** to purchase it.`;
