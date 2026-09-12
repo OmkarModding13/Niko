@@ -17,6 +17,7 @@ import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { checkDailyReminders } from './services/dailyReminderService.js';
 import { checkVoiceEconomy } from './services/voiceEconomyService.js';
+import { checkColorRoleExpiry } from './services/colorRoleExpiryService.js';
 import {
     loadCommands,
     registerCommands as registerSlashCommands
@@ -416,6 +417,15 @@ class TitanBot extends Client {
                 () => this.updateAllCounters()
             )
         );
+        // Temporary color role expiry check - runs every minute
+        cron.schedule(
+          '* * * * *',
+          runSafeTask(
+             'color_role_expiry_check',
+                () => checkColorRoleExpiry(this)
+    )
+);
+        
     }
 
     async updateAllCounters() {
