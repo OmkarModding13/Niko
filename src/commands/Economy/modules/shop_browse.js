@@ -132,9 +132,9 @@ function createShopEmbed(categoryId, userData) {
     }
 
     embed.addFields({
-        name: '💰 Your Balance',
+        name: `${TOTAL_EMOJI} Balance`,
         value:
-            `${TOTAL_EMOJI} ${(userData?.wallet || 0).toLocaleString()} Souls`,
+            `${SOULS_EMOJI} ${(userData?.wallet || 0).toLocaleString()} Souls`,
         inline: false
     });
 
@@ -371,7 +371,7 @@ export default {
                                 `**Price:** ${SOULS_EMOJI} ${price.toLocaleString()} Souls\n`;
 
                             content +=
-                                `**Your Balance:** ${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`;
+                                `**Balance:** ${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`;
 
                             if (
                                 item.effect?.type ===
