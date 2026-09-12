@@ -1,7 +1,5 @@
 import {
     SlashCommandBuilder,
-    EmbedBuilder,
-    PermissionFlagsBits,
     MessageFlags
 } from 'discord.js';
 
@@ -33,90 +31,90 @@ export default {
 
         if (!channel) {
             await interaction.reply({
-                content:
-                    '❌ Rules channel was not found.',
+                content: '❌ Rules channel was not found.',
                 flags: MessageFlags.Ephemeral
             });
 
             return;
         }
 
-        const embed = new EmbedBuilder()
-            .setColor(0x5865F2)
-            .setTitle(
-                '✦━━━━━━━━━━━━━━━━━━━━✦\n' +
-                "HOLLOW DEVIL'S DOMAIN\n" +
-                'SERVER RULES\n' +
-                '✦━━━━━━━━━━━━━━━━━━━━✦'
-            )
-            .setDescription(
-                '⚪ **Respect Everyone**\n' +
-                'Treat everyone with respect. Harassment, hate speech, discrimination, or personal attacks are not allowed.\n\n' +
+        const rulesMessage = `
+✦━━━━━━━━━━━━━━━━━━━━✦
+**HOLLOW DEVIL'S DOMAIN**
+**SERVER RULES**
+✦━━━━━━━━━━━━━━━━━━━━✦
 
-                '⚪ **No NSFW Content**\n' +
-                'Pornographic, sexually explicit, or disturbing content is strictly prohibited.\n\n' +
+⚪ **Respect Everyone**
 
-                '⚪ **No Spam**\n' +
-                'Avoid spam, excessive mentions, repeated messages, or unnecessary emojis.\n\n' +
+Treat everyone with respect. Harassment, hate speech, discrimination, or personal attacks are not allowed.
 
-                '⚪ **Stay on Topic**\n' +
-                'Use the appropriate channels for discussions. Keep conversations organized.\n\n' +
+⚪ **No NSFW Content**
 
-                '⚪ **No Advertising**\n' +
-                'Do not promote your own server, YouTube channel, social media, or products without staff permission.\n\n' +
+Pornographic, sexually explicit, or disturbing content is strictly prohibited.
 
-                '⚪ **No Cheats or Illegal Content**\n' +
-                'Sharing hacks, malware, piracy, scams, or illegal content is prohibited.\n\n' +
+⚪ **No Spam**
 
-                '⚪ **Keep It Friendly**\n' +
-                'Healthy debates are welcome, but toxicity and unnecessary drama are not.\n\n' +
+Avoid spam, excessive mentions, repeated messages, or unnecessary emojis.
 
-                '⚪ **Use Common Sense**\n' +
-                'If something feels inappropriate, don’t do it. Staff decisions are final.\n\n' +
+⚪ **Stay on Topic**
 
-                '⚪ **English & Hinglish Only**\n' +
-                'Please communicate in English or Hinglish so everyone can understand.\n\n' +
+Use the appropriate channels for discussions. Keep conversations organized.
 
-                '⚪ **Have Fun!**\n' +
-                'Enjoy the community, make friends, and respect fellow members.\n\n' +
+⚪ **No Advertising**
 
-                '✦━━━━━━━━━━━━━━━━━━━━✦'
-            );
+Do not promote your own server, YouTube channel, social media, or products without staff permission.
 
-        const violationEmbed = new EmbedBuilder()
-            .setColor(0xFAA61A)
-            .setDescription(
-                '⚠️ **RULE VIOLATIONS**\n\n' +
+⚪ **No Cheats or Illegal Content**
 
-                'Breaking the Rules May Result In:\n\n' +
+Sharing hacks, malware, piracy, scams, or illegal content is prohibited.
 
-                '❶ **Warning**\n' +
-                '❷ **Mute**\n' +
-                '❸ **Kick**\n' +
-                '❹ **Temporary Ban**\n' +
-                '❺ **Permanent Ban**\n\n' +
+⚪ **Keep It Friendly**
 
-                'Depending on the severity of the violation.\n\n' +
+Healthy debates are welcome, but toxicity and unnecessary drama are not.
 
-                '━━━━━━━━━━━━━━━━━━━━\n\n' +
+⚪ **Use Common Sense**
 
-                '👹 **FINAL MESSAGE**\n\n' +
+If something feels inappropriate, don't do it. Staff decisions are final.
 
-                'Welcome to **Hollow Devil’s Domain**.\n' +
-                'Respect the community, enjoy the chaos,\n' +
-                'and most importantly...\n\n' +
+⚪ **English & Hinglish Only**
 
-                '💙 **Have Fun!**\n\n' +
+Please communicate in English or Hinglish so everyone can understand.
 
-                '━━━━━━━━━━━━━━━━━━━━'
-            );
+⚪ **Have Fun!**
+
+Enjoy the community, make friends, and respect fellow members.
+
+✦━━━━━━━━━━━━━━━━━━━━✦
+
+⚠️ **RULE VIOLATIONS**
+
+Breaking the Rules May Result In:
+
+❶ **Warning**  
+❷ **Mute**  
+❸ **Kick**  
+❹ **Temporary Ban**  
+❺ **Permanent Ban**
+
+Depending on the severity of the violation.
+
+━━━━━━━━━━━━━━━━━━━━
+
+👹 **FINAL MESSAGE**
+
+Welcome to **Hollow Devil's Domain**.
+
+Respect the community, enjoy the chaos,
+and most importantly...
+
+💙 **Have Fun!**
+
+━━━━━━━━━━━━━━━━━━━━
+`;
 
         try {
             await channel.send({
-                embeds: [
-                    embed,
-                    violationEmbed
-                ]
+                content: rulesMessage
             });
 
             await interaction.reply({
@@ -133,7 +131,7 @@ export default {
 
             await interaction.reply({
                 content:
-                    '❌ I could not post the rules. Check that I have permission to send messages and embeds in the Rules channel.',
+                    '❌ I could not post the rules. Check that I have permission to send messages in the Rules channel.',
                 flags: MessageFlags.Ephemeral
             });
         }
