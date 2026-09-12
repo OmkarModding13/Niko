@@ -1,13 +1,15 @@
 import {
     ActionRowBuilder,
     StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     EmbedBuilder,
     MessageFlags
 } from 'discord.js';
 
 import { shopItems } from '../../../config/shop/items.js';
 import { getColor } from '../../../config/bot.js';
-import { getEconomyData } from '../../../utils/economy.js';
+import { getEconomyData, setEconomyData } from '../../../utils/economy.js';
 import { logger } from '../../../utils/logger.js';
 import { handleInteractionError } from '../../../utils/errorHandler.js';
 
@@ -120,19 +122,18 @@ function createShopEmbed(categoryId, userData) {
         const price =
             getPrice(item, userData);
 
-        const description =
-            getItemDescription(item);
-
         embed.addFields({
             name:
                 `${emoji} ${displayName} — ${SOULS_EMOJI} ${price.toLocaleString()}`,
-            value: description,
+            value:
+                getItemDescription(item),
             inline: false
         });
     }
 
     embed.addFields({
-        name: `${TOTAL_EMOJI} Balance`,
+        name:
+            `${TOTAL_EMOJI} Balance`,
         value:
             `${SOULS_EMOJI} ${(userData?.wallet || 0).toLocaleString()} Souls`,
         inline: false
@@ -199,6 +200,20 @@ function createItemMenu(categoryId, userData = null) {
     );
 }
 
+function createPurchaseButtons(itemId) {
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`shop_purchase_${itemId}`)
+            .setLabel('Purchase')
+            .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+            .setCustomId('shop_cancel')
+            .setLabel('Cancel')
+            .setStyle(ButtonStyle.Secondary)
+    );
+}
+
 export default {
     async execute(
         interaction,
@@ -215,6 +230,9 @@ export default {
             let currentCategory =
                 'color_roles';
 
+            let selectedItemId =
+                null;
+
             const getFreshUserData =
                 async () =>
                     await getEconomyData(
@@ -226,23 +244,28 @@ export default {
             let userData =
                 await getFreshUserData();
 
-            const getComponents = () => [
-                createCategoryMenu(
-                    currentCategory
-                ),
-                createItemMenu(
-                    currentCategory,
-                    userData
-                )
-            ];
+            const getComponents = () => {
+                const rows = [
+                    createCategoryMenu(
+                        currentCategory
+                    ),
+                    createItemMenu(
+                        currentCategory,
+                        userData
+                    )
+                ];
 
-            /*
-             * PUBLIC SHOP MESSAGE
-             *
-             * Everyone can see the shop.
-             * Only the user who opened it can use
-             * the dropdowns.
-             */
+                if (selectedItemId) {
+                    rows.push(
+                        createPurchaseButtons(
+                            selectedItemId
+                        )
+                    );
+                }
+
+                return rows;
+            };
+
             await interaction.reply({
                 embeds: [
                     createShopEmbed(
@@ -266,10 +289,6 @@ export default {
                 'collect',
                 async componentInteraction => {
                     try {
-                        /*
-                         * Only the original user can
-                         * control this shop.
-                         */
                         if (
                             componentInteraction.user.id !==
                             userId
@@ -285,7 +304,7 @@ export default {
                         }
 
                         /*
-                         * CATEGORY SELECT
+                         * CATEGORY
                          */
                         if (
                             componentInteraction.customId ===
@@ -293,6 +312,9 @@ export default {
                         ) {
                             currentCategory =
                                 componentInteraction.values[0];
+
+                            selectedItemId =
+                                null;
 
                             userData =
                                 await getFreshUserData();
@@ -318,8 +340,163 @@ export default {
                             componentInteraction.customId ===
                             'shop_item'
                         ) {
-                            const itemId =
+                            selectedItemId =
                                 componentInteraction.values[0];
+
+                            const item =
+                                shopItems.find(
+                                    shopItem =>
+                                        shopItem.id ===
+                                        selectedItemId
+                                );
+
+                            if (!item) {
+                                await componentInteraction.reply({
+                                    content:
+                                        '❌ This item no longer exists.',
+                                    flags:
+                                        MessageFlags.Ephemeral
+                                });
+
+                                return;
+                            }
+
+                            userData =
+                                await getFreshUserData();
+
+                            const price =
+                                getPrice(
+                                    item,
+                                    userData
+                                );
+
+                            const balance =
+                                userData?.wallet || 0;
+
+                            const emoji =
+                                ITEM_EMOJIS[item.id] ||
+                                '🛍️';
+
+                            const displayName =
+                                getDisplayName(item);
+
+                            const embed =
+                                new EmbedBuilder()
+                                    .setTitle(
+                                        `${emoji} ${displayName}`
+                                    )
+                                    .setColor(
+                                        getColor('primary')
+                                    )
+                                    .setDescription(
+                                        getItemDescription(
+                                            item
+                                        )
+                                    )
+                                    .addFields(
+                                        {
+                                            name: 'Price',
+                                            value:
+                                                `${SOULS_EMOJI} ${price.toLocaleString()} Souls`,
+                                            inline: true
+                                        },
+                                        {
+                                            name: 'Balance',
+                                            value:
+                                                `${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`,
+                                            inline: true
+                                        }
+                                    );
+
+                            if (
+                                item.effect?.type ===
+                                'temporary_color_role'
+                            ) {
+                                embed.addFields({
+                                    name: 'Duration',
+                                    value:
+                                        '7 Days',
+                                    inline: true
+                                });
+                            }
+
+                            if (
+                                item.effect?.type ===
+                                'bank_capacity'
+                            ) {
+                                embed.addFields({
+                                    name: 'Upgrade',
+                                    value:
+                                        '+50,000 Bank Capacity',
+                                    inline: true
+                                });
+                            }
+
+                            if (balance < price) {
+                                embed.addFields({
+                                    name: 'Status',
+                                    value:
+                                        `❌ You need ${SOULS_EMOJI} ${(price - balance).toLocaleString()} more Souls.`,
+                                    inline: false
+                                });
+                            } else {
+                                embed.addFields({
+                                    name: 'Status',
+                                    value:
+                                        '✅ You can afford this item.',
+                                    inline: false
+                                });
+                            }
+
+                            await componentInteraction.update({
+                                embeds: [embed],
+                                components:
+                                    getComponents()
+                            });
+
+                            return;
+                        }
+
+                        /*
+                         * CANCEL
+                         */
+                        if (
+                            componentInteraction.customId ===
+                            'shop_cancel'
+                        ) {
+                            selectedItemId =
+                                null;
+
+                            userData =
+                                await getFreshUserData();
+
+                            await componentInteraction.update({
+                                embeds: [
+                                    createShopEmbed(
+                                        currentCategory,
+                                        userData
+                                    )
+                                ],
+                                components:
+                                    getComponents()
+                            });
+
+                            return;
+                        }
+
+                        /*
+                         * PURCHASE
+                         */
+                        if (
+                            componentInteraction.customId.startsWith(
+                                'shop_purchase_'
+                            )
+                        ) {
+                            const itemId =
+                                componentInteraction.customId.replace(
+                                    'shop_purchase_',
+                                    ''
+                                );
 
                             const item =
                                 shopItems.find(
@@ -339,80 +516,258 @@ export default {
                                 return;
                             }
 
-                            const freshUserData =
+                            userData =
                                 await getFreshUserData();
 
                             const price =
                                 getPrice(
                                     item,
-                                    freshUserData
+                                    userData
                                 );
 
                             const balance =
-                                freshUserData?.wallet || 0;
+                                userData?.wallet || 0;
 
-                            const displayName =
-                                getDisplayName(item);
+                            /*
+                             * NOT ENOUGH SOULS
+                             */
+                            if (balance < price) {
+                                await componentInteraction.reply({
+                                    content:
+                                        `❌ You don't have enough Souls.\n\nYou need **${SOULS_EMOJI} ${price.toLocaleString()} Souls** but only have **${TOTAL_EMOJI} ${balance.toLocaleString()} Souls**.`,
+                                    flags:
+                                        MessageFlags.Ephemeral
+                                });
 
-                            const emoji =
-                                ITEM_EMOJIS[item.id] ||
-                                '🛍️';
+                                return;
+                            }
 
-                            const canAfford =
-                                balance >= price;
-
-                            let content =
-                                `### ${emoji} ${displayName}\n\n`;
-
-                            content +=
-                                `${getItemDescription(item)}\n\n`;
-
-                            content +=
-                                `**Price:** ${SOULS_EMOJI} ${price.toLocaleString()} Souls\n`;
-
-                            content +=
-                                `**Balance:** ${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`;
-
+                            /*
+                             * COLOR ROLE
+                             */
                             if (
                                 item.effect?.type ===
                                 'temporary_color_role'
                             ) {
-                                content +=
-                                    '\n**Duration:** 7 Days';
+                                if (
+                                    userData.activeColorRole
+                                ) {
+                                    await componentInteraction.reply({
+                                        content:
+                                            '❌ You already have an active temporary color role. Wait until it expires before purchasing another one.',
+                                        flags:
+                                            MessageFlags.Ephemeral
+                                    });
+
+                                    return;
+                                }
+
+                                const roleName =
+                                    getDisplayName(item);
+
+                                const role =
+                                    interaction.guild.roles.cache.find(
+                                        guildRole =>
+                                            guildRole.name.toLowerCase() ===
+                                            roleName.toLowerCase()
+                                    );
+
+                                if (!role) {
+                                    await componentInteraction.reply({
+                                        content:
+                                            `❌ The **${roleName}** role was not found in this server.`,
+                                        flags:
+                                            MessageFlags.Ephemeral
+                                    });
+
+                                    return;
+                                }
+
+                                const member =
+                                    await interaction.guild.members.fetch(
+                                        userId
+                                    );
+
+                                try {
+                                    await member.roles.add(
+                                        role,
+                                        `Purchased ${roleName} color role`
+                                    );
+                                } catch (roleError) {
+                                    logger.error(
+                                        '[SHOP] Failed to assign color role:',
+                                        roleError
+                                    );
+
+                                    await componentInteraction.reply({
+                                        content:
+                                            '❌ I could not give you the role. Your Souls were not deducted.',
+                                        flags:
+                                            MessageFlags.Ephemeral
+                                    });
+
+                                    return;
+                                }
+
+                                userData.wallet -=
+                                    price;
+
+                                userData.activeColorRole = {
+                                    roleId: role.id,
+                                    roleName: role.name,
+                                    expiresAt:
+                                        Date.now() +
+                                        (7 * 24 * 60 * 60 * 1000)
+                                };
+
+                                await setEconomyData(
+                                    client,
+                                    guildId,
+                                    userId,
+                                    userData
+                                );
+
+                                selectedItemId =
+                                    null;
+
+                                await componentInteraction.update({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle(
+                                                '🎉 Purchase Successful'
+                                            )
+                                            .setColor(
+                                                getColor('success')
+                                            )
+                                            .setDescription(
+                                                `You purchased **${roleName}** color role!`
+                                            )
+                                            .addFields(
+                                                {
+                                                    name: 'Paid',
+                                                    value:
+                                                        `${SOULS_EMOJI} ${price.toLocaleString()} Souls`,
+                                                    inline: true
+                                                },
+                                                {
+                                                    name: 'Duration',
+                                                    value:
+                                                        '7 Days',
+                                                    inline: true
+                                                },
+                                                {
+                                                    name: 'New Balance',
+                                                    value:
+                                                        `${TOTAL_EMOJI} ${userData.wallet.toLocaleString()} Souls`,
+                                                    inline: true
+                                                }
+                                            )
+                                    ],
+                                    components: [
+                                        createCategoryMenu(
+                                            currentCategory
+                                        ),
+                                        createItemMenu(
+                                            currentCategory,
+                                            userData
+                                        )
+                                    ]
+                                });
+
+                                return;
                             }
 
+                            /*
+                             * BANK UPGRADE
+                             */
                             if (
                                 item.effect?.type ===
                                 'bank_capacity'
                             ) {
-                                content +=
-                                    '\n**Increase:** +50,000 Bank Capacity';
+                                userData.wallet -=
+                                    price;
 
-                                content +=
-                                    `\n**Current Upgrade Level:** ${freshUserData?.bankLevel || 0}`;
+                                userData.bankLevel =
+                                    Number(
+                                        userData.bankLevel || 0
+                                    ) + 1;
+
+                                userData.upgrades =
+                                    userData.upgrades || {};
+
+                                userData.upgrades.bank_upgrade =
+                                    userData.bankLevel;
+
+                                await setEconomyData(
+                                    client,
+                                    guildId,
+                                    userId,
+                                    userData
+                                );
+
+                                selectedItemId =
+                                    null;
+
+                                const newCapacity =
+                                    100000 +
+                                    (
+                                        userData.bankLevel *
+                                        50000
+                                    );
+
+                                await componentInteraction.update({
+                                    embeds: [
+                                        new EmbedBuilder()
+                                            .setTitle(
+                                                '🎉 Purchase Successful'
+                                            )
+                                            .setColor(
+                                                getColor('success')
+                                            )
+                                            .setDescription(
+                                                'Your bank capacity has been upgraded!'
+                                            )
+                                            .addFields(
+                                                {
+                                                    name: 'Paid',
+                                                    value:
+                                                        `${SOULS_EMOJI} ${price.toLocaleString()} Souls`,
+                                                    inline: true
+                                                },
+                                                {
+                                                    name: 'Upgrade Level',
+                                                    value:
+                                                        `${userData.bankLevel}`,
+                                                    inline: true
+                                                },
+                                                {
+                                                    name: 'New Capacity',
+                                                    value:
+                                                        `${newCapacity.toLocaleString()} Souls`,
+                                                    inline: true
+                                                },
+                                                {
+                                                    name: 'New Balance',
+                                                    value:
+                                                        `${TOTAL_EMOJI} ${userData.wallet.toLocaleString()} Souls`,
+                                                    inline: true
+                                                }
+                                            )
+                                    ],
+                                    components: [
+                                        createCategoryMenu(
+                                            currentCategory
+                                        ),
+                                        createItemMenu(
+                                            currentCategory,
+                                            userData
+                                        )
+                                    ]
+                                });
+
+                                return;
                             }
 
-                            if (!canAfford) {
-                                const needed =
-                                    price - balance;
-
-                                content +=
-                                    `\n\n❌ You need **${SOULS_EMOJI} ${needed.toLocaleString()}** more Souls.`;
-                            } else {
-                                content +=
-                                    '\n\n✅ You can afford this item.';
-
-                                content +=
-                                    `\nUse **/buy item_id:${item.id}** to purchase it.`;
-                            }
-
-                            await componentInteraction.reply({
-                                content,
-                                flags:
-                                    MessageFlags.Ephemeral
-                            });
-
-                            return;
                         }
 
                     } catch (error) {
