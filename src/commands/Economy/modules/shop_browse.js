@@ -11,20 +11,34 @@ import { getEconomyData } from '../../../utils/economy.js';
 import { logger } from '../../../utils/logger.js';
 import { handleInteractionError } from '../../../utils/errorHandler.js';
 
-const CURRENCY_EMOJI = '<:Souls:1547510037621112894>';
+const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const TOTAL_EMOJI = '<:Total:1547545479628333086>';
 
 const CATEGORIES = {
     color_roles: {
-        name: '🎨 Color Roles',
+        name: 'Color Roles',
+        emoji: '🎨',
         description: 'Temporary color roles for 7 days.',
         types: ['role']
     },
 
     upgrades: {
-        name: '🏦 Upgrades',
+        name: 'Upgrades',
+        emoji: '🏦',
         description: 'Permanent upgrades for your economy.',
         types: ['upgrade']
     }
+};
+
+const ITEM_EMOJIS = {
+    color_red: '🔴',
+    color_pink: '🩷',
+    color_purple: '🟣',
+    color_cyan: '🩵',
+    color_black: '⚫',
+    color_lime: '🟢',
+    color_yellow: '🟡',
+    bank_upgrade: '🏦'
 };
 
 function getItemsForCategory(categoryId) {
@@ -39,71 +53,110 @@ function getItemsForCategory(categoryId) {
     );
 }
 
-function getCategoryIdForItem(item) {
-    if (item.effect?.type === 'temporary_color_role') {
-        return 'color_roles';
-    }
+function getDisplayName(item) {
+    const emoji = ITEM_EMOJIS[item.id] || '';
 
-    if (item.effect?.type === 'bank_capacity') {
-        return 'upgrades';
-    }
+    let name = item.name || item.id;
 
-    return null;
+    // Remove any existing emoji from the beginning
+    name = name
+        .replace(/^[\p{Extended_Pictographic}\uFE0F\u200D]+\s*/u, '')
+        .trim();
+
+    return name;
 }
 
-function getDisplayPrice(item) {
+function getPrice(item, userData = null) {
     if (item.effect?.type === 'temporary_color_role') {
         return 350;
     }
 
     if (item.effect?.type === 'bank_capacity') {
-        return 3000;
+        const bankLevel =
+            Number(userData?.bankLevel || 0);
+
+        return 3000 + (bankLevel * 1000);
     }
 
     return item.price || 0;
 }
 
-function createMainEmbed(categoryId, userData) {
+function getItemDescription(item) {
+    if (item.effect?.type === 'temporary_color_role') {
+        return 'Temporary color role for 7 days.';
+    }
+
+    if (item.effect?.type === 'bank_capacity') {
+        return 'Increase your bank capacity by 50,000 Souls.';
+    }
+
+    return item.description || '';
+}
+
+function createShopEmbed(categoryId, userData) {
     const category = CATEGORIES[categoryId];
     const items = getItemsForCategory(categoryId);
 
     const embed = new EmbedBuilder()
-        .setTitle(`🛒 Hollow Devil Shop`)
+        .setTitle('🛒 Hollow Devil Shop')
         .setColor(getColor('primary'))
         .setDescription(
-            `Spend your **Souls** on exclusive rewards!\n\n` +
-            `### ${category.name}\n` +
-            `${category.description}`
+            'Spend your Souls on exclusive rewards!'
         );
 
+    embed.addFields({
+        name: `${category.emoji} ${category.name}`,
+        value: category.description,
+        inline: false
+    });
+
     for (const item of items) {
-        const price = getDisplayPrice(item);
+        const emoji =
+            ITEM_EMOJIS[item.id] || '🛍️';
 
-        let extraInfo = '';
+        const displayName =
+            getDisplayName(item);
 
-        if (item.effect?.type === 'temporary_color_role') {
-            extraInfo = ' • 7 Days';
+        const price =
+            getPrice(item, userData);
+
+        let description =
+            getItemDescription(item);
+
+        if (
+            item.effect?.type ===
+            'temporary_color_role'
+        ) {
+            description +=
+                '\n⏳ Duration: **7 Days**';
         }
 
-        if (item.effect?.type === 'bank_capacity') {
-            extraInfo = ' • +50,000 Capacity';
+        if (
+            item.effect?.type ===
+            'bank_capacity'
+        ) {
+            description +=
+                '\n📈 Increase: **+50,000 Bank Capacity**';
         }
 
         embed.addFields({
-            name: `${item.name} — ${CURRENCY_EMOJI} ${price.toLocaleString()}`,
-            value: `${item.description}${extraInfo}`,
+            name:
+                `${emoji} ${displayName} — ${SOULS_EMOJI} ${price.toLocaleString()}`,
+            value: description,
             inline: false
         });
     }
 
     embed.addFields({
         name: '💰 Your Balance',
-        value: `${CURRENCY_EMOJI} ${(userData?.wallet || 0).toLocaleString()} Souls`,
+        value:
+            `${TOTAL_EMOJI} ${(userData?.wallet || 0).toLocaleString()} Souls`,
         inline: false
     });
 
     embed.setFooter({
-        text: 'Select a category and item below to purchase.'
+        text:
+            'Select a category, then select an item to purchase.'
     });
 
     return embed;
@@ -117,11 +170,16 @@ function createCategoryMenu(selectedCategory) {
             .addOptions(
                 Object.entries(CATEGORIES).map(
                     ([id, category]) => ({
-                        label: category.name.replace(/^.\s/, ''),
+                        label: category.name,
                         value: id,
-                        description: category.description,
-                        emoji: category.name.split(' ')[0],
-                        default: id === selectedCategory
+                        description:
+                            category.description.substring(
+                                0,
+                                100
+                            ),
+                        emoji: category.emoji,
+                        default:
+                            id === selectedCategory
                     })
                 )
             )
@@ -129,52 +187,83 @@ function createCategoryMenu(selectedCategory) {
 }
 
 function createItemMenu(categoryId) {
-    const items = getItemsForCategory(categoryId);
+    const items =
+        getItemsForCategory(categoryId);
 
     return new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId(`shop_item:${categoryId}`)
+            // IMPORTANT:
+            // No ":" here.
+            // This allows interactionCreate.js to ignore
+            // this collector-managed component.
+            .setCustomId('shop_item')
             .setPlaceholder('Select an item to purchase...')
             .addOptions(
                 items.map(item => ({
-                    label: item.name.replace(/^.\s/, ''),
-                    value: item.id,
+                    label:
+                        getDisplayName(item),
+
+                    value:
+                        item.id,
+
                     description:
-                        `${getDisplayPrice(item).toLocaleString()} Souls`,
-                    emoji: item.name.split(' ')[0]
+                        `${getPrice(item).toLocaleString()} Souls`,
+
+                    emoji:
+                        ITEM_EMOJIS[item.id] || '🛍️'
                 }))
             )
     );
 }
 
 export default {
-    async execute(interaction, config, client) {
+    async execute(
+        interaction,
+        config,
+        client
+    ) {
         try {
-            const userId = interaction.user.id;
-            const guildId = interaction.guildId;
+            const userId =
+                interaction.user.id;
 
-            const userData = await getEconomyData(
-                client,
-                guildId,
-                userId
-            );
+            const guildId =
+                interaction.guildId;
 
-            let currentCategory = 'color_roles';
+            let currentCategory =
+                'color_roles';
+
+            const getFreshUserData =
+                async () =>
+                    await getEconomyData(
+                        client,
+                        guildId,
+                        userId
+                    );
+
+            let userData =
+                await getFreshUserData();
 
             const getComponents = () => [
-                createCategoryMenu(currentCategory),
-                createItemMenu(currentCategory)
+                createCategoryMenu(
+                    currentCategory
+                ),
+                createItemMenu(
+                    currentCategory
+                )
             ];
 
             await interaction.reply({
                 embeds: [
-                    createMainEmbed(
+                    createShopEmbed(
                         currentCategory,
                         userData
                     )
                 ],
-                components: getComponents(),
-                flags: MessageFlags.Ephemeral
+                components:
+                    getComponents(),
+
+                flags:
+                    MessageFlags.Ephemeral
             });
 
             const message =
@@ -195,15 +284,16 @@ export default {
                         ) {
                             await componentInteraction.reply({
                                 content:
-                                    '❌ This shop belongs to someone else. Use `/shop` to open your own.',
-                                flags: MessageFlags.Ephemeral
+                                    '❌ This shop belongs to someone else. Use `/shop` to open your own shop.',
+                                flags:
+                                    MessageFlags.Ephemeral
                             });
 
                             return;
                         }
 
                         /*
-                         * CATEGORY SELECT
+                         * CATEGORY
                          */
                         if (
                             componentInteraction.customId ===
@@ -212,18 +302,14 @@ export default {
                             currentCategory =
                                 componentInteraction.values[0];
 
-                            const freshUserData =
-                                await getEconomyData(
-                                    client,
-                                    guildId,
-                                    userId
-                                );
+                            userData =
+                                await getFreshUserData();
 
                             await componentInteraction.update({
                                 embeds: [
-                                    createMainEmbed(
+                                    createShopEmbed(
                                         currentCategory,
-                                        freshUserData
+                                        userData
                                     )
                                 ],
                                 components:
@@ -234,12 +320,11 @@ export default {
                         }
 
                         /*
-                         * ITEM SELECT
+                         * ITEM
                          */
                         if (
-                            componentInteraction.customId.startsWith(
-                                'shop_item:'
-                            )
+                            componentInteraction.customId ===
+                            'shop_item'
                         ) {
                             const itemId =
                                 componentInteraction.values[0];
@@ -247,7 +332,8 @@ export default {
                             const item =
                                 shopItems.find(
                                     shopItem =>
-                                        shopItem.id === itemId
+                                        shopItem.id ===
+                                        itemId
                                 );
 
                             if (!item) {
@@ -261,31 +347,45 @@ export default {
                                 return;
                             }
 
-                            const price =
-                                getDisplayPrice(item);
-
                             const freshUserData =
-                                await getEconomyData(
-                                    client,
-                                    guildId,
-                                    userId
+                                await getFreshUserData();
+
+                            const price =
+                                getPrice(
+                                    item,
+                                    freshUserData
                                 );
 
-                            const canAfford =
-                                (freshUserData?.wallet || 0) >=
-                                price;
+                            const balance =
+                                freshUserData?.wallet || 0;
 
-                            let messageText =
-                                `### ${item.name}\n\n` +
-                                `${item.description}\n\n` +
-                                `**Price:** ${CURRENCY_EMOJI} ${price.toLocaleString()} Souls\n` +
-                                `**Your Balance:** ${CURRENCY_EMOJI} ${(freshUserData?.wallet || 0).toLocaleString()} Souls`;
+                            const displayName =
+                                getDisplayName(item);
+
+                            const emoji =
+                                ITEM_EMOJIS[item.id] ||
+                                '🛍️';
+
+                            const canAfford =
+                                balance >= price;
+
+                            let content =
+                                `### ${emoji} ${displayName}\n\n`;
+
+                            content +=
+                                `${getItemDescription(item)}\n\n`;
+
+                            content +=
+                                `**Price:** ${SOULS_EMOJI} ${price.toLocaleString()} Souls\n`;
+
+                            content +=
+                                `**Your Balance:** ${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`;
 
                             if (
                                 item.effect?.type ===
                                 'temporary_color_role'
                             ) {
-                                messageText +=
+                                content +=
                                     '\n**Duration:** 7 Days';
                             }
 
@@ -293,20 +393,29 @@ export default {
                                 item.effect?.type ===
                                 'bank_capacity'
                             ) {
-                                messageText +=
-                                    '\n**Upgrade:** +50,000 Bank Capacity';
+                                content +=
+                                    '\n**Increase:** +50,000 Bank Capacity';
+
+                                content +=
+                                    `\n**Current Upgrade Level:** ${freshUserData?.bankLevel || 0}`;
                             }
 
                             if (!canAfford) {
-                                messageText +=
-                                    `\n\n❌ You need **${CURRENCY_EMOJI} ${(price - (freshUserData?.wallet || 0)).toLocaleString()}** more Souls.`;
+                                const needed =
+                                    price - balance;
+
+                                content +=
+                                    `\n\n❌ You need **${SOULS_EMOJI} ${needed.toLocaleString()}** more Souls.`;
                             } else {
-                                messageText +=
-                                    `\n\nUse **/buy item_id:${item.id}** to purchase this item.`;
+                                content +=
+                                    `\n\n✅ You can afford this item.`;
+
+                                content +=
+                                    `\nUse **/buy item_id:${item.id}** to purchase it.`;
                             }
 
                             await componentInteraction.reply({
-                                content: messageText,
+                                content,
                                 flags:
                                     MessageFlags.Ephemeral
                             });
@@ -323,40 +432,50 @@ export default {
                 }
             );
 
-            collector.on('end', async () => {
-                try {
-                    const disabledRows =
-                        getComponents();
+            collector.on(
+                'end',
+                async () => {
+                    try {
+                        const disabledRows =
+                            getComponents();
 
-                    for (const row of disabledRows) {
                         for (
-                            const component
-                            of row.components
+                            const row of disabledRows
                         ) {
-                            component.setDisabled(true);
+                            for (
+                                const component
+                                of row.components
+                            ) {
+                                component.setDisabled(
+                                    true
+                                );
+                            }
                         }
+
+                        await message.edit({
+                            components:
+                                disabledRows
+                        });
+
+                    } catch (error) {
+                        logger.debug(
+                            'shop_browse: could not disable components',
+                            {
+                                error:
+                                    error.message
+                            }
+                        );
                     }
-
-                    await message.edit({
-                        components: disabledRows
-                    });
-
-                } catch (error) {
-                    logger.debug(
-                        'shop_browse: could not disable components',
-                        {
-                            error: error.message
-                        }
-                    );
                 }
-            });
+            );
 
         } catch (error) {
             await handleInteractionError(
                 interaction,
                 error,
                 {
-                    command: 'shop_browse'
+                    command:
+                        'shop_browse'
                 }
             );
         }
