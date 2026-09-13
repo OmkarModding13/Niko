@@ -1,243 +1,468 @@
 // xpSystem.js
 
 import { logger } from '../../utils/logger.js';
+
 import {
     getUserLevelData,
     saveUserLevelData,
     addChatActivity,
     addVoiceActivity,
     addGameActivity,
-    levelUpUser,
     resetWeeklyProgressIfNeeded,
     resetDailyProgressIfNeeded,
-    getWeeklyProgress
+    getWeeklyProgress,
+    addLevelXp,
+    getLevelPeriod
 } from './leveling.js';
 
 import { Mutex } from '../../utils/mutex.js';
-import { wrapServiceBoundary } from '../../utils/errorHandler.js';
 
-/**
- * --------------------------------------------------
- * ACTIVITY XP SYSTEM
- * --------------------------------------------------
+import {
+    wrapServiceBoundary
+} from '../../utils/errorHandler.js';
+
+
+/*
+ * ==================================================
+ * ACTIVITY XP SETTINGS
+ * ==================================================
  *
  * IMPORTANT:
- * This is no longer the old "XP per message" system.
  *
- * Level progression is now based on:
+ * Activity requirements and XP progression are
+ * separate systems.
  *
- * Chat  : 5 hours/day
- * Voice : 3 hours/day
- * Games : 15 games/week
+ * 100 XP = 1 level.
  *
- * When all weekly requirements are completed,
- * the user gains +1 level.
+ * Completing the weekly/monthly activity target
+ * does NOT directly give +1 level.
+ *
+ * Activity earns XP.
+ *
+ * --------------------------------------------------
+ *
+ * Current XP conversion:
+ *
+ * Chat  : 1 XP / 10 active minutes
+ * Voice : 1 XP / 15 voice minutes
+ * Game  : 5 XP / completed game
+ *
+ * These values are kept here so they can easily
+ * be changed later.
  */
 
-// --------------------------------------------------
-// Chat Activity
-// --------------------------------------------------
+export const ACTIVITY_XP = {
+    chatMinutes: 10,
+    voiceMinutes: 15,
+    xpPerGame: 5
+};
 
-export const recordChatActivity = wrapServiceBoundary(
-    async function recordChatActivity(
-        client,
-        guildId,
-        userId,
-        minutes
-    ) {
-        if (
-            !Number.isFinite(minutes) ||
-            minutes <= 0
-        ) {
-            return null;
-        }
 
-        const lockKey =
-            `leveling:${guildId}:${userId}`;
+/*
+ * ==================================================
+ * CHAT ACTIVITY
+ * ==================================================
+ */
 
-        return await Mutex.runExclusive(
-            lockKey,
-            async () => {
-                const userData =
-                    await getUserLevelData(
-                        client,
-                        guildId,
-                        userId
-                    );
-
-                resetWeeklyProgressIfNeeded(
-                    userData
-                );
-
-                resetDailyProgressIfNeeded(
-                    userData
-                );
-
-                const updatedData =
-                    await addChatActivity(
-                        client,
-                        guildId,
-                        userId,
-                        minutes
-                    );
-
-                return {
-                    userData:
-                        updatedData || userData,
-
-                    progress:
-                        getWeeklyProgress(
-                            updatedData || userData
-                        )
-                };
-            }
-        );
-    },
-    {
-        service: 'xpSystem',
-        operation: 'recordChatActivity',
-        userMessage:
-            'Failed to record chat activity.'
-    }
-);
-
-// --------------------------------------------------
-// Voice Activity
-// --------------------------------------------------
-
-export const recordVoiceActivity = wrapServiceBoundary(
-    async function recordVoiceActivity(
-        client,
-        guildId,
-        userId,
-        minutes
-    ) {
-        if (
-            !Number.isFinite(minutes) ||
-            minutes <= 0
-        ) {
-            return null;
-        }
-
-        const lockKey =
-            `leveling:${guildId}:${userId}`;
-
-        return await Mutex.runExclusive(
-            lockKey,
-            async () => {
-                const userData =
-                    await getUserLevelData(
-                        client,
-                        guildId,
-                        userId
-                    );
-
-                resetWeeklyProgressIfNeeded(
-                    userData
-                );
-
-                resetDailyProgressIfNeeded(
-                    userData
-                );
-
-                const updatedData =
-                    await addVoiceActivity(
-                        client,
-                        guildId,
-                        userId,
-                        minutes
-                    );
-
-                return {
-                    userData:
-                        updatedData || userData,
-
-                    progress:
-                        getWeeklyProgress(
-                            updatedData || userData
-                        )
-                };
-            }
-        );
-    },
-    {
-        service: 'xpSystem',
-        operation: 'recordVoiceActivity',
-        userMessage:
-            'Failed to record voice activity.'
-    }
-);
-
-// --------------------------------------------------
-// Game Activity
-// --------------------------------------------------
-
-export const recordGameActivity = wrapServiceBoundary(
-    async function recordGameActivity(
-        client,
-        guildId,
-        userId,
-        games = 1
-    ) {
-        if (
-            !Number.isInteger(games) ||
-            games <= 0
-        ) {
-            return null;
-        }
-
-        const lockKey =
-            `leveling:${guildId}:${userId}`;
-
-        return await Mutex.runExclusive(
-            lockKey,
-            async () => {
-                const userData =
-                    await getUserLevelData(
-                        client,
-                        guildId,
-                        userId
-                    );
-
-                resetWeeklyProgressIfNeeded(
-                    userData
-                );
-
-                const updatedData =
-                    await addGameActivity(
-                        client,
-                        guildId,
-                        userId,
-                        games
-                    );
-
-                return {
-                    userData:
-                        updatedData || userData,
-
-                    progress:
-                        getWeeklyProgress(
-                            updatedData || userData
-                        )
-                };
-            }
-        );
-    },
-    {
-        service: 'xpSystem',
-        operation: 'recordGameActivity',
-        userMessage:
-            'Failed to record game activity.'
-    }
-);
-
-// --------------------------------------------------
-// Check Weekly Level
-// --------------------------------------------------
-
-export const checkWeeklyLevelUp =
+export const recordChatActivity =
     wrapServiceBoundary(
-        async function checkWeeklyLevelUp(
+        async function recordChatActivity(
+            client,
+            guildId,
+            userId,
+            minutes
+        ) {
+            if (
+                !Number.isFinite(minutes) ||
+                minutes <= 0
+            ) {
+                return null;
+            }
+
+            const lockKey =
+                `leveling:${guildId}:${userId}`;
+
+            return await Mutex.runExclusive(
+                lockKey,
+                async () => {
+
+                    /*
+                     * Make sure period/daily data
+                     * is up to date before adding activity.
+                     */
+                    const userData =
+                        await getUserLevelData(
+                            client,
+                            guildId,
+                            userId
+                        );
+
+                    resetWeeklyProgressIfNeeded(
+                        userData
+                    );
+
+                    resetDailyProgressIfNeeded(
+                        userData
+                    );
+
+                    /*
+                     * Record activity.
+                     */
+                    const updatedData =
+                        await addChatActivity(
+                            client,
+                            guildId,
+                            userId,
+                            minutes
+                        );
+
+                    const finalData =
+                        updatedData ||
+                        userData;
+
+                    /*
+                     * Convert active chat time into XP.
+                     *
+                     * Example:
+                     * 20 minutes = 2 XP
+                     */
+                    const xp =
+                        Math.floor(
+                            minutes /
+                            ACTIVITY_XP.chatMinutes
+                        );
+
+                    let xpResult = null;
+
+                    if (xp > 0) {
+                        xpResult =
+                            await addLevelXp(
+                                client,
+                                guildId,
+                                userId,
+                                xp
+                            );
+                    }
+
+                    return {
+                        userData:
+                            xpResult
+                                ? await getUserLevelData(
+                                    client,
+                                    guildId,
+                                    userId
+                                )
+                                : finalData,
+
+                        progress:
+                            getWeeklyProgress(
+                                xpResult
+                                    ? await getUserLevelData(
+                                        client,
+                                        guildId,
+                                        userId
+                                    )
+                                    : finalData
+                            ),
+
+                        xpEarned:
+                            xp,
+
+                        leveledUp:
+                            Boolean(
+                                xpResult?.leveledUp
+                            ),
+
+                        level:
+                            xpResult?.level ??
+                            finalData.level,
+
+                        currentXp:
+                            xpResult?.xp ??
+                            finalData.xp
+                    };
+                }
+            );
+        },
+        {
+            service:
+                'xpSystem',
+
+            operation:
+                'recordChatActivity',
+
+            userMessage:
+                'Failed to record chat activity.'
+        }
+    );
+
+
+/*
+ * ==================================================
+ * VOICE ACTIVITY
+ * ==================================================
+ */
+
+export const recordVoiceActivity =
+    wrapServiceBoundary(
+        async function recordVoiceActivity(
+            client,
+            guildId,
+            userId,
+            minutes
+        ) {
+            if (
+                !Number.isFinite(minutes) ||
+                minutes <= 0
+            ) {
+                return null;
+            }
+
+            const lockKey =
+                `leveling:${guildId}:${userId}`;
+
+            return await Mutex.runExclusive(
+                lockKey,
+                async () => {
+
+                    const userData =
+                        await getUserLevelData(
+                            client,
+                            guildId,
+                            userId
+                        );
+
+                    resetWeeklyProgressIfNeeded(
+                        userData
+                    );
+
+                    resetDailyProgressIfNeeded(
+                        userData
+                    );
+
+                    /*
+                     * Record voice activity.
+                     */
+                    const updatedData =
+                        await addVoiceActivity(
+                            client,
+                            guildId,
+                            userId,
+                            minutes
+                        );
+
+                    const finalData =
+                        updatedData ||
+                        userData;
+
+                    /*
+                     * Convert voice time into XP.
+                     *
+                     * Example:
+                     * 30 minutes = 2 XP
+                     */
+                    const xp =
+                        Math.floor(
+                            minutes /
+                            ACTIVITY_XP.voiceMinutes
+                        );
+
+                    let xpResult = null;
+
+                    if (xp > 0) {
+                        xpResult =
+                            await addLevelXp(
+                                client,
+                                guildId,
+                                userId,
+                                xp
+                            );
+                    }
+
+                    const latestData =
+                        xpResult
+                            ? await getUserLevelData(
+                                client,
+                                guildId,
+                                userId
+                            )
+                            : finalData;
+
+                    return {
+                        userData:
+                            latestData,
+
+                        progress:
+                            getWeeklyProgress(
+                                latestData
+                            ),
+
+                        xpEarned:
+                            xp,
+
+                        leveledUp:
+                            Boolean(
+                                xpResult?.leveledUp
+                            ),
+
+                        level:
+                            latestData.level,
+
+                        currentXp:
+                            latestData.xp
+                    };
+                }
+            );
+        },
+        {
+            service:
+                'xpSystem',
+
+            operation:
+                'recordVoiceActivity',
+
+            userMessage:
+                'Failed to record voice activity.'
+        }
+    );
+
+
+/*
+ * ==================================================
+ * GAME ACTIVITY
+ * ==================================================
+ */
+
+export const recordGameActivity =
+    wrapServiceBoundary(
+        async function recordGameActivity(
+            client,
+            guildId,
+            userId,
+            games = 1
+        ) {
+            if (
+                !Number.isInteger(games) ||
+                games <= 0
+            ) {
+                return null;
+            }
+
+            const lockKey =
+                `leveling:${guildId}:${userId}`;
+
+            return await Mutex.runExclusive(
+                lockKey,
+                async () => {
+
+                    const userData =
+                        await getUserLevelData(
+                            client,
+                            guildId,
+                            userId
+                        );
+
+                    resetWeeklyProgressIfNeeded(
+                        userData
+                    );
+
+                    /*
+                     * Record completed games.
+                     */
+                    const updatedData =
+                        await addGameActivity(
+                            client,
+                            guildId,
+                            userId,
+                            games
+                        );
+
+                    const finalData =
+                        updatedData ||
+                        userData;
+
+                    /*
+                     * Games give XP directly.
+                     */
+                    const xp =
+                        games *
+                        ACTIVITY_XP.xpPerGame;
+
+                    const xpResult =
+                        await addLevelXp(
+                            client,
+                            guildId,
+                            userId,
+                            xp
+                        );
+
+                    const latestData =
+                        await getUserLevelData(
+                            client,
+                            guildId,
+                            userId
+                        );
+
+                    return {
+                        userData:
+                            latestData,
+
+                        progress:
+                            getWeeklyProgress(
+                                latestData
+                            ),
+
+                        xpEarned:
+                            xp,
+
+                        gamesCompleted:
+                            games,
+
+                        leveledUp:
+                            Boolean(
+                                xpResult?.leveledUp
+                            ),
+
+                        level:
+                            latestData.level,
+
+                        currentXp:
+                            latestData.xp
+                    };
+                }
+            );
+        },
+        {
+            service:
+                'xpSystem',
+
+            operation:
+                'recordGameActivity',
+
+            userMessage:
+                'Failed to record game activity.'
+        }
+    );
+
+
+/*
+ * ==================================================
+ * CHECK ACTIVITY PERIOD
+ * ==================================================
+ *
+ * IMPORTANT:
+ *
+ * This function does NOT level up a user.
+ *
+ * It only checks whether the current
+ * weekly/monthly requirements are complete.
+ *
+ * Leveling happens through 100 XP.
+ */
+
+export const checkActivityPeriod =
+    wrapServiceBoundary(
+        async function checkActivityPeriod(
             client,
             guildId,
             userId
@@ -248,6 +473,7 @@ export const checkWeeklyLevelUp =
             return await Mutex.runExclusive(
                 lockKey,
                 async () => {
+
                     const userData =
                         await getUserLevelData(
                             client,
@@ -268,47 +494,87 @@ export const checkWeeklyLevelUp =
                             userData
                         );
 
-                    // Requirements not completed
-                    if (!progress.complete) {
-                        return {
-                            leveledUp: false,
-                            progress,
-                            userData
-                        };
-                    }
-
-                    const result =
-                        await levelUpUser(
-                            client,
-                            guildId,
-                            userId
+                    const period =
+                        getLevelPeriod(
+                            userData.level
                         );
 
-                    logger.info(
-                        `🎉 Weekly leveling completed for ${userId} in ${guildId}`
-                    );
-
                     return {
-                        ...result,
-                        progress:
-                            getWeeklyProgress(
-                                result.userData
-                            )
+                        leveledUp:
+                            false,
+
+                        period,
+
+                        complete:
+                            progress.complete,
+
+                        progress,
+
+                        userData
                     };
                 }
             );
         },
         {
-            service: 'xpSystem',
-            operation: 'checkWeeklyLevelUp',
+            service:
+                'xpSystem',
+
+            operation:
+                'checkActivityPeriod',
+
             userMessage:
-                'Failed to check weekly level progress.'
+                'Failed to check activity progress.'
         }
     );
 
-// --------------------------------------------------
-// Generic Activity Recorder
-// --------------------------------------------------
+
+/*
+ * ==================================================
+ * OLD FUNCTION COMPATIBILITY
+ * ==================================================
+ *
+ * Some existing files may still call:
+ *
+ * checkWeeklyLevelUp()
+ *
+ * Keep the function so those files don't crash.
+ *
+ * BUT:
+ *
+ * It no longer gives +1 level.
+ */
+
+export const checkWeeklyLevelUp =
+    wrapServiceBoundary(
+        async function checkWeeklyLevelUp(
+            client,
+            guildId,
+            userId
+        ) {
+            return await checkActivityPeriod(
+                client,
+                guildId,
+                userId
+            );
+        },
+        {
+            service:
+                'xpSystem',
+
+            operation:
+                'checkWeeklyLevelUp',
+
+            userMessage:
+                'Failed to check activity period.'
+        }
+    );
+
+
+/*
+ * ==================================================
+ * GENERIC ACTIVITY RECORDER
+ * ==================================================
+ */
 
 export async function recordActivity(
     client,
@@ -318,6 +584,7 @@ export async function recordActivity(
     amount = 1
 ) {
     switch (type) {
+
         case 'chat':
             return await recordChatActivity(
                 client,
@@ -343,6 +610,7 @@ export async function recordActivity(
             );
 
         default:
+
             logger.warn(
                 `Unknown leveling activity type: ${type}`
             );
@@ -351,9 +619,12 @@ export async function recordActivity(
     }
 }
 
-// --------------------------------------------------
-// Get User Progress
-// --------------------------------------------------
+
+/*
+ * ==================================================
+ * GET USER PROGRESS
+ * ==================================================
+ */
 
 export async function getActivityProgress(
     client,
@@ -375,6 +646,16 @@ export async function getActivityProgress(
         userData
     );
 
+    const progress =
+        getWeeklyProgress(
+            userData
+        );
+
+    const period =
+        getLevelPeriod(
+            userData.level
+        );
+
     return {
         level:
             userData.level,
@@ -382,13 +663,16 @@ export async function getActivityProgress(
         xp:
             userData.xp,
 
+        xpNeeded:
+            100,
+
         totalXp:
             userData.totalXp,
 
+        period,
+
         weekly:
-            getWeeklyProgress(
-                userData
-            ),
+            progress,
 
         daily: {
             chatMinutes:
@@ -400,85 +684,106 @@ export async function getActivityProgress(
     };
 }
 
-// --------------------------------------------------
-// Legacy Compatibility
-// --------------------------------------------------
 
-/**
- * Kept so older files importing addXp()
- * don't immediately crash.
+/*
+ * ==================================================
+ * LEGACY addXp()
+ * ==================================================
  *
- * IMPORTANT:
- * This no longer gives XP for every message.
+ * Old messageCreate.js may still call addXp().
  *
- * Instead, callers should migrate to:
+ * We intentionally keep it.
  *
- * recordChatActivity()
- * recordVoiceActivity()
- * recordGameActivity()
+ * It now adds XP through the new fixed
+ * 100 XP = 1 level system.
+ *
+ * However, messageCreate should eventually
+ * be changed so it records ACTIVE chat
+ * instead of random XP per message.
  */
 
-export const addXp = wrapServiceBoundary(
-    async function addXp(
-        client,
-        guild,
-        member,
-        xpToAdd
-    ) {
-        if (
-            !guild ||
-            !member
+export const addXp =
+    wrapServiceBoundary(
+        async function addXp(
+            client,
+            guild,
+            member,
+            xpToAdd
         ) {
-            return null;
-        }
+            if (
+                !guild ||
+                !member ||
+                !Number.isFinite(
+                    xpToAdd
+                ) ||
+                xpToAdd <= 0
+            ) {
+                return null;
+            }
 
-        /*
-         * Legacy message XP is intentionally disabled.
-         *
-         * We do NOT convert arbitrary XP into levels because
-         * the new leveling system is activity based.
-         */
+            const lockKey =
+                `leveling:${guild.id}:${member.user.id}`;
 
-        logger.debug(
-            `Legacy addXp() ignored for ${member.user.id}. ` +
-            `Use activity tracking instead.`
-        );
+            return await Mutex.runExclusive(
+                lockKey,
+                async () => {
 
-        const userData =
-            await getUserLevelData(
-                client,
-                guild.id,
-                member.user.id
+                    const result =
+                        await addLevelXp(
+                            client,
+                            guild.id,
+                            member.user.id,
+                            xpToAdd
+                        );
+
+                    if (!result) {
+                        return null;
+                    }
+
+                    /*
+                     * Level NEVER decreases
+                     * automatically.
+                     */
+                    return {
+                        level:
+                            result.level,
+
+                        xp:
+                            result.xp,
+
+                        totalXp:
+                            result.totalXp,
+
+                        xpNeeded:
+                            100,
+
+                        leveledUp:
+                            result.leveledUp,
+
+                        levelsGained:
+                            result.levelsGained
+                    };
+                }
             );
+        },
+        {
+            service:
+                'xpSystem',
 
-        return {
-            level:
-                userData.level,
+            operation:
+                'addXp',
 
-            xp:
-                userData.xp,
+            userMessage:
+                'Failed to process XP.'
+        }
+    );
 
-            totalXp:
-                userData.totalXp,
 
-            xpNeeded:
-                0,
-
-            leveledUp:
-                false
-        };
-    },
-    {
-        service: 'xpSystem',
-        operation: 'addXp',
-        userMessage:
-            'Failed to process leveling activity.'
-    }
-);
-
-// --------------------------------------------------
-// Manual Activity Helpers
-// --------------------------------------------------
+/*
+ * ==================================================
+ * MANUAL ACTIVITY HELPERS
+ * ==================================================
+ */
 
 export async function addChatMinutes(
     client,
@@ -486,22 +791,14 @@ export async function addChatMinutes(
     userId,
     minutes
 ) {
-    const result =
-        await recordChatActivity(
-            client,
-            guildId,
-            userId,
-            minutes
-        );
-
-    await checkWeeklyLevelUp(
+    return await recordChatActivity(
         client,
         guildId,
-        userId
+        userId,
+        minutes
     );
-
-    return result;
 }
+
 
 export async function addVoiceMinutes(
     client,
@@ -509,22 +806,14 @@ export async function addVoiceMinutes(
     userId,
     minutes
 ) {
-    const result =
-        await recordVoiceActivity(
-            client,
-            guildId,
-            userId,
-            minutes
-        );
-
-    await checkWeeklyLevelUp(
+    return await recordVoiceActivity(
         client,
         guildId,
-        userId
+        userId,
+        minutes
     );
-
-    return result;
 }
+
 
 export async function addGames(
     client,
@@ -532,19 +821,10 @@ export async function addGames(
     userId,
     games = 1
 ) {
-    const result =
-        await recordGameActivity(
-            client,
-            guildId,
-            userId,
-            games
-        );
-
-    await checkWeeklyLevelUp(
+    return await recordGameActivity(
         client,
         guildId,
-        userId
+        userId,
+        games
     );
-
-    return result;
 }
