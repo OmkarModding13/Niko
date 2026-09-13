@@ -2,29 +2,128 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
-import { getGuildConfig, setGuildConfig } from '../config/guildConfig.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getUserLevelKey } from '../../utils/database/keys.js';
+import {
+    getGuildConfig,
+    setGuildConfig
+} from '../config/guildConfig.js';
+import {
+    TitanBotError,
+    ErrorTypes
+} from '../../utils/errorHandler.js';
+import {
+    getUserLevelKey
+} from '../../utils/database/keys.js';
 
 const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
 
-// Weekly leveling requirements
-export const LEVELING_REQUIREMENTS = {
-    chatMinutesPerDay: 300,      // 5 hours
-    voiceMinutesPerDay: 180,     // 3 hours
-    gamesPerWeek: 15,
+export const XP_PER_LEVEL = 100;
+export const MONTHLY_LEVEL_START = 51;
 
-    chatMinutesPerWeek: 300 * 7,
-    voiceMinutesPerWeek: 180 * 7,
+/*
+ * ==================================================
+ * ACTIVITY REQUIREMENTS
+ * ==================================================
+ *
+ * LEVEL 1-50
+ * ----------------
+ * Chat  : 5 hours/day
+ * Voice : 3 hours/day
+ * Games : 15/week
+ *
+ * LEVEL 51+
+ * ----------------
+ * Monthly progression.
+ *
+ * The exact monthly activity requirements can be
+ * configured later without changing the database.
+ */
+
+export const LEVELING_REQUIREMENTS = {
+    weekly: {
+        chatMinutesPerDay: 300,
+        voiceMinutesPerDay: 180,
+        gamesPerWeek: 15,
+
+        chatMinutesPerWeek: 300 * 7,
+        voiceMinutesPerWeek: 180 * 7
+    },
+
+    monthly: {
+        /*
+         * Monthly targets are configurable.
+         *
+         * These defaults represent one full month
+         * of the normal daily activity requirement.
+         */
+        chatMinutesPerDay: 300,
+        voiceMinutesPerDay: 180,
+        gamesPerMonth: 60
+    }
 };
 
-// --------------------------------------------------
-// XP
-// --------------------------------------------------
+/*
+ * ==================================================
+ * MILESTONE REWARDS
+ * ==================================================
+ *
+ * Reward = Level x 100 Souls
+ */
+
+export const LEVEL_MILESTONES = {
+    5: {
+        roleName: 'Lost Soul',
+        souls: 500
+    },
+
+    10: {
+        roleName: 'Shadow Walker',
+        souls: 1000
+    },
+
+    20: {
+        roleName: 'Devil Disciple',
+        souls: 2000
+    },
+
+    30: {
+        roleName: 'Abyss Hunter',
+        souls: 3000
+    },
+
+    40: {
+        roleName: 'Hellborn',
+        souls: 4000
+    },
+
+    50: {
+        roleName: 'Void Reaper',
+        souls: 5000
+    },
+
+    75: {
+        roleName: 'Hollow Lord',
+        souls: 7500
+    },
+
+    100: {
+        roleName: 'Hollow Legend',
+        souls: 10000
+    }
+};
+
+/*
+ * ==================================================
+ * XP
+ * ==================================================
+ */
 
 export function getXpForLevel(level) {
-    if (!Number.isInteger(level) || level < 0 || level > MAX_LEVEL) {
+    if (
+        !Number.isInteger(level) ||
+        level < MIN_LEVEL ||
+        level > MAX_LEVEL
+    ) {
         throw new TitanBotError(
             `Invalid level: ${level}`,
             ErrorTypes.VALIDATION,
@@ -32,11 +131,17 @@ export function getXpForLevel(level) {
         );
     }
 
-    return 5 * Math.pow(level, 2) + 50 * level + 50;
+    /*
+     * Every level requires exactly 100 XP.
+     */
+    return XP_PER_LEVEL;
 }
 
 export function getLevelFromXp(xp) {
-    if (!Number.isInteger(xp) || xp < 0) {
+    if (
+        !Number.isFinite(xp) ||
+        xp < 0
+    ) {
         throw new TitanBotError(
             `Invalid XP: ${xp}`,
             ErrorTypes.VALIDATION,
@@ -44,61 +149,118 @@ export function getLevelFromXp(xp) {
         );
     }
 
-    let level = 0;
-    let remainingXp = xp;
+    const safeXp =
+        Math.floor(xp);
 
-    while (
-        level < MAX_LEVEL &&
-        remainingXp >= getXpForLevel(level)
-    ) {
-        remainingXp -= getXpForLevel(level);
-        level++;
-    }
+    const levelGain =
+        Math.floor(
+            safeXp / XP_PER_LEVEL
+        );
+
+    const level =
+        Math.min(
+            MAX_LEVEL,
+            levelGain
+        );
+
+    const currentXp =
+        level >= MAX_LEVEL
+            ? 0
+            : safeXp % XP_PER_LEVEL;
 
     return {
         level,
-        currentXp: remainingXp,
-        xpNeeded: getXpForLevel(level)
+        currentXp,
+        xpNeeded: XP_PER_LEVEL
     };
 }
 
-export function calculateTotalXp(level, currentXp = 0) {
-    let total = currentXp;
+export function calculateTotalXp(
+    level,
+    currentXp = 0
+) {
+    const safeLevel =
+        Math.max(
+            MIN_LEVEL,
+            Math.min(
+                MAX_LEVEL,
+                Number(level) || 0
+            )
+        );
 
-    for (let i = 0; i < level; i++) {
-        total += getXpForLevel(i);
-    }
+    const safeXp =
+        Math.max(
+            0,
+            Number(currentXp) || 0
+        );
 
-    return total;
+    return (
+        safeLevel * XP_PER_LEVEL +
+        safeXp
+    );
 }
 
-// --------------------------------------------------
-// Leveling Config
-// --------------------------------------------------
+/*
+ * ==================================================
+ * LEVELING CONFIG
+ * ==================================================
+ */
 
-export async function getLevelingConfig(client, guildId) {
+export async function getLevelingConfig(
+    client,
+    guildId
+) {
     try {
-        const guildConfig = await getGuildConfig(client, guildId);
+        const guildConfig =
+            await getGuildConfig(
+                client,
+                guildId
+            );
 
         return guildConfig.leveling || {
             enabled: true,
 
-            // New activity system
-            chatMinutesPerDay: LEVELING_REQUIREMENTS.chatMinutesPerDay,
-            voiceMinutesPerDay: LEVELING_REQUIREMENTS.voiceMinutesPerDay,
-            gamesPerWeek: LEVELING_REQUIREMENTS.gamesPerWeek,
+            weekly: {
+                chatMinutesPerDay:
+                    LEVELING_REQUIREMENTS.weekly
+                        .chatMinutesPerDay,
 
-            chatMinutesPerWeek: LEVELING_REQUIREMENTS.chatMinutesPerWeek,
-            voiceMinutesPerWeek: LEVELING_REQUIREMENTS.voiceMinutesPerWeek,
+                voiceMinutesPerDay:
+                    LEVELING_REQUIREMENTS.weekly
+                        .voiceMinutesPerDay,
 
-            // Existing compatibility settings
-            levelUpMessage: '{user} has reached level {level}!',
+                gamesPerWeek:
+                    LEVELING_REQUIREMENTS.weekly
+                        .gamesPerWeek
+            },
+
+            monthly: {
+                chatMinutesPerDay:
+                    LEVELING_REQUIREMENTS.monthly
+                        .chatMinutesPerDay,
+
+                voiceMinutesPerDay:
+                    LEVELING_REQUIREMENTS.monthly
+                        .voiceMinutesPerDay,
+
+                gamesPerMonth:
+                    LEVELING_REQUIREMENTS.monthly
+                        .gamesPerMonth
+            },
+
+            levelUpMessage:
+                '{user} has reached level {level}!',
+
             levelUpChannel: null,
+
             ignoredChannels: [],
+
             ignoredRoles: [],
+
             blacklistedUsers: [],
 
             roleRewards: {},
+
             announceLevelUp: true,
 
             xpMultiplier: 1
@@ -112,21 +274,27 @@ export async function getLevelingConfig(client, guildId) {
         return {
             enabled: true,
 
-            chatMinutesPerDay: LEVELING_REQUIREMENTS.chatMinutesPerDay,
-            voiceMinutesPerDay: LEVELING_REQUIREMENTS.voiceMinutesPerDay,
-            gamesPerWeek: LEVELING_REQUIREMENTS.gamesPerWeek,
+            weekly: {
+                ...LEVELING_REQUIREMENTS.weekly
+            },
 
-            chatMinutesPerWeek: LEVELING_REQUIREMENTS.chatMinutesPerWeek,
-            voiceMinutesPerWeek: LEVELING_REQUIREMENTS.voiceMinutesPerWeek,
+            monthly: {
+                ...LEVELING_REQUIREMENTS.monthly
+            },
 
-            levelUpMessage: '{user} has reached level {level}!',
+            levelUpMessage:
+                '{user} has reached level {level}!',
+
             levelUpChannel: null,
 
             ignoredChannels: [],
+
             ignoredRoles: [],
+
             blacklistedUsers: [],
 
             roleRewards: {},
+
             announceLevelUp: true,
 
             xpMultiplier: 1
@@ -134,9 +302,16 @@ export async function getLevelingConfig(client, guildId) {
     }
 }
 
-export async function saveLevelingConfig(client, guildId, config) {
+export async function saveLevelingConfig(
+    client,
+    guildId,
+    config
+) {
     try {
-        if (!guildId || !config) {
+        if (
+            !guildId ||
+            !config
+        ) {
             throw new TitanBotError(
                 'Guild ID and config are required',
                 ErrorTypes.VALIDATION
@@ -144,9 +319,13 @@ export async function saveLevelingConfig(client, guildId, config) {
         }
 
         const guildConfig =
-            await getGuildConfig(client, guildId);
+            await getGuildConfig(
+                client,
+                guildId
+            );
 
-        guildConfig.leveling = config;
+        guildConfig.leveling =
+            config;
 
         await setGuildConfig(
             client,
@@ -165,7 +344,9 @@ export async function saveLevelingConfig(client, guildId, config) {
             error
         );
 
-        if (error instanceof TitanBotError) {
+        if (
+            error instanceof TitanBotError
+        ) {
             throw error;
         }
 
@@ -177,9 +358,11 @@ export async function saveLevelingConfig(client, guildId, config) {
     }
 }
 
-// --------------------------------------------------
-// User Level Data
-// --------------------------------------------------
+/*
+ * ==================================================
+ * USER LEVEL DATA
+ * ==================================================
+ */
 
 export async function getUserLevelData(
     client,
@@ -187,7 +370,10 @@ export async function getUserLevelData(
     userId
 ) {
     try {
-        if (!guildId || !userId) {
+        if (
+            !guildId ||
+            !userId
+        ) {
             throw new TitanBotError(
                 'Guild ID and User ID are required',
                 ErrorTypes.VALIDATION
@@ -195,23 +381,32 @@ export async function getUserLevelData(
         }
 
         const key =
-            getUserLevelKey(guildId, userId);
+            getUserLevelKey(
+                guildId,
+                userId
+            );
 
         const data =
-            await client.db.get(key);
+            await client.db.get(
+                key
+            );
 
         if (!data) {
             return createDefaultLevelData();
         }
 
-        return normalizeLevelData(data);
+        return normalizeLevelData(
+            data
+        );
     } catch (error) {
         logger.error(
             `Error getting level data for ${userId}:`,
             error
         );
 
-        if (error instanceof TitanBotError) {
+        if (
+            error instanceof TitanBotError
+        ) {
             throw error;
         }
 
@@ -230,14 +425,20 @@ export async function saveUserLevelData(
     data
 ) {
     try {
-        if (!guildId || !userId) {
+        if (
+            !guildId ||
+            !userId
+        ) {
             throw new TitanBotError(
                 'Guild ID and User ID are required',
                 ErrorTypes.VALIDATION
             );
         }
 
-        if (!data || typeof data !== 'object') {
+        if (
+            !data ||
+            typeof data !== 'object'
+        ) {
             throw new TitanBotError(
                 'Invalid user level data',
                 ErrorTypes.VALIDATION
@@ -245,13 +446,18 @@ export async function saveUserLevelData(
         }
 
         const sanitizedData =
-            normalizeLevelData(data);
+            normalizeLevelData(
+                data
+            );
 
         sanitizedData.updatedAt =
             Date.now();
 
         const key =
-            getUserLevelKey(guildId, userId);
+            getUserLevelKey(
+                guildId,
+                userId
+            );
 
         await client.db.set(
             key,
@@ -265,7 +471,9 @@ export async function saveUserLevelData(
             error
         );
 
-        if (error instanceof TitanBotError) {
+        if (
+            error instanceof TitanBotError
+        ) {
             throw error;
         }
 
@@ -277,44 +485,94 @@ export async function saveUserLevelData(
     }
 }
 
+/*
+ * ==================================================
+ * DEFAULT DATA
+ * ==================================================
+ */
+
 function createDefaultLevelData() {
     return {
-        // Permanent level data
-        xp: 0,
+        /*
+         * Permanent progression
+         */
         level: 0,
+        xp: 0,
         totalXp: 0,
 
-        // Compatibility
+        /*
+         * Compatibility
+         */
         lastMessage: 0,
         rank: 0,
 
-        // Weekly activity
+        /*
+         * Activity
+         */
         weeklyChatMinutes: 0,
         weeklyVoiceMinutes: 0,
         weeklyGames: 0,
 
-        // Current week
-        weekStart: getWeekStart(),
+        monthlyChatMinutes: 0,
+        monthlyVoiceMinutes: 0,
+        monthlyGames: 0,
 
-        // Daily tracking
+        /*
+         * Period tracking
+         */
+        weekStart:
+            getWeekStart(),
+
+        monthStart:
+            getMonthStart(),
+
+        /*
+         * Failed periods
+         */
+        consecutiveFailedPeriods: 0,
+
+        /*
+         * Daily tracking
+         */
         dailyChatMinutes: 0,
         dailyVoiceMinutes: 0,
-        dailyChatDate: getDateKey(),
-        dailyVoiceDate: getDateKey(),
 
-        // XP multiplier
+        dailyChatDate:
+            getDateKey(),
+
+        dailyVoiceDate:
+            getDateKey(),
+
+        /*
+         * XP boost
+         */
         xpMultiplier: 1,
+
         xpMultiplierExpiresAt: 0,
 
-        // Reward tracking
+        /*
+         * Milestone rewards
+         *
+         * Example:
+         * {
+         *   "5": true,
+         *   "10": true
+         * }
+         */
         milestoneRewards: {},
 
-        // Hall of Fame
-        levelHistory: []
+        /*
+         * Hall of Fame history
+         */
+        levelHistory: [],
+
+        updatedAt: Date.now()
     };
 }
 
-function normalizeLevelData(data) {
+function normalizeLevelData(
+    data
+) {
     const defaults =
         createDefaultLevelData();
 
@@ -322,17 +580,16 @@ function normalizeLevelData(data) {
         ...defaults,
         ...data,
 
-        xp: Math.max(
-            0,
-            Number(data.xp) || 0
+        level: clampNumber(
+            data.level,
+            MIN_LEVEL,
+            MAX_LEVEL
         ),
 
-        level: Math.max(
-            MIN_LEVEL,
-            Math.min(
-                Number(data.level) || 0,
-                MAX_LEVEL
-            )
+        xp: clampNumber(
+            data.xp,
+            0,
+            XP_PER_LEVEL - 1
         ),
 
         totalXp: Math.max(
@@ -340,53 +597,128 @@ function normalizeLevelData(data) {
             Number(data.totalXp) || 0
         ),
 
-        weeklyChatMinutes: Math.max(
-            0,
-            Number(data.weeklyChatMinutes) || 0
-        ),
+        weeklyChatMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.weeklyChatMinutes
+                ) || 0
+            ),
 
-        weeklyVoiceMinutes: Math.max(
-            0,
-            Number(data.weeklyVoiceMinutes) || 0
-        ),
+        weeklyVoiceMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.weeklyVoiceMinutes
+                ) || 0
+            ),
 
-        weeklyGames: Math.max(
-            0,
-            Number(data.weeklyGames) || 0
-        ),
+        weeklyGames:
+            Math.max(
+                0,
+                Number(
+                    data.weeklyGames
+                ) || 0
+            ),
 
-        dailyChatMinutes: Math.max(
-            0,
-            Number(data.dailyChatMinutes) || 0
-        ),
+        monthlyChatMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.monthlyChatMinutes
+                ) || 0
+            ),
 
-        dailyVoiceMinutes: Math.max(
-            0,
-            Number(data.dailyVoiceMinutes) || 0
-        ),
+        monthlyVoiceMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.monthlyVoiceMinutes
+                ) || 0
+            ),
+
+        monthlyGames:
+            Math.max(
+                0,
+                Number(
+                    data.monthlyGames
+                ) || 0
+            ),
+
+        consecutiveFailedPeriods:
+            Math.max(
+                0,
+                Number(
+                    data.consecutiveFailedPeriods
+                ) || 0
+            ),
+
+        dailyChatMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.dailyChatMinutes
+                ) || 0
+            ),
+
+        dailyVoiceMinutes:
+            Math.max(
+                0,
+                Number(
+                    data.dailyVoiceMinutes
+                ) || 0
+            ),
 
         weekStart:
             Number(data.weekStart) ||
             getWeekStart(),
 
+        monthStart:
+            Number(data.monthStart) ||
+            getMonthStart(),
+
         milestoneRewards:
             data.milestoneRewards &&
-            typeof data.milestoneRewards === 'object'
+            typeof data.milestoneRewards ===
+                'object'
                 ? data.milestoneRewards
                 : {},
 
         levelHistory:
-            Array.isArray(data.levelHistory)
+            Array.isArray(
+                data.levelHistory
+            )
                 ? data.levelHistory
                 : []
     };
 }
 
-// --------------------------------------------------
-// Weekly Activity
-// --------------------------------------------------
+/*
+ * ==================================================
+ * DATE HELPERS
+ * ==================================================
+ */
 
-export function getWeekStart(timestamp = Date.now()) {
+export function getDateKey(
+    timestamp = Date.now()
+) {
+    const date =
+        new Date(timestamp);
+
+    return [
+        date.getFullYear(),
+        String(
+            date.getMonth() + 1
+        ).padStart(2, '0'),
+        String(
+            date.getDate()
+        ).padStart(2, '0')
+    ].join('-');
+}
+
+export function getWeekStart(
+    timestamp = Date.now()
+) {
     const date =
         new Date(timestamp);
 
@@ -394,7 +726,9 @@ export function getWeekStart(timestamp = Date.now()) {
         date.getDay();
 
     const diff =
-        day === 0 ? 6 : day - 1;
+        day === 0
+            ? 6
+            : day - 1;
 
     date.setHours(
         0,
@@ -410,27 +744,58 @@ export function getWeekStart(timestamp = Date.now()) {
     return date.getTime();
 }
 
-export function getDateKey(timestamp = Date.now()) {
+export function getMonthStart(
+    timestamp = Date.now()
+) {
     const date =
         new Date(timestamp);
 
-    return [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, '0'),
-        String(date.getDate()).padStart(2, '0')
-    ].join('-');
+    date.setDate(1);
+
+    date.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    return date.getTime();
 }
 
-export function resetWeeklyProgressIfNeeded(
+/*
+ * ==================================================
+ * LEVEL PERIOD
+ * ==================================================
+ */
+
+export function getLevelPeriod(
+    level
+) {
+    return level >= MONTHLY_LEVEL_START
+        ? 'monthly'
+        : 'weekly';
+}
+
+/*
+ * ==================================================
+ * PERIOD RESET
+ * ==================================================
+ */
+
+export function resetPeriodIfNeeded(
     userData,
     now = Date.now()
 ) {
+    /*
+     * Weekly data always resets every Monday.
+     */
     const currentWeek =
         getWeekStart(now);
 
     if (
         !userData.weekStart ||
-        userData.weekStart !== currentWeek
+        userData.weekStart !==
+            currentWeek
     ) {
         userData.weekStart =
             currentWeek;
@@ -438,6 +803,26 @@ export function resetWeeklyProgressIfNeeded(
         userData.weeklyChatMinutes = 0;
         userData.weeklyVoiceMinutes = 0;
         userData.weeklyGames = 0;
+    }
+
+    /*
+     * Monthly data resets on the first
+     * day of every month.
+     */
+    const currentMonth =
+        getMonthStart(now);
+
+    if (
+        !userData.monthStart ||
+        userData.monthStart !==
+            currentMonth
+    ) {
+        userData.monthStart =
+            currentMonth;
+
+        userData.monthlyChatMinutes = 0;
+        userData.monthlyVoiceMinutes = 0;
+        userData.monthlyGames = 0;
     }
 
     return userData;
@@ -451,7 +836,8 @@ export function resetDailyProgressIfNeeded(
         getDateKey(now);
 
     if (
-        userData.dailyChatDate !== today
+        userData.dailyChatDate !==
+        today
     ) {
         userData.dailyChatDate =
             today;
@@ -460,7 +846,8 @@ export function resetDailyProgressIfNeeded(
     }
 
     if (
-        userData.dailyVoiceDate !== today
+        userData.dailyVoiceDate !==
+        today
     ) {
         userData.dailyVoiceDate =
             today;
@@ -471,18 +858,140 @@ export function resetDailyProgressIfNeeded(
     return userData;
 }
 
-// --------------------------------------------------
-// Activity Progress
-// --------------------------------------------------
+/*
+ * Backwards compatibility
+ */
+export function resetWeeklyProgressIfNeeded(
+    userData,
+    now = Date.now()
+) {
+    return resetPeriodIfNeeded(
+        userData,
+        now
+    );
+}
 
-export function getWeeklyProgress(userData) {
+/*
+ * ==================================================
+ * ACTIVITY REQUIREMENTS
+ * ==================================================
+ */
+
+export function getActivityRequirements(
+    level
+) {
+    const period =
+        getLevelPeriod(
+            level
+        );
+
+    if (
+        period === 'monthly'
+    ) {
+        const now =
+            new Date();
+
+        const daysInMonth =
+            new Date(
+                now.getFullYear(),
+                now.getMonth() + 1,
+                0
+            ).getDate();
+
+        return {
+            period: 'monthly',
+
+            chatMinutes:
+                LEVELING_REQUIREMENTS
+                    .monthly
+                    .chatMinutesPerDay *
+                daysInMonth,
+
+            voiceMinutes:
+                LEVELING_REQUIREMENTS
+                    .monthly
+                    .voiceMinutesPerDay *
+                daysInMonth,
+
+            games:
+                LEVELING_REQUIREMENTS
+                    .monthly
+                    .gamesPerMonth
+        };
+    }
+
+    return {
+        period: 'weekly',
+
+        chatMinutes:
+            LEVELING_REQUIREMENTS
+                .weekly
+                .chatMinutesPerWeek,
+
+        voiceMinutes:
+            LEVELING_REQUIREMENTS
+                .weekly
+                .voiceMinutesPerWeek,
+
+        games:
+            LEVELING_REQUIREMENTS
+                .weekly
+                .gamesPerWeek
+    };
+}
+
+/*
+ * ==================================================
+ * ACTIVITY PROGRESS
+ * ==================================================
+ */
+
+export function getActivityProgress(
+    userData
+) {
+    const period =
+        getLevelPeriod(
+            userData.level
+        );
+
+    const requirements =
+        getActivityRequirements(
+            userData.level
+        );
+
+    let chatMinutes;
+    let voiceMinutes;
+    let games;
+
+    if (
+        period === 'monthly'
+    ) {
+        chatMinutes =
+            userData.monthlyChatMinutes;
+
+        voiceMinutes =
+            userData.monthlyVoiceMinutes;
+
+        games =
+            userData.monthlyGames;
+    } else {
+        chatMinutes =
+            userData.weeklyChatMinutes;
+
+        voiceMinutes =
+            userData.weeklyVoiceMinutes;
+
+        games =
+            userData.weeklyGames;
+    }
+
     const chatProgress =
         Math.min(
             100,
             Math.floor(
                 (
-                    userData.weeklyChatMinutes /
-                    LEVELING_REQUIREMENTS.chatMinutesPerWeek
+                    chatMinutes /
+                    requirements.chatMinutes
                 ) * 100
             )
         );
@@ -492,8 +1001,8 @@ export function getWeeklyProgress(userData) {
             100,
             Math.floor(
                 (
-                    userData.weeklyVoiceMinutes /
-                    LEVELING_REQUIREMENTS.voiceMinutesPerWeek
+                    voiceMinutes /
+                    requirements.voiceMinutes
                 ) * 100
             )
         );
@@ -503,21 +1012,18 @@ export function getWeeklyProgress(userData) {
             100,
             Math.floor(
                 (
-                    userData.weeklyGames /
-                    LEVELING_REQUIREMENTS.gamesPerWeek
+                    games /
+                    requirements.games
                 ) * 100
             )
         );
 
     return {
-        chatMinutes:
-            userData.weeklyChatMinutes,
+        period,
 
-        voiceMinutes:
-            userData.weeklyVoiceMinutes,
-
-        games:
-            userData.weeklyGames,
+        chatMinutes,
+        voiceMinutes,
+        games,
 
         chatProgress,
         voiceProgress,
@@ -530,13 +1036,37 @@ export function getWeeklyProgress(userData) {
     };
 }
 
-export function isWeeklyLevelReady(userData) {
-    return getWeeklyProgress(userData).complete;
+export function getWeeklyProgress(
+    userData
+) {
+    return getActivityProgress(
+        userData
+    );
 }
 
-export function getWeeklyCompletionPercentage(userData) {
+export function isActivityPeriodComplete(
+    userData
+) {
+    return getActivityProgress(
+        userData
+    ).complete;
+}
+
+export function isWeeklyLevelReady(
+    userData
+) {
+    return isActivityPeriodComplete(
+        userData
+    );
+}
+
+export function getWeeklyCompletionPercentage(
+    userData
+) {
     const progress =
-        getWeeklyProgress(userData);
+        getActivityProgress(
+            userData
+        );
 
     return Math.floor(
         (
@@ -547,9 +1077,133 @@ export function getWeeklyCompletionPercentage(userData) {
     );
 }
 
-// --------------------------------------------------
-// Activity Recording
-// --------------------------------------------------
+/*
+ * ==================================================
+ * ADD XP
+ * ==================================================
+ */
+
+export async function addLevelXp(
+    client,
+    guildId,
+    userId,
+    amount
+) {
+    if (
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ) {
+        return null;
+    }
+
+    const userData =
+        await getUserLevelData(
+            client,
+            guildId,
+            userId
+        );
+
+    const oldLevel =
+        userData.level;
+
+    const multiplier =
+        getActiveXpMultiplier(
+            userData
+        );
+
+    const finalAmount =
+        Math.max(
+            0,
+            Math.floor(
+                amount *
+                multiplier
+            )
+        );
+
+    userData.xp +=
+        finalAmount;
+
+    userData.totalXp +=
+        finalAmount;
+
+    /*
+     * Every 100 XP = +1 level.
+     *
+     * XP remainder carries over.
+     */
+    while (
+        userData.xp >=
+            XP_PER_LEVEL &&
+        userData.level <
+            MAX_LEVEL
+    ) {
+        userData.xp -=
+            XP_PER_LEVEL;
+
+        userData.level += 1;
+
+        /*
+         * Successful progression means
+         * the failed-period counter resets.
+         */
+        userData.consecutiveFailedPeriods = 0;
+
+        userData.levelHistory.push({
+            level:
+                userData.level,
+
+            timestamp:
+                Date.now()
+        });
+
+        if (
+            userData.levelHistory.length >
+            100
+        ) {
+            userData.levelHistory =
+                userData.levelHistory.slice(
+                    -100
+                );
+        }
+    }
+
+    await saveUserLevelData(
+        client,
+        guildId,
+        userId,
+        userData
+    );
+
+    return {
+        level:
+            userData.level,
+
+        oldLevel,
+
+        xp:
+            userData.xp,
+
+        totalXp:
+            userData.totalXp,
+
+        xpNeeded:
+            XP_PER_LEVEL,
+
+        levelsGained:
+            userData.level -
+            oldLevel,
+
+        leveledUp:
+            userData.level >
+            oldLevel
+    };
+}
+
+/*
+ * ==================================================
+ * CHAT ACTIVITY
+ * ==================================================
+ */
 
 export async function addChatActivity(
     client,
@@ -557,7 +1211,10 @@ export async function addChatActivity(
     userId,
     minutes
 ) {
-    if (!Number.isFinite(minutes) || minutes <= 0) {
+    if (
+        !Number.isFinite(minutes) ||
+        minutes <= 0
+    ) {
         return null;
     }
 
@@ -568,11 +1225,22 @@ export async function addChatActivity(
             userId
         );
 
-    resetWeeklyProgressIfNeeded(userData);
-    resetDailyProgressIfNeeded(userData);
+    resetPeriodIfNeeded(
+        userData
+    );
 
-    userData.weeklyChatMinutes += minutes;
-    userData.dailyChatMinutes += minutes;
+    resetDailyProgressIfNeeded(
+        userData
+    );
+
+    userData.weeklyChatMinutes +=
+        minutes;
+
+    userData.monthlyChatMinutes +=
+        minutes;
+
+    userData.dailyChatMinutes +=
+        minutes;
 
     await saveUserLevelData(
         client,
@@ -583,6 +1251,12 @@ export async function addChatActivity(
 
     return userData;
 }
+
+/*
+ * ==================================================
+ * VOICE ACTIVITY
+ * ==================================================
+ */
 
 export async function addVoiceActivity(
     client,
@@ -590,7 +1264,10 @@ export async function addVoiceActivity(
     userId,
     minutes
 ) {
-    if (!Number.isFinite(minutes) || minutes <= 0) {
+    if (
+        !Number.isFinite(minutes) ||
+        minutes <= 0
+    ) {
         return null;
     }
 
@@ -601,11 +1278,22 @@ export async function addVoiceActivity(
             userId
         );
 
-    resetWeeklyProgressIfNeeded(userData);
-    resetDailyProgressIfNeeded(userData);
+    resetPeriodIfNeeded(
+        userData
+    );
 
-    userData.weeklyVoiceMinutes += minutes;
-    userData.dailyVoiceMinutes += minutes;
+    resetDailyProgressIfNeeded(
+        userData
+    );
+
+    userData.weeklyVoiceMinutes +=
+        minutes;
+
+    userData.monthlyVoiceMinutes +=
+        minutes;
+
+    userData.dailyVoiceMinutes +=
+        minutes;
 
     await saveUserLevelData(
         client,
@@ -616,6 +1304,12 @@ export async function addVoiceActivity(
 
     return userData;
 }
+
+/*
+ * ==================================================
+ * GAME ACTIVITY
+ * ==================================================
+ */
 
 export async function addGameActivity(
     client,
@@ -623,7 +1317,10 @@ export async function addGameActivity(
     userId,
     games = 1
 ) {
-    if (!Number.isInteger(games) || games <= 0) {
+    if (
+        !Number.isInteger(games) ||
+        games <= 0
+    ) {
         return null;
     }
 
@@ -634,9 +1331,15 @@ export async function addGameActivity(
             userId
         );
 
-    resetWeeklyProgressIfNeeded(userData);
+    resetPeriodIfNeeded(
+        userData
+    );
 
-    userData.weeklyGames += games;
+    userData.weeklyGames +=
+        games;
+
+    userData.monthlyGames +=
+        games;
 
     await saveUserLevelData(
         client,
@@ -648,11 +1351,28 @@ export async function addGameActivity(
     return userData;
 }
 
-// --------------------------------------------------
-// Level Up
-// --------------------------------------------------
+/*
+ * ==================================================
+ * PERIOD FAILURE / XP DECAY
+ * ==================================================
+ *
+ * IMPORTANT:
+ *
+ * Level NEVER decreases here.
+ *
+ * Only current XP is reduced.
+ *
+ * 1st failed period:
+ *     XP / 2
+ *
+ * 2nd consecutive failed period:
+ *     XP = 0
+ *
+ * After that:
+ *     XP stays 0 until activity earns more.
+ */
 
-export async function levelUpUser(
+export async function processFailedPeriod(
     client,
     guildId,
     userId
@@ -664,63 +1384,33 @@ export async function levelUpUser(
             userId
         );
 
-    if (userData.level >= MAX_LEVEL) {
-        return {
-            leveledUp: false,
-            userData
-        };
-    }
-
-    if (!isWeeklyLevelReady(userData)) {
-        return {
-            leveledUp: false,
-            userData
-        };
-    }
-
-    const oldLevel =
+    /*
+     * Never reduce level.
+     */
+    const permanentLevel =
         userData.level;
 
-    const newLevel =
-        Math.min(
-            oldLevel + 1,
-            MAX_LEVEL
-        );
+    userData.consecutiveFailedPeriods +=
+        1;
 
-    userData.level =
-        newLevel;
-
-    userData.xp = 0;
-
-    userData.totalXp =
-        calculateTotalXp(
-            newLevel,
-            0
-        );
-
-    // Reset weekly activity after successful level-up
-    userData.weeklyChatMinutes = 0;
-    userData.weeklyVoiceMinutes = 0;
-    userData.weeklyGames = 0;
-    userData.weekStart =
-        getWeekStart();
-
-    // Hall of Fame history
-    userData.levelHistory =
-        Array.isArray(userData.levelHistory)
-            ? userData.levelHistory
-            : [];
-
-    userData.levelHistory.push({
-        level: newLevel,
-        timestamp: Date.now()
-    });
-
-    // Keep history manageable
-    if (userData.levelHistory.length > 100) {
-        userData.levelHistory =
-            userData.levelHistory.slice(-100);
+    if (
+        userData.consecutiveFailedPeriods ===
+        1
+    ) {
+        userData.xp =
+            Math.floor(
+                userData.xp / 2
+            );
+    } else {
+        userData.xp = 0;
     }
+
+    /*
+     * Safety:
+     * Level must remain exactly the same.
+     */
+    userData.level =
+        permanentLevel;
 
     await saveUserLevelData(
         client,
@@ -729,21 +1419,64 @@ export async function levelUpUser(
         userData
     );
 
-    logger.info(
-        `🎉 User ${userId} reached level ${newLevel} in guild ${guildId}`
-    );
-
     return {
-        leveledUp: true,
-        oldLevel,
-        newLevel,
-        userData
+        level:
+            userData.level,
+
+        xp:
+            userData.xp,
+
+        failedPeriods:
+            userData.consecutiveFailedPeriods
     };
 }
 
-// --------------------------------------------------
-// Admin Compatibility
-// --------------------------------------------------
+/*
+ * ==================================================
+ * CHECK PERIOD
+ * ==================================================
+ */
+
+export async function checkActivityPeriod(
+    client,
+    guildId,
+    userId
+) {
+    const userData =
+        await getUserLevelData(
+            client,
+            guildId,
+            userId
+        );
+
+    resetPeriodIfNeeded(
+        userData
+    );
+
+    const progress =
+        getActivityProgress(
+            userData
+        );
+
+    return {
+        complete:
+            progress.complete,
+
+        progress,
+
+        level:
+            userData.level,
+
+        xp:
+            userData.xp
+    };
+}
+
+/*
+ * ==================================================
+ * LEVEL SET / ADMIN
+ * ==================================================
+ */
 
 export async function addLevels(
     client,
@@ -769,22 +1502,25 @@ export async function addLevels(
             userId
         );
 
-    const newLevel =
-        Math.min(
-            MAX_LEVEL,
-            userData.level + levels
-        );
+    const oldLevel =
+        userData.level;
 
     userData.level =
-        newLevel;
+        Math.min(
+            MAX_LEVEL,
+            oldLevel + levels
+        );
 
     userData.xp = 0;
 
     userData.totalXp =
         calculateTotalXp(
-            newLevel,
+            userData.level,
             0
         );
+
+    userData.consecutiveFailedPeriods =
+        0;
 
     await saveUserLevelData(
         client,
@@ -820,20 +1556,26 @@ export async function removeLevels(
             userId
         );
 
-    const newLevel =
+    /*
+     * Admin can manually reduce a level.
+     *
+     * This does NOT erase milestone reward history.
+     *
+     * So reaching level 5 once means the level 5
+     * Souls reward can never be claimed again.
+     */
+    userData.level =
         Math.max(
             MIN_LEVEL,
-            userData.level - levels
+            userData.level -
+                levels
         );
-
-    userData.level =
-        newLevel;
 
     userData.xp = 0;
 
     userData.totalXp =
         calculateTotalXp(
-            newLevel,
+            userData.level,
             0
         );
 
@@ -893,9 +1635,123 @@ export async function setUserLevel(
     return userData;
 }
 
-// --------------------------------------------------
-// Leaderboard Compatibility
-// --------------------------------------------------
+/*
+ * ==================================================
+ * XP BOOST
+ * ==================================================
+ */
+
+export function getActiveXpMultiplier(
+    userData
+) {
+    if (
+        !userData.xpMultiplier ||
+        userData.xpMultiplier <= 1
+    ) {
+        return 1;
+    }
+
+    if (
+        !userData.xpMultiplierExpiresAt ||
+        Date.now() >=
+            userData.xpMultiplierExpiresAt
+    ) {
+        return 1;
+    }
+
+    return Number(
+        userData.xpMultiplier
+    ) || 1;
+}
+
+export async function setXpMultiplier(
+    client,
+    guildId,
+    userId,
+    multiplier,
+    durationMs
+) {
+    const userData =
+        await getUserLevelData(
+            client,
+            guildId,
+            userId
+        );
+
+    userData.xpMultiplier =
+        Math.max(
+            1,
+            Number(multiplier) || 1
+        );
+
+    userData.xpMultiplierExpiresAt =
+        Date.now() +
+        Math.max(
+            0,
+            Number(durationMs) || 0
+        );
+
+    await saveUserLevelData(
+        client,
+        guildId,
+        userId,
+        userData
+    );
+
+    return userData;
+}
+
+/*
+ * ==================================================
+ * MILESTONE HELPERS
+ * ==================================================
+ */
+
+export function getMilestoneReward(
+    level
+) {
+    return (
+        LEVEL_MILESTONES[
+            Number(level)
+        ] || null
+    );
+}
+
+export function hasMilestoneReward(
+    userData,
+    level
+) {
+    return Boolean(
+        userData
+            .milestoneRewards?.[
+                String(level)
+            ]
+    );
+}
+
+export function markMilestoneRewardClaimed(
+    userData,
+    level
+) {
+    if (
+        !userData.milestoneRewards
+    ) {
+        userData.milestoneRewards =
+            {};
+    }
+
+    userData.milestoneRewards[
+        String(level)
+    ] = true;
+
+    return userData;
+}
+
+/*
+ * ==================================================
+ * LEADERBOARD
+ * ==================================================
+ */
 
 export async function getLeaderboard(
     client,
@@ -928,15 +1784,22 @@ export async function getLeaderboard(
         const members =
             await guild.members
                 .fetch()
-                .catch(() => new Map());
+                .catch(
+                    () => new Map()
+                );
 
         const leaderboard = [];
 
         for (
-            const [userId, member]
+            const [
+                userId,
+                member
+            ]
             of members
         ) {
-            if (member.user.bot) {
+            if (
+                member.user.bot
+            ) {
                 continue;
             }
 
@@ -950,16 +1813,21 @@ export async function getLeaderboard(
             if (
                 data &&
                 (
+                    data.level > 0 ||
                     data.totalXp > 0 ||
-                    data.level > 0
+                    data.xp > 0
                 )
             ) {
                 leaderboard.push({
                     userId,
+
                     username:
                         member.user.username,
+
                     discriminator:
-                        member.user.discriminator,
+                        member.user
+                            .discriminator,
+
                     ...data
                 });
             }
@@ -967,12 +1835,19 @@ export async function getLeaderboard(
 
         leaderboard.sort(
             (a, b) =>
-                b.level - a.level ||
-                b.totalXp - a.totalXp
+                b.level -
+                    a.level ||
+                b.xp -
+                    a.xp ||
+                b.totalXp -
+                    a.totalXp
         );
 
         leaderboard.forEach(
-            (entry, index) => {
+            (
+                entry,
+                index
+            ) => {
                 entry.rank =
                     index + 1;
             }
@@ -1005,7 +1880,9 @@ export function createLeaderboardEmbed(
             .setTitle(
                 `🏆 ${guild.name} Leaderboard`
             )
-            .setColor('#2ecc71')
+            .setColor(
+                '#2ecc71'
+            )
             .setTimestamp();
 
     if (
@@ -1021,21 +1898,27 @@ export function createLeaderboardEmbed(
 
     const text =
         leaderboard
-            .map((user, index) => {
-                const medal =
-                    index === 0
-                        ? '🥇'
-                        : index === 1
-                            ? '🥈'
-                            : index === 2
-                                ? '🥉'
-                                : `**${index + 1}.**`;
+            .map(
+                (
+                    user,
+                    index
+                ) => {
+                    const medal =
+                        index === 0
+                            ? '🥇'
+                            : index === 1
+                                ? '🥈'
+                                : index === 2
+                                    ? '🥉'
+                                    : `**${index + 1}.**`;
 
-                return (
-                    `${medal} ${user.username} ` +
-                    `- Level ${user.level}`
-                );
-            })
+                    return (
+                        `${medal} ${user.username} ` +
+                        `- Level ${user.level} ` +
+                        `(${user.xp}/${XP_PER_LEVEL} XP)`
+                    );
+                }
+            )
             .join('\n');
 
     embed.setDescription(
@@ -1045,9 +1928,11 @@ export function createLeaderboardEmbed(
     return embed;
 }
 
-// --------------------------------------------------
-// Delete
-// --------------------------------------------------
+/*
+ * ==================================================
+ * DELETE
+ * ==================================================
+ */
 
 export async function deleteUserLevelData(
     client,
@@ -1061,7 +1946,9 @@ export async function deleteUserLevelData(
                 userId
             );
 
-        await client.db.delete(key);
+        await client.db.delete(
+            key
+        );
 
         logger.debug(
             `Deleted level data for ${userId} in guild ${guildId}`
@@ -1074,4 +1961,33 @@ export async function deleteUserLevelData(
 
         throw error;
     }
+}
+
+/*
+ * ==================================================
+ * UTILITY
+ * ==================================================
+ */
+
+function clampNumber(
+    value,
+    min,
+    max
+) {
+    const number =
+        Number(value);
+
+    if (
+        !Number.isFinite(number)
+    ) {
+        return min;
+    }
+
+    return Math.max(
+        min,
+        Math.min(
+            max,
+            Math.floor(number)
+        )
+    );
 }
