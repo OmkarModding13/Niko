@@ -1,6 +1,8 @@
 // xpSystem.js
 
 import { logger } from '../../utils/logger.js';
+import { AttachmentBuilder } from 'discord.js';
+import { createLevelUpImage } from './levelUpImage.js';
 
 import {
     getUserLevelData,
@@ -56,6 +58,105 @@ export const ACTIVITY_XP = {
     voiceMinutes: 15,
     xpPerGame: 5
 };
+
+
+/*
+ * ==================================================
+ * LEVEL-UP NOTIFICATION
+ * ==================================================
+ */
+
+async function notifyLevelUp(
+    client,
+    guildId,
+    userId,
+    xpResult
+) {
+    if (!xpResult?.leveledUp) {
+        return;
+    }
+
+    try {
+        const guild =
+            client.guilds.cache.get(guildId) ||
+            await client.guilds.fetch(guildId);
+
+        if (!guild) {
+            return;
+        }
+
+        const member =
+            guild.members.cache.get(userId) ||
+            await guild.members.fetch(userId);
+
+        if (!member) {
+            return;
+        }
+
+        /*
+         * Use the server system channel first.
+         * If unavailable, use the first text channel
+         * where the bot can send messages.
+         */
+        const channel =
+            guild.systemChannel ||
+            guild.channels.cache.find(
+                channel =>
+                    channel.isTextBased() &&
+                    channel.permissionsFor(guild.members.me)?.has(
+                        'SendMessages'
+                    )
+            );
+
+        if (!channel) {
+            logger.warn(
+                `No level-up notification channel available in guild ${guildId}.`
+            );
+            return;
+        }
+
+        /*
+         * Generate the custom level-up image.
+         */
+        const image =
+            await createLevelUpImage(
+                member,
+                xpResult.level
+            );
+
+        const attachment =
+            new AttachmentBuilder(
+                image,
+                {
+                    name: 'level-up.png'
+                }
+            );
+
+        /*
+         * Send level-up notification.
+         */
+        await channel.send({
+            content:
+                `🎉 <@${userId}> has reached **Level ${xpResult.level}!**`,
+            files: [
+                attachment
+            ]
+        });
+
+    } catch (error) {
+
+        /*
+         * IMPORTANT:
+         *
+         * If image generation or Discord sending fails,
+         * the actual XP/level system must NOT fail.
+         */
+        logger.warn(
+            `Failed to send level-up notification for ${userId}:`,
+            error
+        );
+    }
+}
 
 
 /*
@@ -144,25 +245,33 @@ export const recordChatActivity =
                             );
                     }
 
+                    /*
+                     * Send notification only when
+                     * the user actually leveled up.
+                     */
+                    await notifyLevelUp(
+                        client,
+                        guildId,
+                        userId,
+                        xpResult
+                    );
+
+                    const latestData =
+                        xpResult
+                            ? await getUserLevelData(
+                                client,
+                                guildId,
+                                userId
+                            )
+                            : finalData;
+
                     return {
                         userData:
-                            xpResult
-                                ? await getUserLevelData(
-                                    client,
-                                    guildId,
-                                    userId
-                                )
-                                : finalData,
+                            latestData,
 
                         progress:
                             getWeeklyProgress(
-                                xpResult
-                                    ? await getUserLevelData(
-                                        client,
-                                        guildId,
-                                        userId
-                                    )
-                                    : finalData
+                                latestData
                             ),
 
                         xpEarned:
@@ -278,6 +387,17 @@ export const recordVoiceActivity =
                                 xp
                             );
                     }
+
+                    /*
+                     * Send notification when
+                     * the user levels up.
+                     */
+                    await notifyLevelUp(
+                        client,
+                        guildId,
+                        userId,
+                        xpResult
+                    );
 
                     const latestData =
                         xpResult
@@ -395,6 +515,17 @@ export const recordGameActivity =
                             userId,
                             xp
                         );
+
+                    /*
+                     * Send notification when
+                     * the user levels up.
+                     */
+                    await notifyLevelUp(
+                        client,
+                        guildId,
+                        userId,
+                        xpResult
+                    );
 
                     const latestData =
                         await getUserLevelData(
@@ -586,6 +717,7 @@ export async function recordActivity(
     switch (type) {
 
         case 'chat':
+
             return await recordChatActivity(
                 client,
                 guildId,
@@ -594,6 +726,7 @@ export async function recordActivity(
             );
 
         case 'voice':
+
             return await recordVoiceActivity(
                 client,
                 guildId,
@@ -602,6 +735,7 @@ export async function recordActivity(
             );
 
         case 'game':
+
             return await recordGameActivity(
                 client,
                 guildId,
@@ -735,6 +869,18 @@ export const addXp =
                             member.user.id,
                             xpToAdd
                         );
+
+                    /*
+                     * If the old addXp() path causes
+                     * a level-up, send the same
+                     * custom notification.
+                     */
+                    await notifyLevelUp(
+                        client,
+                        guild.id,
+                        member.user.id,
+                        result
+                    );
 
                     if (!result) {
                         return null;
