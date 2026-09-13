@@ -2,6 +2,7 @@
 
 import { EmbedBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
+import { handleLevelUpRewards } from './milestoneRewards.js';
 import {
     getGuildConfig,
     setGuildConfig
@@ -1203,6 +1204,36 @@ export async function addLevelXp(
                 userData.levelHistory.slice(
                     -100
                 );
+        }
+    }
+
+    if (userData.level > oldLevel) {
+        try {
+            const guild =
+                client.guilds.cache.get(
+                    guildId
+                );
+
+            if (guild) {
+                const member =
+                    await guild.members.fetch(
+                        userId
+                    );
+
+                await handleLevelUpRewards(
+                    client,
+                    guild,
+                    member,
+                    userData,
+                    oldLevel,
+                    userData.level
+                );
+            }
+        } catch (error) {
+            logger.error(
+                `[Leveling] Failed to process level-up rewards for ${userId}:`,
+                error
+            );
         }
     }
 
