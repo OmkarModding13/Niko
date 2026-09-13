@@ -57,7 +57,7 @@ export async function createLevelUpImage(member, newLevel) {
 
 
         // ==========================================
-        // 2. CREATE LARGE CIRCULAR PFP
+        // 2. CREATE CIRCULAR PFP
         // ==========================================
 
         const avatarSize = 180;
@@ -256,7 +256,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="475"
+                        x="510"
                         y="105"
                         text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
@@ -273,7 +273,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- LEVEL UP UNDERLINE -->
 
                     <rect
-                        x="290"
+                        x="325"
                         y="125"
                         width="370"
                         height="5"
@@ -288,9 +288,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="475"
+                        x="335"
                         y="195"
-                        text-anchor="middle"
+                        text-anchor="start"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="36"
                         font-weight="700"
@@ -303,7 +303,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- Username underline -->
 
                     <rect
-                        x="330"
+                        x="335"
                         y="212"
                         width="290"
                         height="2"
@@ -318,7 +318,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="475"
+                        x="510"
                         y="270"
                         text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
@@ -336,7 +336,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="475"
+                        x="510"
                         y="365"
                         text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
@@ -354,7 +354,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="475"
+                        x="510"
                         y="425"
                         text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
@@ -373,7 +373,7 @@ export async function createLevelUpImage(member, newLevel) {
 
                     <circle
                         cx="180"
-                        cy="300"
+                        cy="250"
                         r="103"
                         fill="none"
                         stroke="#1687ff"
@@ -389,7 +389,7 @@ export async function createLevelUpImage(member, newLevel) {
 
                     <circle
                         cx="180"
-                        cy="300"
+                        cy="250"
                         r="95"
                         fill="none"
                         stroke="#ffffff"
@@ -436,7 +436,7 @@ export async function createLevelUpImage(member, newLevel) {
                     // Member PFP
                     {
                         input: maskedAvatar,
-                        top: 210,
+                        top: 160,
                         left: 90
                     }
 
