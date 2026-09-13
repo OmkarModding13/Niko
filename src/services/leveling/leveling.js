@@ -25,18 +25,15 @@ export const MONTHLY_LEVEL_START = 50;
  * ACTIVITY REQUIREMENTS
  * ==================================================
  *
- * LEVEL 1-50
+ * LEVEL 1-49
  * ----------------
  * Chat  : 5 hours/day
  * Voice : 3 hours/day
  * Games : 15/week
  *
- * LEVEL 51+
+ * LEVEL 50+
  * ----------------
  * Monthly progression.
- *
- * The exact monthly activity requirements can be
- * configured later without changing the database.
  */
 
 export const LEVELING_REQUIREMENTS = {
@@ -50,12 +47,6 @@ export const LEVELING_REQUIREMENTS = {
     },
 
     monthly: {
-        /*
-         * Monthly targets are configurable.
-         *
-         * These defaults represent one full month
-         * of the normal daily activity requirement.
-         */
         chatMinutesPerDay: 300,
         voiceMinutesPerDay: 180,
         gamesPerMonth: 60
@@ -131,9 +122,6 @@ export function getXpForLevel(level) {
         );
     }
 
-    /*
-     * Every level requires exactly 100 XP.
-     */
     return XP_PER_LEVEL;
 }
 
@@ -552,12 +540,6 @@ function createDefaultLevelData() {
 
         /*
          * Milestone rewards
-         *
-         * Example:
-         * {
-         *   "5": true,
-         *   "10": true
-         * }
          */
         milestoneRewards: {},
 
@@ -786,9 +768,6 @@ export function resetPeriodIfNeeded(
     userData,
     now = Date.now()
 ) {
-    /*
-     * Weekly data always resets every Monday.
-     */
     const currentWeek =
         getWeekStart(now);
 
@@ -805,10 +784,6 @@ export function resetPeriodIfNeeded(
         userData.weeklyGames = 0;
     }
 
-    /*
-     * Monthly data resets on the first
-     * day of every month.
-     */
     const currentMonth =
         getMonthStart(now);
 
@@ -858,9 +833,6 @@ export function resetDailyProgressIfNeeded(
     return userData;
 }
 
-/*
- * Backwards compatibility
- */
 export function resetWeeklyProgressIfNeeded(
     userData,
     now = Date.now()
@@ -1127,10 +1099,11 @@ export async function addLevelXp(
         finalAmount;
 
     /*
-     * Every 100 XP = +1 level.
+     * Every 100 XP = 1 level.
      *
      * XP remainder carries over.
      */
+
     while (
         userData.xp >=
             XP_PER_LEVEL &&
@@ -1140,13 +1113,79 @@ export async function addLevelXp(
         userData.xp -=
             XP_PER_LEVEL;
 
+        const previousLevel =
+            userData.level;
+
         userData.level += 1;
 
         /*
-         * Successful progression means
-         * the failed-period counter resets.
+         * Successful progression resets
+         * failed-period counter.
          */
-        userData.consecutiveFailedPeriods = 0;
+
+        userData.consecutiveFailedPeriods =
+            0;
+
+        /*
+         * ==================================================
+         * LEVEL 50 TRANSITION
+         * ==================================================
+         *
+         * LEVEL 1-49:
+         *     Weekly activity.
+         *
+         * LEVEL 50+:
+         *     Monthly activity.
+         *
+         * When the member reaches Level 50,
+         * previous activity is NOT carried over.
+         */
+
+        if (
+            previousLevel <
+                MONTHLY_LEVEL_START &&
+            userData.level >=
+                MONTHLY_LEVEL_START
+        ) {
+            /*
+             * Keep monthly tracking synchronized
+             * with the current calendar month.
+             */
+
+            userData.monthStart =
+                getMonthStart();
+
+            /*
+             * Start Level 50 -> 51
+             * monthly activity from zero.
+             */
+
+            userData.monthlyChatMinutes =
+                0;
+
+            userData.monthlyVoiceMinutes =
+                0;
+
+            userData.monthlyGames =
+                0;
+
+            /*
+             * Weekly progression has ended
+             * for this member.
+             */
+
+            userData.weeklyChatMinutes =
+                0;
+
+            userData.weeklyVoiceMinutes =
+                0;
+
+            userData.weeklyGames =
+                0;
+
+            userData.consecutiveFailedPeriods =
+                0;
+        }
 
         userData.levelHistory.push({
             level:
@@ -1387,6 +1426,7 @@ export async function processFailedPeriod(
     /*
      * Never reduce level.
      */
+
     const permanentLevel =
         userData.level;
 
@@ -1409,6 +1449,7 @@ export async function processFailedPeriod(
      * Safety:
      * Level must remain exactly the same.
      */
+
     userData.level =
         permanentLevel;
 
@@ -1522,6 +1563,40 @@ export async function addLevels(
     userData.consecutiveFailedPeriods =
         0;
 
+    /*
+     * If admin manually moves a member
+     * into the monthly system, start
+     * monthly activity fresh.
+     */
+
+    if (
+        oldLevel <
+            MONTHLY_LEVEL_START &&
+        userData.level >=
+            MONTHLY_LEVEL_START
+    ) {
+        userData.monthStart =
+            getMonthStart();
+
+        userData.monthlyChatMinutes =
+            0;
+
+        userData.monthlyVoiceMinutes =
+            0;
+
+        userData.monthlyGames =
+            0;
+
+        userData.weeklyChatMinutes =
+            0;
+
+        userData.weeklyVoiceMinutes =
+            0;
+
+        userData.weeklyGames =
+            0;
+    }
+
     await saveUserLevelData(
         client,
         guildId,
@@ -1560,10 +1635,8 @@ export async function removeLevels(
      * Admin can manually reduce a level.
      *
      * This does NOT erase milestone reward history.
-     *
-     * So reaching level 5 once means the level 5
-     * Souls reward can never be claimed again.
      */
+
     userData.level =
         Math.max(
             MIN_LEVEL,
@@ -1614,6 +1687,9 @@ export async function setUserLevel(
             userId
         );
 
+    const oldLevel =
+        userData.level;
+
     userData.level =
         level;
 
@@ -1624,6 +1700,40 @@ export async function setUserLevel(
             level,
             0
         );
+
+    /*
+     * If admin manually sets a member
+     * into Level 50+, initialize monthly
+     * progression fresh.
+     */
+
+    if (
+        oldLevel <
+            MONTHLY_LEVEL_START &&
+        level >=
+            MONTHLY_LEVEL_START
+    ) {
+        userData.monthStart =
+            getMonthStart();
+
+        userData.monthlyChatMinutes =
+            0;
+
+        userData.monthlyVoiceMinutes =
+            0;
+
+        userData.monthlyGames =
+            0;
+
+        userData.weeklyChatMinutes =
+            0;
+
+        userData.weeklyVoiceMinutes =
+            0;
+
+        userData.weeklyGames =
+            0;
+    }
 
     await saveUserLevelData(
         client,
