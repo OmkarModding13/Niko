@@ -52,7 +52,7 @@ export async function createLevelUpImage(member, newLevel) {
         // 2. Prepare circular avatar
         // -----------------------------
 
-        const avatarSize = 170;
+        const avatarSize = 150;
 
         const circularAvatar =
             await sharp(avatarBuffer)
@@ -67,7 +67,7 @@ export async function createLevelUpImage(member, newLevel) {
                 .toBuffer();
 
 
-        // Create circular mask
+        // Circular mask
 
         const avatarMask =
             Buffer.from(`
@@ -145,9 +145,9 @@ export async function createLevelUpImage(member, newLevel) {
                             />
 
                             <stop
-                                offset="60%"
+                                offset="58%"
                                 stop-color="#02030a"
-                                stop-opacity="0.48"
+                                stop-opacity="0.50"
                             />
 
                             <stop
@@ -226,46 +226,65 @@ export async function createLevelUpImage(member, newLevel) {
                     <rect
                         x="0"
                         y="0"
-                        width="800"
+                        width="780"
                         height="${HEIGHT}"
                         fill="url(#panel)"
                     />
 
 
-                    <!-- Decorative blue line -->
+                    <!-- ================================= -->
+                    <!-- TOP ROW: PFP + LEVEL UP             -->
+                    <!-- ================================= -->
 
-                    <rect
-                        x="72"
-                        y="82"
-                        width="6"
-                        height="285"
-                        rx="3"
-                        fill="#1687ff"
-                        filter="url(#glow)"
+
+                    <!-- Avatar glow -->
+
+                    <circle
+                        cx="180"
+                        cy="105"
+                        r="84"
+                        fill="none"
+                        stroke="#1687ff"
+                        stroke-width="7"
+                        opacity="0.9"
+                        filter="url(#avatarGlow)"
+                    />
+
+
+                    <!-- Avatar border -->
+
+                    <circle
+                        cx="180"
+                        cy="105"
+                        r="78"
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="4"
                     />
 
 
                     <!-- LEVEL UP -->
 
                     <text
-                        x="118"
-                        y="120"
+                        x="295"
+                        y="115"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="68"
                         font-weight="900"
                         letter-spacing="4"
                         fill="#ffffff"
+                        filter="url(#glow)"
                     >
                         LEVEL UP!
                     </text>
 
 
-                    <!-- Separator -->
+                    <!-- LEVEL UP underline -->
 
                     <rect
-                        x="120"
-                        y="142"
-                        width="390"
+                        x="298"
+                        y="137"
+                        width="380"
                         height="5"
                         rx="2"
                         fill="#1687ff"
@@ -273,11 +292,16 @@ export async function createLevelUpImage(member, newLevel) {
                     />
 
 
+                    <!-- ================================= -->
+                    <!-- USER INFORMATION                    -->
+                    <!-- ================================= -->
+
+
                     <!-- Username -->
 
                     <text
-                        x="330"
-                        y="215"
+                        x="300"
+                        y="220"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="36"
                         font-weight="700"
@@ -287,12 +311,12 @@ export async function createLevelUpImage(member, newLevel) {
                     </text>
 
 
-                    <!-- Small username underline -->
+                    <!-- Username underline -->
 
                     <rect
-                        x="330"
-                        y="230"
-                        width="300"
+                        x="300"
+                        y="235"
+                        width="330"
                         height="2"
                         rx="1"
                         fill="#1687ff"
@@ -300,11 +324,11 @@ export async function createLevelUpImage(member, newLevel) {
                     />
 
 
-                    <!-- Level label -->
+                    <!-- Reached level -->
 
                     <text
-                        x="330"
-                        y="285"
+                        x="300"
+                        y="292"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="25"
                         font-weight="600"
@@ -318,10 +342,10 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- Level number -->
 
                     <text
-                        x="330"
-                        y="375"
+                        x="300"
+                        y="385"
                         font-family="Arial, Helvetica, sans-serif"
-                        font-size="92"
+                        font-size="96"
                         font-weight="900"
                         fill="#ffffff"
                         filter="url(#glow)"
@@ -333,8 +357,8 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- Bottom decoration -->
 
                     <text
-                        x="330"
-                        y="425"
+                        x="300"
+                        y="435"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="18"
                         font-weight="600"
@@ -343,32 +367,6 @@ export async function createLevelUpImage(member, newLevel) {
                     >
                         HOLLOW DEVIL'S DOMAIN
                     </text>
-
-
-                    <!-- Avatar glow circle -->
-
-                    <circle
-                        cx="205"
-                        cy="285"
-                        r="94"
-                        fill="none"
-                        stroke="#1687ff"
-                        stroke-width="7"
-                        opacity="0.9"
-                        filter="url(#avatarGlow)"
-                    />
-
-
-                    <!-- Avatar border -->
-
-                    <circle
-                        cx="205"
-                        cy="285"
-                        r="88"
-                        fill="none"
-                        stroke="#ffffff"
-                        stroke-width="4"
-                    />
 
                 </svg>
             `);
@@ -407,8 +405,8 @@ export async function createLevelUpImage(member, newLevel) {
 
                     {
                         input: maskedAvatar,
-                        top: 200,
-                        left: 120
+                        top: 30,
+                        left: 105
                     }
                 ])
                 .png()
