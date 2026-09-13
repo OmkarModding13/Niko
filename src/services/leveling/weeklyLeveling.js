@@ -5,8 +5,7 @@ import {
     saveUserLevelData,
     getLevelPeriod,
     getActivityRequirements,
-    getActivityProgress,
-    resetPeriodIfNeeded
+    getActivityProgress
 } from './leveling.js';
 
 /*
@@ -25,7 +24,7 @@ import {
  * IMPORTANT:
  * Activity completion does NOT directly give a level.
  *
- * XP is earned from activity.
+ * XP is earned through activity.
  * 100 XP = 1 level.
  *
  * Failed period:
@@ -55,9 +54,6 @@ export function getCurrentPeriod(level) {
  * ==================================================
  * REQUIREMENTS
  * ==================================================
- *
- * We use the requirements already defined inside
- * leveling.js so there is only one source of truth.
  */
 
 export function getPeriodRequirements(level) {
@@ -89,8 +85,64 @@ export function isPeriodComplete(userData) {
 
 /*
  * ==================================================
+ * PERIOD START HELPERS
+ * ==================================================
+ */
+
+function getWeekStart(
+    timestamp = Date.now()
+) {
+    const date =
+        new Date(timestamp);
+
+    const day =
+        date.getDay();
+
+    const diff =
+        day === 0
+            ? 6
+            : day - 1;
+
+    date.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    date.setDate(
+        date.getDate() - diff
+    );
+
+    return date.getTime();
+}
+
+function getMonthStart(
+    timestamp = Date.now()
+) {
+    const date =
+        new Date(timestamp);
+
+    date.setDate(1);
+
+    date.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    return date.getTime();
+}
+
+/*
+ * ==================================================
  * PERIOD EXPIRY
  * ==================================================
+ *
+ * IMPORTANT:
+ * This function checks whether the OLD period
+ * has ended BEFORE anything is reset.
  */
 
 export function hasPeriodExpired(
@@ -102,13 +154,14 @@ export function hasPeriodExpired(
     }
 
     const level =
-        Number(userData.level) || 0;
+        Number(
+            userData.level || 0
+        );
 
     const period =
-        getCurrentPeriod(level);
-
-    const date =
-        new Date(now);
+        getCurrentPeriod(
+            level
+        );
 
     /*
      * MONTHLY
@@ -116,20 +169,30 @@ export function hasPeriodExpired(
 
     if (period === 'monthly') {
         const currentMonthStart =
-            new Date(
-                date.getFullYear(),
-                date.getMonth(),
-                1,
-                0,
-                0,
-                0,
-                0
-            ).getTime();
+            getMonthStart(
+                now
+            );
 
-        return (
+        const storedMonthStart =
             Number(
                 userData.monthStart || 0
-            ) !== currentMonthStart
+            );
+
+        /*
+         * New users / missing timestamp
+         * are NOT considered expired here.
+         *
+         * Their activity system will initialize
+         * normally on first activity.
+         */
+
+        if (!storedMonthStart) {
+            return false;
+        }
+
+        return (
+            storedMonthStart !==
+            currentMonthStart
         );
     }
 
@@ -137,36 +200,72 @@ export function hasPeriodExpired(
      * WEEKLY
      */
 
-    const day =
-        date.getDay();
-
-    const diff =
-        day === 0
-            ? 6
-            : day - 1;
-
-    const weekStart =
-        new Date(date);
-
-    weekStart.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-    weekStart.setDate(
-        weekStart.getDate() - diff
-    );
-
     const currentWeekStart =
-        weekStart.getTime();
+        getWeekStart(
+            now
+        );
 
-    return (
+    const storedWeekStart =
         Number(
             userData.weekStart || 0
-        ) !== currentWeekStart
+        );
+
+    if (!storedWeekStart) {
+        return false;
+    }
+
+    return (
+        storedWeekStart !==
+        currentWeekStart
     );
+}
+
+/*
+ * ==================================================
+ * RESET PERIOD ACTIVITY
+ * ==================================================
+ */
+
+export function resetPeriodActivity(
+    userData,
+    period,
+    now = Date.now()
+) {
+    if (!userData) {
+        return userData;
+    }
+
+    if (period === 'monthly') {
+        userData.monthlyChatMinutes = 0;
+
+        userData.monthlyVoiceMinutes = 0;
+
+        userData.monthlyGames = 0;
+
+        userData.monthStart =
+            getMonthStart(
+                now
+            );
+
+        return userData;
+    }
+
+    /*
+     * WEEKLY
+     */
+
+    userData.weeklyChatMinutes = 0;
+
+    userData.weeklyVoiceMinutes = 0;
+
+    userData.weeklyGames = 0;
+
+    userData.weekStart =
+        getWeekStart(
+            now
+        );
+
+    return userData;
 }
 
 /*
@@ -204,7 +303,9 @@ export function applyFailedPeriodDecay(
         );
 
     /*
-     * FIRST FAILED PERIOD
+     * FIRST CONSECUTIVE FAILURE
+     *
+     * Example:
      *
      * 80 XP -> 40 XP
      */
@@ -217,7 +318,8 @@ export function applyFailedPeriodDecay(
                 oldXp / 2
             );
 
-        userData.consecutiveFailedPeriods = 1;
+        userData.consecutiveFailedPeriods =
+            1;
 
         return {
             type: 'half',
@@ -234,10 +336,9 @@ export function applyFailedPeriodDecay(
     /*
      * SECOND CONSECUTIVE FAILURE
      *
-     * XP -> 0
+     * Example:
      *
-     * Any further failed periods
-     * also remain at 0 XP.
+     * 40 XP -> 0 XP
      */
 
     userData.xp = 0;
@@ -259,101 +360,17 @@ export function applyFailedPeriodDecay(
 
 /*
  * ==================================================
- * RESET PERIOD
- * ==================================================
- */
-
-export function resetPeriodActivity(
-    userData,
-    period,
-    now = Date.now()
-) {
-    if (!userData) {
-        return userData;
-    }
-
-    const date =
-        new Date(now);
-
-    /*
-     * MONTHLY
-     */
-
-    if (period === 'monthly') {
-        userData.monthlyChatMinutes = 0;
-
-        userData.monthlyVoiceMinutes = 0;
-
-        userData.monthlyGames = 0;
-
-        userData.monthStart =
-            new Date(
-                date.getFullYear(),
-                date.getMonth(),
-                1,
-                0,
-                0,
-                0,
-                0
-            ).getTime();
-
-        return userData;
-    }
-
-    /*
-     * WEEKLY
-     */
-
-    const day =
-        date.getDay();
-
-    const diff =
-        day === 0
-            ? 6
-            : day - 1;
-
-    const weekStart =
-        new Date(date);
-
-    weekStart.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-    weekStart.setDate(
-        weekStart.getDate() - diff
-    );
-
-    userData.weekStart =
-        weekStart.getTime();
-
-    userData.weeklyChatMinutes = 0;
-
-    userData.weeklyVoiceMinutes = 0;
-
-    userData.weeklyGames = 0;
-
-    return userData;
-}
-
-/*
- * ==================================================
  * PROCESS ONE USER
  * ==================================================
  *
- * This function:
+ * IMPORTANT:
  *
- * 1. Loads user data
- * 2. Determines weekly/monthly period
- * 3. Checks whether period expired
- * 4. Checks whether all activities were completed
- * 5. Applies XP decay if necessary
- * 6. Resets activity counters
- * 7. Saves everything to database
+ * We check expiry FIRST.
  *
- * It NEVER decreases level.
+ * We do NOT call resetPeriodIfNeeded()
+ * before checking expiry because that would
+ * erase the old period's activity before
+ * we evaluate it.
  */
 
 export async function processUserPeriod(
@@ -377,14 +394,6 @@ export async function processUserPeriod(
         };
     }
 
-    /*
-     * Make sure old period data is normalized.
-     */
-
-    resetPeriodIfNeeded(
-        userData
-    );
-
     const level =
         Number(
             userData.level || 0
@@ -396,15 +405,15 @@ export async function processUserPeriod(
         );
 
     /*
-     * Check whether the period
-     * actually ended.
+     * Check whether the period ended.
      */
 
-    if (
-        !hasPeriodExpired(
+    const expired =
+        hasPeriodExpired(
             userData
-        )
-    ) {
+        );
+
+    if (!expired) {
         return {
             processed: false,
 
@@ -423,10 +432,11 @@ export async function processUserPeriod(
     }
 
     /*
-     * IMPORTANT:
+     * ==================================================
+     * OLD PERIOD ACTIVITY CHECK
+     * ==================================================
      *
-     * Check activity BEFORE
-     * resetting the counters.
+     * We MUST do this before resetting counters.
      */
 
     const completed =
@@ -434,34 +444,49 @@ export async function processUserPeriod(
             userData
         );
 
-    let decay = null;
+    let decay;
 
     /*
-     * SUCCESSFUL PERIOD
+     * ==================================================
+     * SUCCESS
+     * ==================================================
      */
 
     if (completed) {
-        userData.consecutiveFailedPeriods = 0;
+        /*
+         * Successful period.
+         *
+         * No XP bonus here.
+         * XP comes from actual activity.
+         *
+         * Reset failed-period streak.
+         */
+
+        const currentXp =
+            Number(
+                userData.xp || 0
+            );
+
+        userData.consecutiveFailedPeriods =
+            0;
 
         decay = {
             type: 'success',
 
             oldXp:
-                Number(
-                    userData.xp || 0
-                ),
+                currentXp,
 
             newXp:
-                Number(
-                    userData.xp || 0
-                ),
+                currentXp,
 
             failedPeriods: 0
         };
     }
 
     /*
-     * FAILED PERIOD
+     * ==================================================
+     * FAILURE
+     * ==================================================
      */
 
     else {
@@ -472,8 +497,9 @@ export async function processUserPeriod(
     }
 
     /*
-     * Reset activity for the
-     * new period.
+     * ==================================================
+     * RESET FOR NEW PERIOD
+     * ==================================================
      */
 
     resetPeriodActivity(
@@ -482,15 +508,14 @@ export async function processUserPeriod(
     );
 
     /*
-     * SAFETY:
+     * ==================================================
+     * LEVEL PROTECTION
+     * ==================================================
      *
-     * We deliberately do NOT modify
-     * userData.level here.
+     * DO NOT TOUCH userData.level.
      *
-     * Therefore:
-     *
-     * Level 10 cannot become Level 9
-     * because of activity failure.
+     * Failed activity can NEVER reduce
+     * someone's level.
      */
 
     await saveUserLevelData(
@@ -529,13 +554,8 @@ export async function processUserPeriod(
 
 /*
  * ==================================================
- * PROCESS GUILD
+ * PROCESS ONE GUILD
  * ==================================================
- *
- * Discord guild members are used here.
- *
- * We do NOT need a separate database user-list
- * just for this processor.
  */
 
 export async function processGuildPeriods(
@@ -717,7 +737,7 @@ export function isWeeklyComplete(
 
 /*
  * ==================================================
- * EXPORTS
+ * DEFAULT EXPORT
  * ==================================================
  */
 
