@@ -13,6 +13,7 @@ const BACKGROUND_PATH = path.resolve(
 const WIDTH = 1200;
 const HEIGHT = 500;
 
+
 /**
  * Creates the Level Up notification image.
  *
@@ -21,10 +22,12 @@ const HEIGHT = 500;
  * @returns {Promise<Buffer>}
  */
 export async function createLevelUpImage(member, newLevel) {
+
     try {
-        // -----------------------------
-        // 1. Get member avatar
-        // -----------------------------
+
+        // ==========================================
+        // 1. GET MEMBER AVATAR
+        // ==========================================
 
         const avatarUrl =
             member.user.displayAvatarURL({
@@ -33,14 +36,19 @@ export async function createLevelUpImage(member, newLevel) {
                 forceStatic: true
             });
 
+
         const avatarResponse =
             await fetch(avatarUrl);
 
+
         if (!avatarResponse.ok) {
+
             throw new Error(
                 `Failed to download avatar: ${avatarResponse.status}`
             );
+
         }
+
 
         const avatarBuffer =
             Buffer.from(
@@ -48,11 +56,12 @@ export async function createLevelUpImage(member, newLevel) {
             );
 
 
-        // -----------------------------
-        // 2. Prepare circular avatar
-        // -----------------------------
+        // ==========================================
+        // 2. CREATE CIRCULAR PFP
+        // ==========================================
 
         const avatarSize = 150;
+
 
         const circularAvatar =
             await sharp(avatarBuffer)
@@ -60,27 +69,31 @@ export async function createLevelUpImage(member, newLevel) {
                     avatarSize,
                     avatarSize,
                     {
-                        fit: 'cover'
+                        fit: 'cover',
+                        position: 'centre'
                     }
                 )
                 .png()
                 .toBuffer();
 
 
-        // Circular mask
+        // Circular SVG mask
 
         const avatarMask =
             Buffer.from(`
                 <svg
                     width="${avatarSize}"
                     height="${avatarSize}"
+                    xmlns="http://www.w3.org/2000/svg"
                 >
+
                     <circle
                         cx="${avatarSize / 2}"
                         cy="${avatarSize / 2}"
                         r="${avatarSize / 2}"
-                        fill="white"
+                        fill="#ffffff"
                     />
+
                 </svg>
             `);
 
@@ -97,9 +110,9 @@ export async function createLevelUpImage(member, newLevel) {
                 .toBuffer();
 
 
-        // -----------------------------
-        // 3. User information
-        // -----------------------------
+        // ==========================================
+        // 3. USERNAME
+        // ==========================================
 
         const username =
             member.displayName ||
@@ -112,9 +125,9 @@ export async function createLevelUpImage(member, newLevel) {
                 : username;
 
 
-        // -----------------------------
-        // 4. SVG overlay
-        // -----------------------------
+        // ==========================================
+        // 4. SVG OVERLAY
+        // ==========================================
 
         const overlay =
             Buffer.from(`
@@ -126,7 +139,9 @@ export async function createLevelUpImage(member, newLevel) {
 
                     <defs>
 
-                        <!-- Dark readable area -->
+                        <!-- ================================= -->
+                        <!-- DARK READABILITY GRADIENT          -->
+                        <!-- ================================= -->
 
                         <linearGradient
                             id="panel"
@@ -143,7 +158,7 @@ export async function createLevelUpImage(member, newLevel) {
                             />
 
                             <stop
-                                offset="58%"
+                                offset="55%"
                                 stop-color="#02030a"
                                 stop-opacity="0.50"
                             />
@@ -157,7 +172,9 @@ export async function createLevelUpImage(member, newLevel) {
                         </linearGradient>
 
 
-                        <!-- Blue glow -->
+                        <!-- ================================= -->
+                        <!-- GENERAL BLUE GLOW                   -->
+                        <!-- ================================= -->
 
                         <filter
                             id="glow"
@@ -168,7 +185,7 @@ export async function createLevelUpImage(member, newLevel) {
                         >
 
                             <feGaussianBlur
-                                stdDeviation="8"
+                                stdDeviation="7"
                                 result="blur"
                             />
 
@@ -187,7 +204,9 @@ export async function createLevelUpImage(member, newLevel) {
                         </filter>
 
 
-                        <!-- Avatar glow -->
+                        <!-- ================================= -->
+                        <!-- PFP GLOW                            -->
+                        <!-- ================================= -->
 
                         <filter
                             id="avatarGlow"
@@ -219,12 +238,14 @@ export async function createLevelUpImage(member, newLevel) {
                     </defs>
 
 
-                    <!-- Dark readable area -->
+                    <!-- ================================= -->
+                    <!-- DARK LEFT PANEL                     -->
+                    <!-- ================================= -->
 
                     <rect
                         x="0"
                         y="0"
-                        width="780"
+                        width="760"
                         height="${HEIGHT}"
                         fill="url(#panel)"
                     />
@@ -235,8 +256,8 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="295"
-                        y="115"
+                        x="275"
+                        y="120"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="68"
                         font-weight="900"
@@ -248,12 +269,12 @@ export async function createLevelUpImage(member, newLevel) {
                     </text>
 
 
-                    <!-- LEVEL UP underline -->
+                    <!-- LEVEL UP UNDERLINE -->
 
                     <rect
-                        x="298"
-                        y="137"
-                        width="380"
+                        x="278"
+                        y="140"
+                        width="390"
                         height="5"
                         rx="2"
                         fill="#1687ff"
@@ -262,11 +283,8 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                     <!-- ================================= -->
-                    <!-- USER INFORMATION                    -->
+                    <!-- USERNAME                             -->
                     <!-- ================================= -->
-
-
-                    <!-- Username -->
 
                     <text
                         x="300"
@@ -293,7 +311,9 @@ export async function createLevelUpImage(member, newLevel) {
                     />
 
 
-                    <!-- Reached level -->
+                    <!-- ================================= -->
+                    <!-- REACHED LEVEL                       -->
+                    <!-- ================================= -->
 
                     <text
                         x="300"
@@ -308,7 +328,9 @@ export async function createLevelUpImage(member, newLevel) {
                     </text>
 
 
-                    <!-- Level number -->
+                    <!-- ================================= -->
+                    <!-- LEVEL NUMBER                        -->
+                    <!-- ================================= -->
 
                     <text
                         x="300"
@@ -323,7 +345,9 @@ export async function createLevelUpImage(member, newLevel) {
                     </text>
 
 
-                    <!-- Bottom decoration -->
+                    <!-- ================================= -->
+                    <!-- DOMAIN TEXT                         -->
+                    <!-- ================================= -->
 
                     <text
                         x="300"
@@ -339,42 +363,42 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                     <!-- ================================= -->
-                    <!-- CENTERED PFP                        -->
+                    <!-- PFP GLOW                            -->
                     <!-- ================================= -->
-
-
-                    <!-- Avatar glow -->
-
-                    <circle
-                        cx="185"
-                        cy="285"
-                        r="94"
-                        fill="none"
-                        stroke="#1687ff"
-                        stroke-width="7"
-                        opacity="0.9"
-                        filter="url(#avatarGlow)"
-                    />
-
-
-                    <!-- Avatar border -->
 
                     <circle
                         cx="185"
                         cy="285"
                         r="88"
                         fill="none"
+                        stroke="#1687ff"
+                        stroke-width="7"
+                        opacity="0.95"
+                        filter="url(#avatarGlow)"
+                    />
+
+
+                    <!-- ================================= -->
+                    <!-- PFP WHITE BORDER                    -->
+                    <!-- ================================= -->
+
+                    <circle
+                        cx="185"
+                        cy="285"
+                        r="82"
+                        fill="none"
                         stroke="#ffffff"
                         stroke-width="4"
                     />
+
 
                 </svg>
             `);
 
 
-        // -----------------------------
-        // 5. Resize background
-        // -----------------------------
+        // ==========================================
+        // 5. RESIZE ORIGINAL BACKGROUND
+        // ==========================================
 
         const background =
             await sharp(BACKGROUND_PATH)
@@ -390,24 +414,28 @@ export async function createLevelUpImage(member, newLevel) {
                 .toBuffer();
 
 
-        // -----------------------------
-        // 6. Composite everything
-        // -----------------------------
+        // ==========================================
+        // 6. COMPOSITE
+        // ==========================================
 
         const result =
             await sharp(background)
                 .composite([
+
+                    // Text + decorations
                     {
                         input: overlay,
                         top: 0,
                         left: 0
                     },
 
+                    // Actual PFP
                     {
                         input: maskedAvatar,
                         top: 210,
                         left: 110
                     }
+
                 ])
                 .png()
                 .toBuffer();
@@ -432,26 +460,30 @@ export async function createLevelUpImage(member, newLevel) {
  * Prevent user-controlled text
  * from breaking SVG.
  */
-
 function escapeXml(value) {
 
     return String(value)
+
         .replace(
             /&/g,
             '&amp;'
         )
+
         .replace(
             /</g,
             '&lt;'
         )
+
         .replace(
             />/g,
             '&gt;'
         )
+
         .replace(
             /"/g,
             '&quot;'
         )
+
         .replace(
             /'/g,
             '&apos;'
