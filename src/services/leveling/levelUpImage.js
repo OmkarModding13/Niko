@@ -284,33 +284,33 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                     <!-- ================================= -->
-                    <!-- USERNAME                             -->
-                    <!-- ================================= -->
+<!-- USERNAME                           -->
+<!-- ================================= -->
 
-                    <text
-                        x="335"
-                        y="195"
-                        text-anchor="start"
-                        font-family="Arial, Helvetica, sans-serif"
-                        font-size="36"
-                        font-weight="700"
-                        fill="#ffffff"
-                    >
-                        ${escapeXml(displayName)}
-                    </text>
+<text
+    x="510"
+    y="195"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="36"
+    font-weight="700"
+    fill="#ffffff"
+>
+    ${escapeXml(displayName)}
+</text>
 
 
-                    <!-- Username underline -->
+<!-- Username underline -->
 
-                    <rect
-                        x="335"
-                        y="212"
-                        width="290"
-                        height="2"
-                        rx="1"
-                        fill="#1687ff"
-                        opacity="0.65"
-                    />
+<rect
+    x="365"
+    y="212"
+    width="290"
+    height="2"
+    rx="1"
+    fill="#1687ff"
+    opacity="0.65"
+/>
 
 
                     <!-- ================================= -->
