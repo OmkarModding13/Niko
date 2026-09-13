@@ -75,10 +75,19 @@ export const LEVEL_MILESTONES = {
 
 function findRole(guild, roleName) {
 
+    const normalizeRoleName = (name) =>
+        name
+            .replace(/\s*\(lvl\s*\d+\)\s*$/i, '')
+            .trim()
+            .toLowerCase();
+
+    const normalizedTarget =
+        normalizeRoleName(roleName);
+
     return guild.roles.cache.find(
         role =>
-            role.name.toLowerCase() ===
-            roleName.toLowerCase()
+            normalizeRoleName(role.name) ===
+            normalizedTarget
     ) || null;
 
 }
@@ -101,35 +110,25 @@ export async function sendLevelUpNotification(
                 LEVEL_UP_CHANNEL_ID
             );
 
-
         if (!channel) {
-
             logger.warn(
                 `[Leveling] Level-up channel ${LEVEL_UP_CHANNEL_ID} not found.`
             );
-
             return false;
-
         }
 
-
         if (!channel.isTextBased()) {
-
             logger.warn(
                 `[Leveling] Level-up channel ${LEVEL_UP_CHANNEL_ID} is not text based.`
             );
-
             return false;
-
         }
-
 
         const image =
             await createLevelUpImage(
                 member,
                 newLevel
             );
-
 
         const attachment =
             new AttachmentBuilder(
@@ -139,18 +138,13 @@ export async function sendLevelUpNotification(
                 }
             );
 
-
         await channel.send({
-
             content:
                 `🎉 <@${member.id}> just reached **Level ${newLevel}!**`,
-
             files: [
                 attachment
             ]
-
         });
-
 
         return true;
 
@@ -186,15 +180,11 @@ async function giveSouls(
             userId
         );
 
-
     if (!economyData) {
-
         throw new Error(
             'Economy data could not be loaded.'
         );
-
     }
-
 
     economyData.wallet =
         Math.max(
@@ -203,7 +193,6 @@ async function giveSouls(
                 economyData.wallet
             ) || 0
         ) + amount;
-
 
     await setEconomyData(
         client,
@@ -216,7 +205,7 @@ async function giveSouls(
 
 
 // ==================================================
-// GET CROSSSED MILESTONES
+// GET CROSSED MILESTONES
 // ==================================================
 
 export function getCrossedMilestones(
@@ -227,15 +216,12 @@ export function getCrossedMilestones(
     return Object.keys(
         LEVEL_MILESTONES
     )
-
         .map(Number)
-
         .filter(
             level =>
                 level > oldLevel &&
                 level <= newLevel
         )
-
         .sort(
             (a, b) => a - b
         );
@@ -260,13 +246,9 @@ export async function processMilestoneReward(
             milestoneLevel
         ];
 
-
     if (!reward) {
-
         return null;
-
     }
-
 
     // ----------------------------------------------
     // ONE-TIME CHECK
@@ -278,16 +260,13 @@ export async function processMilestoneReward(
             String(milestoneLevel)
         ]
     ) {
-
         return {
             level: milestoneLevel,
             alreadyClaimed: true,
             roleName: reward.roleName,
             souls: reward.souls
         };
-
     }
-
 
     // ----------------------------------------------
     // FIND ROLE
@@ -299,19 +278,10 @@ export async function processMilestoneReward(
             reward.roleName
         );
 
-
     if (!role) {
-
         logger.warn(
             `[Leveling] Milestone role "${reward.roleName}" not found.`
         );
-
-        /*
-         * Do NOT mark as claimed.
-         *
-         * This allows the reward to be retried
-         * after the role is created.
-         */
 
         return {
             level: milestoneLevel,
@@ -319,9 +289,7 @@ export async function processMilestoneReward(
             roleName: reward.roleName,
             souls: reward.souls
         };
-
     }
-
 
     // ----------------------------------------------
     // GIVE ROLE
@@ -332,16 +300,12 @@ export async function processMilestoneReward(
             role.id
         )
     ) {
-
         try {
-
             await member.roles.add(
                 role,
                 `Level ${milestoneLevel} milestone reward`
             );
-
         } catch (error) {
-
             logger.error(
                 `[Leveling] Failed to give role "${role.name}" to ${member.user.tag}:`,
                 error
@@ -353,27 +317,21 @@ export async function processMilestoneReward(
                 roleName: reward.roleName,
                 souls: reward.souls
             };
-
         }
-
     }
-
 
     // ----------------------------------------------
     // GIVE SOULS
     // ----------------------------------------------
 
     try {
-
         await giveSouls(
             client,
             guild.id,
             member.id,
             reward.souls
         );
-
     } catch (error) {
-
         logger.error(
             `[Leveling] Failed to give ${reward.souls} Souls to ${member.user.tag}:`,
             error
@@ -386,26 +344,19 @@ export async function processMilestoneReward(
             roleName: reward.roleName,
             souls: reward.souls
         };
-
     }
-
 
     // ----------------------------------------------
     // PERMANENT CLAIM RECORD
     // ----------------------------------------------
 
     if (!userData.milestoneRewards) {
-
-        userData.milestoneRewards =
-            {};
-
+        userData.milestoneRewards = {};
     }
-
 
     userData.milestoneRewards[
         String(milestoneLevel)
     ] = true;
-
 
     return {
         level: milestoneLevel,
@@ -436,24 +387,18 @@ export async function processMilestoneRewards(
             newLevel
         );
 
-
     if (
         milestones.length === 0
     ) {
-
         return [];
-
     }
 
-
     const results = [];
-
 
     for (
         const milestoneLevel
         of milestones
     ) {
-
         const result =
             await processMilestoneReward(
                 client,
@@ -463,17 +408,12 @@ export async function processMilestoneRewards(
                 milestoneLevel
             );
 
-
         if (result) {
-
             results.push(
                 result
             );
-
         }
-
     }
-
 
     return results;
 
@@ -498,14 +438,11 @@ export async function handleLevelUpRewards(
         !member ||
         newLevel <= oldLevel
     ) {
-
         return {
             notified: false,
             milestones: []
         };
-
     }
-
 
     // ----------------------------------------------
     // 1. LEVEL-UP NOTIFICATION
@@ -517,7 +454,6 @@ export async function handleLevelUpRewards(
             member,
             newLevel
         );
-
 
     // ----------------------------------------------
     // 2. MILESTONE REWARDS
@@ -532,7 +468,6 @@ export async function handleLevelUpRewards(
             oldLevel,
             newLevel
         );
-
 
     return {
         notified,
