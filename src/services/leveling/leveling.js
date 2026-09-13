@@ -18,7 +18,7 @@ const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
 
 export const XP_PER_LEVEL = 100;
-export const MONTHLY_LEVEL_START = 51;
+export const MONTHLY_LEVEL_START = 50;
 
 /*
  * ==================================================
