@@ -1,380 +1,748 @@
-const {
+// weeklyLeveling.js
+
+import {
     getUserLevelData,
     saveUserLevelData,
     getLevelPeriod,
-    getXpForLevel,
-} = require("./leveling");
+    getActivityRequirements,
+    getActivityProgress,
+    resetPeriodIfNeeded
+} from './leveling.js';
 
-/**
- * Weekly / Monthly Leveling Processor
+/*
+ * ==================================================
+ * WEEKLY / MONTHLY LEVELING PROCESSOR
+ * ==================================================
  *
- * Rules:
- * - Level 1–49 → Weekly requirements
- * - Level 50 → Monthly system starts
- * - Level 50 → 51 requires completing the monthly period
- * - Level never decreases
- * - Failed period #1 → current XP halves
- * - Failed period #2 → current XP becomes 0
- * - Successful period → XP stays untouched
+ * LEVEL 1-49
+ * ----------------
+ * Weekly activity period.
  *
- * IMPORTANT:
- * This file does NOT directly level up users.
- * XP reaches 100 through activity XP.
- */
-
-const WEEKLY_REQUIREMENTS = {
-    voiceMinutes: 21 * 60, // 21 hours
-    chatMinutes: 35 * 60,  // 35 hours
-    games: 15,
-};
-
-const MONTHLY_REQUIREMENTS = {
-    // Monthly values are configurable.
-    // These are intentionally kept separate so they can
-    // be changed later without touching the core leveling system.
-    voiceMinutes: 180 * 60,
-    chatMinutes: 300 * 60,
-    games: 60,
-};
-
-/**
- * Get the current activity period for a user.
+ * LEVEL 50+
+ * ----------------
+ * Monthly activity period.
  *
  * IMPORTANT:
- * Level 50 starts the monthly progression system.
+ * Activity completion does NOT directly give a level.
+ *
+ * XP is earned from activity.
+ * 100 XP = 1 level.
+ *
+ * Failed period:
+ *
+ * 1st consecutive failure:
+ *     Current XP / 2
+ *
+ * 2nd consecutive failure:
+ *     Current XP = 0
+ *
+ * Level itself NEVER decreases.
  */
-function getCurrentPeriod(level) {
-    return level >= 50 ? "monthly" : "weekly";
-}
 
-/**
- * Get period requirements.
+/*
+ * ==================================================
+ * PERIOD
+ * ==================================================
  */
-function getPeriodRequirements(level) {
-    const period = getCurrentPeriod(level);
 
-    if (period === "monthly") {
-        return MONTHLY_REQUIREMENTS;
-    }
-
-    return WEEKLY_REQUIREMENTS;
-}
-
-/**
- * Check whether all requirements are completed.
- */
-function isPeriodComplete(data) {
-    const level = Number(data.level || 0);
-    const period = getCurrentPeriod(level);
-    const requirements = getPeriodRequirements(level);
-
-    if (period === "monthly") {
-        return (
-            Number(data.monthlyVoiceMinutes || 0) >= requirements.voiceMinutes &&
-            Number(data.monthlyChatMinutes || 0) >= requirements.chatMinutes &&
-            Number(data.monthlyGames || 0) >= requirements.games
-        );
-    }
-
-    return (
-        Number(data.weeklyVoiceMinutes || 0) >= requirements.voiceMinutes &&
-        Number(data.weeklyChatMinutes || 0) >= requirements.chatMinutes &&
-        Number(data.weeklyGames || 0) >= requirements.games
+export function getCurrentPeriod(level) {
+    return getLevelPeriod(
+        Number(level) || 0
     );
 }
 
-/**
- * Get period start timestamp.
+/*
+ * ==================================================
+ * REQUIREMENTS
+ * ==================================================
+ *
+ * We use the requirements already defined inside
+ * leveling.js so there is only one source of truth.
  */
-function getPeriodStart(data, period) {
-    if (period === "monthly") {
-        return Number(data.monthStart || 0);
-    }
 
-    return Number(data.weekStart || 0);
+export function getPeriodRequirements(level) {
+    return getActivityRequirements(
+        Number(level) || 0
+    );
 }
 
-/**
- * Create a new period start timestamp.
+/*
+ * ==================================================
+ * CHECK PERIOD COMPLETION
+ * ==================================================
  */
-function createPeriodStart(period) {
-    const now = new Date();
 
-    if (period === "monthly") {
-        return new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            1
-        ).getTime();
+export function isPeriodComplete(userData) {
+    if (!userData) {
+        return false;
     }
 
-    // Monday = start of week
-    const day = now.getDay();
-    const diff = day === 0 ? 6 : day - 1;
+    const progress =
+        getActivityProgress(
+            userData
+        );
 
-    const monday = new Date(now);
-    monday.setHours(0, 0, 0, 0);
-    monday.setDate(monday.getDate() - diff);
-
-    return monday.getTime();
+    return Boolean(
+        progress.complete
+    );
 }
 
-/**
- * Check if current period has expired.
+/*
+ * ==================================================
+ * PERIOD EXPIRY
+ * ==================================================
  */
-function hasPeriodExpired(data, period) {
-    const periodStart = getPeriodStart(data, period);
 
-    if (!periodStart) {
-        return true;
+export function hasPeriodExpired(
+    userData,
+    now = Date.now()
+) {
+    if (!userData) {
+        return false;
     }
 
-    const now = new Date();
-    const start = new Date(periodStart);
+    const level =
+        Number(userData.level) || 0;
 
-    if (period === "monthly") {
+    const period =
+        getCurrentPeriod(level);
+
+    const date =
+        new Date(now);
+
+    /*
+     * MONTHLY
+     */
+
+    if (period === 'monthly') {
+        const currentMonthStart =
+            new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                1,
+                0,
+                0,
+                0,
+                0
+            ).getTime();
+
         return (
-            now.getFullYear() !== start.getFullYear() ||
-            now.getMonth() !== start.getMonth()
+            Number(
+                userData.monthStart || 0
+            ) !== currentMonthStart
         );
     }
 
-    const currentStart = createPeriodStart("weekly");
+    /*
+     * WEEKLY
+     */
 
-    return currentStart !== periodStart;
+    const day =
+        date.getDay();
+
+    const diff =
+        day === 0
+            ? 6
+            : day - 1;
+
+    const weekStart =
+        new Date(date);
+
+    weekStart.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    weekStart.setDate(
+        weekStart.getDate() - diff
+    );
+
+    const currentWeekStart =
+        weekStart.getTime();
+
+    return (
+        Number(
+            userData.weekStart || 0
+        ) !== currentWeekStart
+    );
 }
 
-/**
- * Reset activity counters for a new period.
+/*
+ * ==================================================
+ * FAILED PERIOD DECAY
+ * ==================================================
  */
-function resetPeriodActivity(data, period) {
-    if (period === "monthly") {
-        data.monthlyVoiceMinutes = 0;
-        data.monthlyChatMinutes = 0;
-        data.monthlyGames = 0;
-        data.monthStart = createPeriodStart("monthly");
-    } else {
-        data.weeklyVoiceMinutes = 0;
-        data.weeklyChatMinutes = 0;
-        data.weeklyGames = 0;
-        data.weekStart = createPeriodStart("weekly");
-    }
 
-    return data;
-}
-
-/**
- * Apply failed-period decay.
- *
- * First consecutive failure:
- *     80 XP → 40 XP
- *
- * Second consecutive failure:
- *     40 XP → 0 XP
- *
- * Third successful period:
- *     failure streak resets.
- *
- * Level is NEVER decreased.
- */
-function applyFailedPeriodDecay(data) {
-    const currentXp = Math.max(0, Number(data.xp || 0));
-    const failedPeriods = Number(data.consecutiveFailedPeriods || 0);
-
-    if (failedPeriods <= 0) {
-        data.xp = Math.floor(currentXp / 2);
-        data.consecutiveFailedPeriods = 1;
-
+export function applyFailedPeriodDecay(
+    userData
+) {
+    if (!userData) {
         return {
-            type: "half",
-            oldXp: currentXp,
-            newXp: data.xp,
+            type: 'none',
+            oldXp: 0,
+            newXp: 0,
+            failedPeriods: 0
         };
     }
 
-    data.xp = 0;
-    data.consecutiveFailedPeriods = failedPeriods + 1;
+    const oldXp =
+        Math.max(
+            0,
+            Number(
+                userData.xp || 0
+            )
+        );
+
+    const previousFailures =
+        Math.max(
+            0,
+            Number(
+                userData.consecutiveFailedPeriods || 0
+            )
+        );
+
+    /*
+     * FIRST FAILED PERIOD
+     *
+     * 80 XP -> 40 XP
+     */
+
+    if (
+        previousFailures === 0
+    ) {
+        userData.xp =
+            Math.floor(
+                oldXp / 2
+            );
+
+        userData.consecutiveFailedPeriods = 1;
+
+        return {
+            type: 'half',
+
+            oldXp,
+
+            newXp:
+                userData.xp,
+
+            failedPeriods: 1
+        };
+    }
+
+    /*
+     * SECOND CONSECUTIVE FAILURE
+     *
+     * XP -> 0
+     *
+     * Any further failed periods
+     * also remain at 0 XP.
+     */
+
+    userData.xp = 0;
+
+    userData.consecutiveFailedPeriods =
+        previousFailures + 1;
 
     return {
-        type: "zero",
-        oldXp: currentXp,
+        type: 'zero',
+
+        oldXp,
+
         newXp: 0,
+
+        failedPeriods:
+            userData.consecutiveFailedPeriods
     };
 }
 
-/**
- * Process one user's expired activity period.
- *
- * This is the main function the cron job will use later.
+/*
+ * ==================================================
+ * RESET PERIOD
+ * ==================================================
  */
-async function processUserPeriod(userId) {
-    const data = await getUserLevelData(userId);
 
-    if (!data) {
+export function resetPeriodActivity(
+    userData,
+    period,
+    now = Date.now()
+) {
+    if (!userData) {
+        return userData;
+    }
+
+    const date =
+        new Date(now);
+
+    /*
+     * MONTHLY
+     */
+
+    if (period === 'monthly') {
+        userData.monthlyChatMinutes = 0;
+
+        userData.monthlyVoiceMinutes = 0;
+
+        userData.monthlyGames = 0;
+
+        userData.monthStart =
+            new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                1,
+                0,
+                0,
+                0,
+                0
+            ).getTime();
+
+        return userData;
+    }
+
+    /*
+     * WEEKLY
+     */
+
+    const day =
+        date.getDay();
+
+    const diff =
+        day === 0
+            ? 6
+            : day - 1;
+
+    const weekStart =
+        new Date(date);
+
+    weekStart.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    weekStart.setDate(
+        weekStart.getDate() - diff
+    );
+
+    userData.weekStart =
+        weekStart.getTime();
+
+    userData.weeklyChatMinutes = 0;
+
+    userData.weeklyVoiceMinutes = 0;
+
+    userData.weeklyGames = 0;
+
+    return userData;
+}
+
+/*
+ * ==================================================
+ * PROCESS ONE USER
+ * ==================================================
+ *
+ * This function:
+ *
+ * 1. Loads user data
+ * 2. Determines weekly/monthly period
+ * 3. Checks whether period expired
+ * 4. Checks whether all activities were completed
+ * 5. Applies XP decay if necessary
+ * 6. Resets activity counters
+ * 7. Saves everything to database
+ *
+ * It NEVER decreases level.
+ */
+
+export async function processUserPeriod(
+    client,
+    guildId,
+    userId
+) {
+    const userData =
+        await getUserLevelData(
+            client,
+            guildId,
+            userId
+        );
+
+    if (!userData) {
         return {
             processed: false,
-            reason: "user_not_found",
+
+            reason:
+                'user_not_found'
         };
     }
 
-    const level = Number(data.level || 0);
-    const period = getCurrentPeriod(level);
+    /*
+     * Make sure old period data is normalized.
+     */
 
-    if (!hasPeriodExpired(data, period)) {
+    resetPeriodIfNeeded(
+        userData
+    );
+
+    const level =
+        Number(
+            userData.level || 0
+        );
+
+    const period =
+        getCurrentPeriod(
+            level
+        );
+
+    /*
+     * Check whether the period
+     * actually ended.
+     */
+
+    if (
+        !hasPeriodExpired(
+            userData
+        )
+    ) {
         return {
             processed: false,
-            reason: "period_not_expired",
+
+            reason:
+                'period_not_expired',
+
+            level,
+
             period,
+
+            xp:
+                Number(
+                    userData.xp || 0
+                )
         };
     }
 
-    const completed = isPeriodComplete(data);
+    /*
+     * IMPORTANT:
+     *
+     * Check activity BEFORE
+     * resetting the counters.
+     */
 
-    let result;
+    const completed =
+        isPeriodComplete(
+            userData
+        );
+
+    let decay = null;
+
+    /*
+     * SUCCESSFUL PERIOD
+     */
 
     if (completed) {
-        // Successful period.
-        data.consecutiveFailedPeriods = 0;
+        userData.consecutiveFailedPeriods = 0;
 
-        result = {
-            type: "success",
-            xp: Number(data.xp || 0),
+        decay = {
+            type: 'success',
+
+            oldXp:
+                Number(
+                    userData.xp || 0
+                ),
+
+            newXp:
+                Number(
+                    userData.xp || 0
+                ),
+
+            failedPeriods: 0
         };
-    } else {
-        // Failed period.
-        result = applyFailedPeriodDecay(data);
     }
 
-    resetPeriodActivity(data, period);
+    /*
+     * FAILED PERIOD
+     */
 
-    await saveUserLevelData(userId, data);
+    else {
+        decay =
+            applyFailedPeriodDecay(
+                userData
+            );
+    }
+
+    /*
+     * Reset activity for the
+     * new period.
+     */
+
+    resetPeriodActivity(
+        userData,
+        period
+    );
+
+    /*
+     * SAFETY:
+     *
+     * We deliberately do NOT modify
+     * userData.level here.
+     *
+     * Therefore:
+     *
+     * Level 10 cannot become Level 9
+     * because of activity failure.
+     */
+
+    await saveUserLevelData(
+        client,
+        guildId,
+        userId,
+        userData
+    );
 
     return {
         processed: true,
+
         userId,
+
+        guildId,
+
         level,
+
         period,
+
         completed,
-        ...result,
+
+        xp:
+            Number(
+                userData.xp || 0
+            ),
+
+        consecutiveFailedPeriods:
+            Number(
+                userData.consecutiveFailedPeriods || 0
+            ),
+
+        decay
     };
 }
 
-/**
- * Process period for multiple users.
+/*
+ * ==================================================
+ * PROCESS GUILD
+ * ==================================================
  *
- * Later app.js cron can call this with all leveling users.
+ * Discord guild members are used here.
+ *
+ * We do NOT need a separate database user-list
+ * just for this processor.
  */
-async function processAllUsers(userIds = []) {
+
+export async function processGuildPeriods(
+    client,
+    guild
+) {
+    if (!guild) {
+        return {
+            processed: 0,
+
+            results: []
+        };
+    }
+
+    const members =
+        await guild.members
+            .fetch()
+            .catch(
+                () => new Map()
+            );
+
     const results = [];
 
-    for (const userId of userIds) {
+    for (
+        const [
+            userId,
+            member
+        ]
+        of members
+    ) {
+        /*
+         * Never process bots.
+         */
+
+        if (
+            member.user?.bot
+        ) {
+            continue;
+        }
+
         try {
-            const result = await processUserPeriod(userId);
-            results.push(result);
+            const result =
+                await processUserPeriod(
+                    client,
+                    guild.id,
+                    userId
+                );
+
+            if (
+                result.processed
+            ) {
+                results.push(
+                    result
+                );
+            }
         } catch (error) {
             console.error(
                 `[LEVELING] Failed to process user ${userId}:`,
                 error
             );
+        }
+    }
+
+    return {
+        processed:
+            results.length,
+
+        results
+    };
+}
+
+/*
+ * ==================================================
+ * PROCESS ALL GUILDS
+ * ==================================================
+ */
+
+export async function processAllGuilds(
+    client
+) {
+    const results = [];
+
+    for (
+        const [
+            guildId,
+            guild
+        ]
+        of client.guilds.cache
+    ) {
+        try {
+            const result =
+                await processGuildPeriods(
+                    client,
+                    guild
+                );
 
             results.push({
-                processed: false,
-                userId,
-                reason: "error",
-                error: error.message,
+                guildId,
+
+                ...result
             });
+        } catch (error) {
+            console.error(
+                `[LEVELING] Failed to process guild ${guildId}:`,
+                error
+            );
         }
     }
 
     return results;
 }
 
-/**
- * Get readable progress information.
+/*
+ * ==================================================
+ * PERIOD PROGRESS
+ * ==================================================
  */
-function getPeriodProgress(data) {
-    const level = Number(data.level || 0);
-    const period = getCurrentPeriod(level);
-    const requirements = getPeriodRequirements(level);
 
-    if (period === "monthly") {
-        return {
-            period: "monthly",
-
-            voice: {
-                current: Number(data.monthlyVoiceMinutes || 0),
-                required: requirements.voiceMinutes,
-                completed:
-                    Number(data.monthlyVoiceMinutes || 0) >=
-                    requirements.voiceMinutes,
-            },
-
-            chat: {
-                current: Number(data.monthlyChatMinutes || 0),
-                required: requirements.chatMinutes,
-                completed:
-                    Number(data.monthlyChatMinutes || 0) >=
-                    requirements.chatMinutes,
-            },
-
-            games: {
-                current: Number(data.monthlyGames || 0),
-                required: requirements.games,
-                completed:
-                    Number(data.monthlyGames || 0) >=
-                    requirements.games,
-            },
-
-            complete: isPeriodComplete(data),
-        };
+export function getPeriodProgress(
+    userData
+) {
+    if (!userData) {
+        return null;
     }
 
+    const progress =
+        getActivityProgress(
+            userData
+        );
+
     return {
-        period: "weekly",
+        period:
+            progress.period,
 
-        voice: {
-            current: Number(data.weeklyVoiceMinutes || 0),
-            required: requirements.voiceMinutes,
-            completed:
-                Number(data.weeklyVoiceMinutes || 0) >=
-                requirements.voiceMinutes,
-        },
+        chatMinutes:
+            progress.chatMinutes,
 
-        chat: {
-            current: Number(data.weeklyChatMinutes || 0),
-            required: requirements.chatMinutes,
-            completed:
-                Number(data.weeklyChatMinutes || 0) >=
-                requirements.chatMinutes,
-        },
+        voiceMinutes:
+            progress.voiceMinutes,
 
-        games: {
-            current: Number(data.weeklyGames || 0),
-            required: requirements.games,
-            completed:
-                Number(data.weeklyGames || 0) >=
-                requirements.games,
-        },
+        games:
+            progress.games,
 
-        complete: isPeriodComplete(data),
+        chatProgress:
+            progress.chatProgress,
+
+        voiceProgress:
+            progress.voiceProgress,
+
+        gamesProgress:
+            progress.gamesProgress,
+
+        complete:
+            progress.complete
     };
 }
 
-module.exports = {
-    WEEKLY_REQUIREMENTS,
-    MONTHLY_REQUIREMENTS,
+/*
+ * ==================================================
+ * COMPATIBILITY
+ * ==================================================
+ */
 
+export function getWeeklyProgress(
+    userData
+) {
+    return getPeriodProgress(
+        userData
+    );
+}
+
+export function isWeeklyComplete(
+    userData
+) {
+    return isPeriodComplete(
+        userData
+    );
+}
+
+/*
+ * ==================================================
+ * EXPORTS
+ * ==================================================
+ */
+
+export default {
     getCurrentPeriod,
+
     getPeriodRequirements,
+
     isPeriodComplete,
 
     hasPeriodExpired,
+
     resetPeriodActivity,
 
     applyFailedPeriodDecay,
 
     processUserPeriod,
-    processAllUsers,
+
+    processGuildPeriods,
+
+    processAllGuilds,
 
     getPeriodProgress,
+
+    getWeeklyProgress,
+
+    isWeeklyComplete
 };
