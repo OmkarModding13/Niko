@@ -106,8 +106,6 @@ export async function createLevelUpImage(member, newLevel) {
             member.user.username;
 
 
-        // Prevent extremely long usernames
-
         const displayName =
             username.length > 22
                 ? `${username.slice(0, 21)}…`
@@ -233,37 +231,8 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                     <!-- ================================= -->
-                    <!-- TOP ROW: PFP + LEVEL UP             -->
+                    <!-- LEVEL UP                            -->
                     <!-- ================================= -->
-
-
-                    <!-- Avatar glow -->
-
-                    <circle
-                        cx="180"
-                        cy="105"
-                        r="84"
-                        fill="none"
-                        stroke="#1687ff"
-                        stroke-width="7"
-                        opacity="0.9"
-                        filter="url(#avatarGlow)"
-                    />
-
-
-                    <!-- Avatar border -->
-
-                    <circle
-                        cx="180"
-                        cy="105"
-                        r="78"
-                        fill="none"
-                        stroke="#ffffff"
-                        stroke-width="4"
-                    />
-
-
-                    <!-- LEVEL UP -->
 
                     <text
                         x="295"
@@ -368,6 +337,37 @@ export async function createLevelUpImage(member, newLevel) {
                         HOLLOW DEVIL'S DOMAIN
                     </text>
 
+
+                    <!-- ================================= -->
+                    <!-- CENTERED PFP                        -->
+                    <!-- ================================= -->
+
+
+                    <!-- Avatar glow -->
+
+                    <circle
+                        cx="185"
+                        cy="285"
+                        r="94"
+                        fill="none"
+                        stroke="#1687ff"
+                        stroke-width="7"
+                        opacity="0.9"
+                        filter="url(#avatarGlow)"
+                    />
+
+
+                    <!-- Avatar border -->
+
+                    <circle
+                        cx="185"
+                        cy="285"
+                        r="88"
+                        fill="none"
+                        stroke="#ffffff"
+                        stroke-width="4"
+                    />
+
                 </svg>
             `);
 
@@ -405,8 +405,8 @@ export async function createLevelUpImage(member, newLevel) {
 
                     {
                         input: maskedAvatar,
-                        top: 30,
-                        left: 105
+                        top: 210,
+                        left: 110
                     }
                 ])
                 .png()
