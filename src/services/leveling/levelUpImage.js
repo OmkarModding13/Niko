@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath } from 'url';
 import sharp from 'sharp';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,10 +57,10 @@ export async function createLevelUpImage(member, newLevel) {
 
 
         // ==========================================
-        // 2. CREATE CIRCULAR PFP
+        // 2. CREATE LARGE CIRCULAR PFP
         // ==========================================
 
-        const avatarSize = 150;
+        const avatarSize = 180;
 
 
         const circularAvatar =
@@ -77,7 +77,7 @@ export async function createLevelUpImage(member, newLevel) {
                 .toBuffer();
 
 
-        // Circular SVG mask
+        // Circular mask
 
         const avatarMask =
             Buffer.from(`
@@ -140,7 +140,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <defs>
 
                         <!-- ================================= -->
-                        <!-- DARK READABILITY GRADIENT          -->
+                        <!-- DARK LEFT READABILITY AREA          -->
                         <!-- ================================= -->
 
                         <linearGradient
@@ -154,13 +154,13 @@ export async function createLevelUpImage(member, newLevel) {
                             <stop
                                 offset="0%"
                                 stop-color="#02030a"
-                                stop-opacity="0.94"
+                                stop-opacity="0.95"
                             />
 
                             <stop
                                 offset="55%"
                                 stop-color="#02030a"
-                                stop-opacity="0.50"
+                                stop-opacity="0.55"
                             />
 
                             <stop
@@ -173,7 +173,7 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                         <!-- ================================= -->
-                        <!-- GENERAL BLUE GLOW                   -->
+                        <!-- BLUE GLOW                            -->
                         <!-- ================================= -->
 
                         <filter
@@ -205,7 +205,7 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                         <!-- ================================= -->
-                        <!-- PFP GLOW                            -->
+                        <!-- AVATAR GLOW                         -->
                         <!-- ================================= -->
 
                         <filter
@@ -245,7 +245,7 @@ export async function createLevelUpImage(member, newLevel) {
                     <rect
                         x="0"
                         y="0"
-                        width="760"
+                        width="790"
                         height="${HEIGHT}"
                         fill="url(#panel)"
                     />
@@ -256,8 +256,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="275"
-                        y="120"
+                        x="475"
+                        y="105"
+                        text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="68"
                         font-weight="900"
@@ -272,9 +273,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- LEVEL UP UNDERLINE -->
 
                     <rect
-                        x="278"
-                        y="140"
-                        width="390"
+                        x="290"
+                        y="125"
+                        width="370"
                         height="5"
                         rx="2"
                         fill="#1687ff"
@@ -287,8 +288,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="300"
-                        y="220"
+                        x="475"
+                        y="195"
+                        text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="36"
                         font-weight="700"
@@ -301,9 +303,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- Username underline -->
 
                     <rect
-                        x="300"
-                        y="235"
-                        width="330"
+                        x="330"
+                        y="212"
+                        width="290"
                         height="2"
                         rx="1"
                         fill="#1687ff"
@@ -316,8 +318,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="300"
-                        y="292"
+                        x="475"
+                        y="270"
+                        text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="25"
                         font-weight="600"
@@ -333,8 +336,9 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <text
-                        x="300"
-                        y="385"
+                        x="475"
+                        y="365"
+                        text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="96"
                         font-weight="900"
@@ -346,12 +350,13 @@ export async function createLevelUpImage(member, newLevel) {
 
 
                     <!-- ================================= -->
-                    <!-- DOMAIN TEXT                         -->
+                    <!-- DOMAIN                              -->
                     <!-- ================================= -->
 
                     <text
-                        x="300"
-                        y="435"
+                        x="475"
+                        y="425"
+                        text-anchor="middle"
                         font-family="Arial, Helvetica, sans-serif"
                         font-size="18"
                         font-weight="600"
@@ -367,30 +372,29 @@ export async function createLevelUpImage(member, newLevel) {
                     <!-- ================================= -->
 
                     <circle
-                        cx="185"
-                        cy="285"
-                        r="88"
+                        cx="180"
+                        cy="300"
+                        r="103"
                         fill="none"
                         stroke="#1687ff"
-                        stroke-width="7"
+                        stroke-width="8"
                         opacity="0.95"
                         filter="url(#avatarGlow)"
                     />
 
 
                     <!-- ================================= -->
-                    <!-- PFP WHITE BORDER                    -->
+                    <!-- PFP BORDER                          -->
                     <!-- ================================= -->
 
                     <circle
-                        cx="185"
-                        cy="285"
-                        r="82"
+                        cx="180"
+                        cy="300"
+                        r="95"
                         fill="none"
                         stroke="#ffffff"
-                        stroke-width="4"
+                        stroke-width="5"
                     />
-
 
                 </svg>
             `);
@@ -422,18 +426,18 @@ export async function createLevelUpImage(member, newLevel) {
             await sharp(background)
                 .composite([
 
-                    // Text + decorations
+                    // Text and layout
                     {
                         input: overlay,
                         top: 0,
                         left: 0
                     },
 
-                    // Actual PFP
+                    // Member PFP
                     {
                         input: maskedAvatar,
                         top: 210,
-                        left: 110
+                        left: 90
                     }
 
                 ])
