@@ -77,7 +77,7 @@ export default {
                 },
                 {
                     name: '🎯 /pvp — Number Guess',
-                    value: `**4 players** • Each player chooses the same custom ${SOULS_EMOJI} bet • Guess **1–4** • Winner takes the full pot.`,
+                    value: `**4 players** • Each player chooses **their own ${SOULS_EMOJI} bet** in DM • Guess **1–4** • Winner takes the full pot.`,
                     inline: false,
                 },
                 {
