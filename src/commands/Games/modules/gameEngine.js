@@ -2,6 +2,7 @@ import { getEconomyData, setEconomyData } from '../../../utils/economy.js';
 
 export const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 export const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
+export const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 export const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 export const GAME_COOLDOWN = 10 * 1000;
@@ -98,7 +99,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 export function resultText(result) {
     if (result.type === 'shard') {
         return {
-            title: '💎 RARE DROP!',
+            title: `${SHARD_EMOJI} RARE DROP!`,
             description:
                 `${SHARD_EMOJI} **1 Shard** has been awarded to you!\n\n` +
                 `That is the rarest game reward. **1 Shard = 1,000 Souls worth.**`,
@@ -107,7 +108,7 @@ export function resultText(result) {
 
     if (result.type === 'double') {
         return {
-            title: '💰 DOUBLE SOULS!',
+            title: `${DOUBLE_SOULS_EMOJI} DOUBLE SOULS!`,
             description:
                 `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\n` +
                 `Your entry fee was doubled.`,
@@ -116,7 +117,7 @@ export function resultText(result) {
 
     if (result.type === 'common') {
         return {
-            title: '🪙 SOULS FOUND!',
+            title: `${SOULS_EMOJI} SOULS FOUND!`,
             description:
                 `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!`,
         };
