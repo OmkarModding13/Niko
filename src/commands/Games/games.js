@@ -22,7 +22,7 @@ export default {
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
                 '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees and smaller Soul payouts.\n\n'
+                'Perfect for new members. Low entry fees and smaller Soul payouts.'
             )
             .addFields(
                 {
@@ -71,14 +71,34 @@ export default {
                     inline: false,
                 },
                 {
-                    name: '🎁 POSSIBLE REWARDS',
-                    value:
-                        `${SOULS_EMOJI} **Common Souls** — normal win\n` +
-                        `${DOUBLE_SOULS_EMOJI} **Double Souls** — rare\n` +
-                        `${SOULS_EMOJI} **Extra Souls** — rare bonus\n` +
-                        `${SHARD_EMOJI} **Ultra Rare Shard** — extremely rare\n` +
-                        '💔 **Better Luck Next Time** — loss',
+                    name: '\u200b',
+                    value: '**🎁 POSSIBLE REWARDS**',
                     inline: false,
+                },
+                {
+                    name: `${SOULS_EMOJI} Common Souls`,
+                    value: 'Normal win',
+                    inline: true,
+                },
+                {
+                    name: `${DOUBLE_SOULS_EMOJI} Double Souls`,
+                    value: 'Rare',
+                    inline: true,
+                },
+                {
+                    name: `${SOULS_EMOJI} Extra Souls`,
+                    value: 'Rare bonus',
+                    inline: true,
+                },
+                {
+                    name: `${SHARD_EMOJI} Ultra Rare Shard`,
+                    value: 'Extremely rare',
+                    inline: true,
+                },
+                {
+                    name: '💔 Better Luck Next Time',
+                    value: 'Loss',
+                    inline: true,
                 },
             )
             .setFooter({ text: `${TOTAL_SOULS_EMOJI} Your wallet balance determines whether you can enter.` });
