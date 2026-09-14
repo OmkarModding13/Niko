@@ -35,7 +35,6 @@ function buildLevelInfoEmbed() {
             'Cooldowns and activity checks prevent meaningless spam from being used to farm XP.\n\n' +
             `🩸 **Stay Active. Earn XP. Rise Through the Domain.** ${SOULS_EMOJI}`,
         )
-        .setImage('attachment://HowToLevelUp.png')
         .setFooter({ text: 'Hollow Devil’s Domain • Leveling Guide' });
 }
 
@@ -68,10 +67,10 @@ export default {
         const banner = new AttachmentBuilder(BANNER_PATH, { name: 'HowToLevelUp.png' });
         const embed = buildLevelInfoEmbed();
 
-        await channel.send({
-            embeds: [embed],
-            files: [banner],
-        });
+        // Discord always renders an embed image at the bottom of the embed.
+        // Send the banner as its own message first so it appears above the guide.
+        await channel.send({ files: [banner] });
+        await channel.send({ embeds: [embed] });
 
         return interaction.reply({
             content: `✅ How to Level Up guide posted in <#${LEVEL_INFO_CHANNEL_ID}>.`,
