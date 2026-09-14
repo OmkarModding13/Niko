@@ -4,9 +4,6 @@ const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
-
-const DICE_EMOJI = '🎲';
-const SLOTS_EMOJI = '🎰';
 const TAILS_EMOJI = '<:Tails:1549019689022132315>';
 
 export default {
@@ -24,37 +21,40 @@ export default {
                 `Every game requires an **Entry Fee** paid in ${SOULS_EMOJI} **Souls**.\n` +
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
+                '**🌱 STARTER GAMES — LOW RISK**\n' +
+                'Perfect for new members. Entry fees are low and Soul payouts are capped at **100 Souls**.\n\n' +
                 '**Available Games**'
             )
             .addFields(
                 {
-                    name: `${SOULS_EMOJI} /soulflip — Entry Fee: 100 Souls`,
-                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails — choose your side and flip the Soul Coin.`,
+                    name: `${SOULS_EMOJI} /quickcoin — Entry Fee: 20 Souls`,
+                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails — quick coin flip. **Win up to 100 Souls.**`,
                     inline: false,
                 },
                 {
-                    name: `${DICE_EMOJI} /abyssdice — Entry Fee: 250 Souls`,
-                    value: 'Roll the Abyss Dice and face your fate.',
+                    name: '🎯 /quickguess — Entry Fee: 20 Souls',
+                    value: 'Guess 1–3. **Win up to 100 Souls.**',
                     inline: false,
                 },
                 {
-                    name: `${SLOTS_EMOJI} /soulslots — Entry Fee: 500 Souls`,
-                    value: 'Spin the Soul Slots and try your luck.',
+                    name: '🔴⚫ /redblack — Entry Fee: 25 Souls',
+                    value: 'Guess Red or Black. **Win up to 100 Souls.**',
                     inline: false,
                 },
                 {
-                    name: '⬆️⬇️ /higherlower — Entry Fee: 150 Souls',
-                    value: 'Guess whether the next number will be higher or lower.',
+                    name: '✊ /rps — Entry Fee: 30 Souls',
+                    value: 'Rock, Paper, Scissors against Niko. **Win up to 100 Souls.**',
                     inline: false,
                 },
                 {
-                    name: `${DICE_EMOJI} /diceduel — Entry Fee: 300 Souls`,
-                    value: 'Roll against Niko. Highest roll wins.',
-                    inline: false,
-                },
-                {
-                    name: '🎯 /numberguess — Entry Fee: 200 Souls',
-                    value: 'Guess the secret number from 1 to 10.',
+                    name: '**💀 STANDARD GAMES**',
+                    value:
+                        `${SOULS_EMOJI} /soulflip — **100 Souls**\n` +
+                        '🎲 /abyssdice — **250 Souls**\n' +
+                        '🎰 /soulslots — **500 Souls**\n' +
+                        '⬆️⬇️ /higherlower — **150 Souls**\n' +
+                        '🎲 /diceduel — **300 Souls**\n' +
+                        '🎯 /numberguess — **200 Souls**',
                     inline: false,
                 },
                 {
@@ -62,12 +62,12 @@ export default {
                     value:
                         `${SOULS_EMOJI} Common Souls\n` +
                         `${DOUBLE_SOULS_EMOJI} Double Souls\n` +
-                        `${SHARD_EMOJI} **Rare Shard**\n` +
+                        `${SHARD_EMOJI} **Ultra Rare Shard**\n` +
                         '💔 Better Luck Next Time',
                     inline: false,
                 },
             )
-            .setFooter({ text: `${TOTAL_SOULS_EMOJI} Your wallet balance determines whether you can enter.` });
+            .setFooter({ text: `${TOTAL_SOULS_EMOJI} More games and higher-risk games coming soon.` });
 
         return interaction.reply({ embeds: [embed] });
     },
