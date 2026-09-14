@@ -1,10 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import {
-    GAME_CONFIG,
-    playGame,
-    resultText,
-    balanceFooter,
-} from './modules/gameEngine.js';
+import { playGame, resultText, balanceFooter } from './modules/gameEngine.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -15,6 +10,7 @@ export default {
         await interaction.deferReply();
 
         const roll = Math.floor(Math.random() * 6) + 1;
+        const won = roll >= 4;
 
         await interaction.editReply({
             content: '🎲 **The Abyss Dice are rolling...**',
@@ -26,7 +22,10 @@ export default {
             client,
             interaction,
             'abyssdice',
-            { roll }
+            {
+                roll,
+                forceLoss: !won,
+            }
         );
 
         if (!played.ok) {
@@ -36,7 +35,7 @@ export default {
         const text = resultText(played.result);
         const embed = new EmbedBuilder()
             .setColor(0x168BFF)
-            .setTitle(text.title)
+            .setTitle(won ? '🎲 YOU WIN!' : '💔 BETTER LUCK NEXT TIME')
             .setDescription(
                 `🎲 The Abyss Dice rolled **${roll}**.\n\n` +
                 text.description
