@@ -22,7 +22,7 @@ export default {
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
                 '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees with Soul rewards capped at 100.'
+                'Perfect for new members. Low entry fees and smaller Soul payouts.'
             )
             .addFields(
                 {
@@ -31,18 +31,18 @@ export default {
                     inline: false,
                 },
                 {
-                    name: '🎯 /redblack — Entry Fee: 25 Souls',
+                    name: '🔴 /redblack — Entry Fee: 25 Souls',
                     value: 'Guess Red or Black • Win up to **100 Souls**.',
-                    inline: false,
-                },
-                {
-                    name: '✊ /rps — Entry Fee: 30 Souls',
-                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draws cost nothing and can be played again.',
                     inline: false,
                 },
                 {
                     name: '🎲 /abyssdice — Entry Fee: 30 Souls',
                     value: 'Roll the Abyss Dice • Win up to **100 Souls**.',
+                    inline: false,
+                },
+                {
+                    name: '✊ /rps — Entry Fee: 30 Souls',
+                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draw = entry fee refunded and immediate retry.',
                     inline: false,
                 },
                 {
@@ -52,22 +52,22 @@ export default {
                 },
                 {
                     name: `${SOULS_EMOJI} /soulflip — Entry Fee: 50 Souls`,
-                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Higher rewards and rare drops.`,
+                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **150 Souls**.`,
                     inline: false,
                 },
                 {
                     name: '⬆️⬇️ /higherlower — Entry Fee: 75 Souls',
-                    value: 'Guess whether the next number is higher or lower.',
+                    value: 'Guess whether the next number is higher or lower • Win up to **225 Souls**.',
                     inline: false,
                 },
                 {
                     name: '🎲 /diceduel — Entry Fee: 100 Souls',
-                    value: 'Roll against Niko. Highest roll wins.',
+                    value: 'Roll against Niko • Win up to **300 Souls**.',
                     inline: false,
                 },
                 {
                     name: '🎰 /soulslots — Entry Fee: 150 Souls',
-                    value: 'Spin the Soul Slots for a high-risk payout.',
+                    value: 'Spin the Soul Slots • Win up to **450 Souls**.',
                     inline: false,
                 },
                 {
