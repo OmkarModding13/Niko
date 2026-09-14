@@ -6,51 +6,39 @@ export const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 export const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 export const GAME_COOLDOWN = 10 * 1000;
-
 const lastPlayed = new Map();
 
 export const GAME_CONFIG = {
     quickcoin: { name: 'Quick Coin', entry: 20, maxReward: 100, starter: true },
-    quickguess: { name: 'Quick Guess', entry: 20, maxReward: 100, starter: true },
     redblack: { name: 'Red or Black', entry: 25, maxReward: 100, starter: true },
     rps: { name: 'Rock Paper Scissors', entry: 30, maxReward: 100, starter: true },
-    soulflip: { name: 'Soul Flip', entry: 100 },
-    abyssdice: { name: 'Abyss Dice', entry: 250 },
-    soulslots: { name: 'Soul Slots', entry: 500 },
-    higherlower: { name: 'Higher or Lower', entry: 150 },
-    diceduel: { name: 'Dice Duel', entry: 300 },
-    numberguess: { name: 'Number Guess', entry: 200 },
+    abyssdice: { name: 'Abyss Dice', entry: 30, maxReward: 100, starter: true },
+    soulflip: { name: 'Soul Flip', entry: 50, maxReward: 150 },
+    higherlower: { name: 'Higher or Lower', entry: 75, maxReward: 225 },
+    diceduel: { name: 'Dice Duel', entry: 100, maxReward: 300 },
+    soulslots: { name: 'Soul Slots', entry: 150, maxReward: 450 },
 };
 
 function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function rollReward(entry, config, guaranteedReward = false) {
+function randomBetween(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function rollReward(config) {
     const roll = Math.random();
 
     // Ultra Rare: 0.5% — 1 Shard.
     if (roll < 0.005) return { type: 'shard', souls: 0, shards: 1 };
 
-    if (config.starter) {
-        // Starter games cap all Soul payouts at 100.
-        if (roll < 0.075) return { type: 'extra', souls: Math.min(entry * 5, config.maxReward), shards: 0 };
-        if (roll < 0.15) return { type: 'double', souls: Math.min(entry * 2, config.maxReward), shards: 0 };
-        return {
-            type: 'common',
-            souls: Math.min(entry * (Math.floor(Math.random() * 3) + 1), config.maxReward),
-            shards: 0,
-        };
-    }
+    // Rare: 14.5% total — Double or Extra Souls.
+    if (roll < 0.075) return { type: 'double', souls: Math.min(config.entry * 2, config.maxReward), shards: 0 };
+    if (roll < 0.15) return { type: 'extra', souls: Math.min(config.entry * 3, config.maxReward), shards: 0 };
 
-    // Regular games: Rare = Double/Extra Souls, Common = normal Souls.
-    if (roll < (guaranteedReward ? 0.20 : 0.075)) {
-        return { type: 'double', souls: entry * 2, shards: 0 };
-    }
-    if (roll < (guaranteedReward ? 0.30 : 0.15)) {
-        return { type: 'extra', souls: entry * 3, shards: 0 };
-    }
-    return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
+    // Common: normal Souls, always capped by the game's max reward.
+    return { type: 'common', souls: randomBetween(config.entry, config.maxReward), shards: 0 };
 }
 
 export async function playGame(client, interaction, gameKey, gameResult = {}) {
@@ -83,7 +71,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 
     const reward = gameResult.forceLoss
         ? { type: 'loss', souls: 0, shards: 0 }
-        : rollReward(config.entry, config, Boolean(gameResult.guaranteedReward));
+        : rollReward(config);
 
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
@@ -91,6 +79,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
     const result = {
         ...reward,
         entry: config.entry,
+        maxReward: config.maxReward,
         balance: userData.wallet,
         shards: userData.shards,
         ...gameResult,
@@ -107,28 +96,24 @@ export function resultText(result) {
             description: `${SHARD_EMOJI} **1 Shard** has been awarded to you!\n\nThat is the rarest game reward. **1 Shard = 1,000 Souls worth.**`,
         };
     }
-
     if (result.type === 'double') {
         return {
             title: `${DOUBLE_SOULS_EMOJI} DOUBLE SOULS!`,
             description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nYour entry fee was doubled.`,
         };
     }
-
     if (result.type === 'extra') {
         return {
             title: `${SOULS_EMOJI} EXTRA SOULS!`,
             description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **bonus payout**!`,
         };
     }
-
     if (result.type === 'common') {
         return {
             title: `${SOULS_EMOJI} SOULS FOUND!`,
             description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!`,
         };
     }
-
     return {
         title: '💔 BETTER LUCK NEXT TIME',
         description: `The Abyss took your **${formatNumber(result.entry)} ${SOULS_EMOJI}**.\nCome back and try again.`,
