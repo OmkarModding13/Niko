@@ -7,6 +7,7 @@ const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 const DICE_EMOJI = '🎲';
 const SLOTS_EMOJI = '🎰';
+const TAILS_EMOJI = '<:Tails:1549019689022132315>';
 
 export default {
     data: new SlashCommandBuilder()
@@ -28,7 +29,7 @@ export default {
             .addFields(
                 {
                     name: `${SOULS_EMOJI} /soulflip — Entry Fee: 100 Souls`,
-                    value: 'Choose Heads or Tails and flip the Soul Coin.',
+                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails — choose your side and flip the Soul Coin.`,
                     inline: false,
                 },
                 {
@@ -39,6 +40,21 @@ export default {
                 {
                     name: `${SLOTS_EMOJI} /soulslots — Entry Fee: 500 Souls`,
                     value: 'Spin the Soul Slots and try your luck.',
+                    inline: false,
+                },
+                {
+                    name: '⬆️⬇️ /higherlower — Entry Fee: 150 Souls',
+                    value: 'Guess whether the next number will be higher or lower.',
+                    inline: false,
+                },
+                {
+                    name: `${DICE_EMOJI} /diceduel — Entry Fee: 300 Souls`,
+                    value: 'Roll against Niko. Highest roll wins.',
+                    inline: false,
+                },
+                {
+                    name: '🎯 /numberguess — Entry Fee: 200 Souls',
+                    value: 'Guess the secret number from 1 to 10.',
                     inline: false,
                 },
                 {
