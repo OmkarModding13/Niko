@@ -10,6 +10,10 @@ export const GAME_COOLDOWN = 10 * 1000;
 const lastPlayed = new Map();
 
 export const GAME_CONFIG = {
+    quickcoin: { name: 'Quick Coin', entry: 20, maxReward: 100, starter: true },
+    quickguess: { name: 'Quick Guess', entry: 20, maxReward: 100, starter: true },
+    redblack: { name: 'Red or Black', entry: 25, maxReward: 100, starter: true },
+    rps: { name: 'Rock Paper Scissors', entry: 30, maxReward: 100, starter: true },
     soulflip: { name: 'Soul Flip', entry: 100 },
     abyssdice: { name: 'Abyss Dice', entry: 250 },
     soulslots: { name: 'Soul Slots', entry: 500 },
@@ -22,25 +26,30 @@ function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function rollReward(entry) {
+function rollReward(entry, config, guaranteedReward = false) {
     const roll = Math.random();
 
     // Ultra Rare: 0.5% — 1 Shard.
-    if (roll < 0.005) {
-        return { type: 'shard', souls: 0, shards: 1 };
+    if (roll < 0.005) return { type: 'shard', souls: 0, shards: 1 };
+
+    if (config.starter) {
+        // Starter games cap all Soul payouts at 100.
+        if (roll < 0.075) return { type: 'extra', souls: Math.min(entry * 5, config.maxReward), shards: 0 };
+        if (roll < 0.15) return { type: 'double', souls: Math.min(entry * 2, config.maxReward), shards: 0 };
+        return {
+            type: 'common',
+            souls: Math.min(entry * (Math.floor(Math.random() * 3) + 1), config.maxReward),
+            shards: 0,
+        };
     }
 
-    // Rare: 14.5% total.
-    // 7.0% Double Souls, 7.5% Extra Souls (3x entry).
-    if (roll < 0.075) {
+    // Regular games: Rare = Double/Extra Souls, Common = normal Souls.
+    if (roll < (guaranteedReward ? 0.20 : 0.075)) {
         return { type: 'double', souls: entry * 2, shards: 0 };
     }
-
-    if (roll < 0.15) {
+    if (roll < (guaranteedReward ? 0.30 : 0.15)) {
         return { type: 'extra', souls: entry * 3, shards: 0 };
     }
-
-    // Common win: 85%.
     return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
 }
 
@@ -56,10 +65,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 
     if (now - last < GAME_COOLDOWN) {
         const remaining = Math.ceil((GAME_COOLDOWN - (now - last)) / 1000);
-        return {
-            ok: false,
-            message: `⏳ Slow down! You can play **${config.name}** again in **${remaining}s**.`,
-        };
+        return { ok: false, message: `⏳ Slow down! You can play **${config.name}** again in **${remaining}s**.` };
     }
 
     const userData = await getEconomyData(client, guildId, userId);
@@ -75,11 +81,9 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
     lastPlayed.set(cooldownKey, now);
     userData.wallet = wallet - config.entry;
 
-    // Losing is a common game outcome. A loser gets no reward.
-    // Winning rolls the reward tier: Common → Rare → Ultra Rare.
     const reward = gameResult.forceLoss
         ? { type: 'loss', souls: 0, shards: 0 }
-        : rollReward(config.entry);
+        : rollReward(config.entry, config, Boolean(gameResult.guaranteedReward));
 
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
@@ -114,7 +118,7 @@ export function resultText(result) {
     if (result.type === 'extra') {
         return {
             title: `${SOULS_EMOJI} EXTRA SOULS!`,
-            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **3× payout**!`,
+            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **bonus payout**!`,
         };
     }
 
