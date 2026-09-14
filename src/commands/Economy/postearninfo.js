@@ -18,22 +18,25 @@ function buildEarnInfoEmbed() {
         .setTitle(`${TOTAL_SOULS_EMOJI} HOW TO EARN SOULS`)
         .setDescription(
             '**Want to earn Souls in Hollow Devil\'s Domain?**\n' +
-            'Here are the main ways to earn and use your Souls.\n\n' +
-            '**🎁 Daily Reward**\n' +
+            'Here are the main ways to earn Souls.\n\n' +
+            '**🎁 DAILY REWARD**\n' +
             'Use **/daily** once every 24 hours to claim your daily Souls reward.\n' +
             '> 🔥 Keep your streak going to unlock extra streak bonuses.\n\n' +
-            '**💬 Chatting**\n' +
-            'Stay active and chat with the community to earn Souls over time.\n' +
+            '**💬 CHATTING**\n' +
+            'No command is needed. Stay active and chat naturally with the community to earn Souls over time.\n' +
             '> ⚠️ Spam and message flooding will not help you earn more.\n\n' +
-            '**🎙️ Voice Chat**\n' +
-            'Hang out with other members in Voice Channels and earn Souls through active VC time.\n' +
+            '**🎙️ VOICE CHAT**\n' +
+            'No command is needed. Hang out with other members in Voice Channels to earn Souls through active VC time.\n' +
             '> 👥 At least **2 members** must be in the VC.\n' +
             '> 🔇 Self-muted activity does not count.\n' +
             '> 🙉 Self-deafened activity does not count.\n\n' +
-            '**🎮 Gaming**\n' +
-            'Play Niko\'s games to win Souls and take part in PvP and multiplayer matches.\n' +
-            `> ${DOUBLE_SOULS_EMOJI} Some games can give higher rewards depending on the game and outcome.\n\n` +
-            '**🛒 Shop**\n' +
+            '**🎮 GAMING**\n' +
+            'Use **/games** to see all available games and their entry fees and rewards.\n' +
+            `> ${SOULS_EMOJI} **Solo:** /quickcoin • /abyssdice • /rps • /soulflip • /diceduel • /soulslots\n` +
+            `> ⚔️ **PvP:** /pvp — Rock Paper Scissors, Heads & Tails, Number Guess\n` +
+            `> 🏦 **Multiplayer:** /bankrob — 2–10 player bank robbery\n` +
+            `> ${DOUBLE_SOULS_EMOJI} Game rewards depend on the game and outcome.\n\n` +
+            '**🛒 SHOP**\n' +
             'Use **/shop** to spend your Souls on available rewards and upgrades.\n' +
             '> 🎨 Color Roles\n' +
             '> 🏦 Bank Capacity Upgrades\n' +
