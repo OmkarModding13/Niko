@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { Collection } from 'discord.js';
+import { Collection, PermissionFlagsBits } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import botConfig from '../../config/bot.js';
 
@@ -10,17 +10,38 @@ const __dirname = path.dirname(__filename);
 const MAX_COMMANDS = 100;
 const COMMAND_COUNT_WARN_THRESHOLD = 90;
 
+// Normal members only get player-facing Games and Economy/Shop commands.
+// Commands in every other category are hidden behind Administrator permission
+// unless the command already declares its own Discord permission requirement.
+const PUBLIC_CATEGORIES = new Set(['Games', 'Economy']);
+
+function applyCommandVisibility(command, category) {
+    if (PUBLIC_CATEGORIES.has(category)) {
+        return;
+    }
+
+    // Preserve explicit permissions already defined by the command itself.
+    const currentPermissions = command.data?.toJSON?.()?.default_member_permissions;
+    if (currentPermissions != null && currentPermissions !== '0') {
+        return;
+    }
+
+    if (typeof command.data?.setDefaultMemberPermissions === 'function') {
+        command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+    }
+}
+
 function getSubcommandInfo(commandData) {
     const subcommands = [];
     
     if (commandData.options) {
         for (const option of commandData.options) {
-if (option.type === 1) {
+            if (option.type === 1) {
                 subcommands.push(option.name);
-} else if (option.type === 2) {
+            } else if (option.type === 2) {
                 if (option.options) {
                     for (const subOption of option.options) {
-if (subOption.type === 1) {
+                        if (subOption.type === 1) {
                             subcommands.push(`${option.name}/${subOption.name}`);
                         }
                     }
@@ -78,6 +99,7 @@ export async function loadCommands(client) {
             
             command.category = category;
             command.filePath = normalizedPath;
+            applyCommandVisibility(command, category);
             
             const primaryCommandName = command.data.name;
             
