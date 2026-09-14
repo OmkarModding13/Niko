@@ -1,10 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import {
-    GAME_CONFIG,
-    playGame,
-    resultText,
-    balanceFooter,
-} from './modules/gameEngine.js';
+import { playGame, resultText, balanceFooter } from './modules/gameEngine.js';
 
 const SYMBOLS = ['💀', '👿', '🔥', '🌑', '⚔️', '💎'];
 
@@ -29,11 +24,17 @@ export default {
         await new Promise(resolve => setTimeout(resolve, 1100));
 
         const slots = spinSlots();
+        const uniqueSymbols = new Set(slots).size;
+        const winningSpin = uniqueSymbols < 3;
+
         const played = await playGame(
             client,
             interaction,
             'soulslots',
-            { slots }
+            {
+                slots,
+                forceLoss: !winningSpin,
+            }
         );
 
         if (!played.ok) {
@@ -43,10 +44,12 @@ export default {
         const text = resultText(played.result);
         const embed = new EmbedBuilder()
             .setColor(0x168BFF)
-            .setTitle(text.title)
+            .setTitle(winningSpin ? text.title : '💔 BETTER LUCK NEXT TIME')
             .setDescription(
                 `🎰 **${slots.join('  |  ')}**\n\n` +
-                text.description
+                (winningSpin
+                    ? text.description
+                    : `No matching symbols. The Abyss took your **${played.result.entry} ${'<:Souls:1547510037621112894>'} Souls**.\nCome back and try again.`)
             )
             .setFooter({ text: balanceFooter(played.result) });
 
