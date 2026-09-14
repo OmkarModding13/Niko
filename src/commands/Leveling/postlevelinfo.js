@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const LEVEL_INFO_CHANNEL_ID = '1530876981304885299';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const EMBED_BLUE = 0x168BFF;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,7 @@ const BANNER_PATH = path.join(__dirname, '../../assets/HowToLevelUp.png');
 
 function buildLevelInfoEmbed() {
     return new EmbedBuilder()
+        .setColor(EMBED_BLUE)
         .setTitle('⚡ HOW TO LEVEL UP')
         .setDescription(
             '**Want to level up in Hollow Devil\'s Domain?**\n' +
@@ -26,7 +28,7 @@ function buildLevelInfoEmbed() {
             '**🎮 Game Activity**\n' +
             'Play Niko\'s games to earn **XP + Souls**.\n\n' +
             '**📈 XP SYSTEM**\n' +
-            `> **100 XP = 1 Level**\n` +
+            '> **100 XP = 1 Level**\n' +
             '> Your level does not automatically decrease.\n\n' +
             '**🗓️ ACTIVITY PROGRESSION**\n' +
             '> 🟢 **Level 1–49** → Weekly Activity\n' +
