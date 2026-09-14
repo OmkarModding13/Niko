@@ -22,17 +22,12 @@ export default {
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
                 '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees and smaller Soul payouts.'
+                'Perfect for new members. Low entry fees and smaller Soul payouts.\n\n'
             )
             .addFields(
                 {
                     name: `${SOULS_EMOJI} /quickcoin — Entry Fee: 20 Souls`,
                     value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **100 Souls**.`,
-                    inline: false,
-                },
-                {
-                    name: '🔴 /redblack — Entry Fee: 25 Souls',
-                    value: 'Guess Red or Black • Win up to **100 Souls**.',
                     inline: false,
                 },
                 {
@@ -53,11 +48,6 @@ export default {
                 {
                     name: `${SOULS_EMOJI} /soulflip — Entry Fee: 50 Souls`,
                     value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **150 Souls**.`,
-                    inline: false,
-                },
-                {
-                    name: '⬆️⬇️ /higherlower — Entry Fee: 75 Souls',
-                    value: 'Guess whether the next number is higher or lower • Win up to **225 Souls**.',
                     inline: false,
                 },
                 {
