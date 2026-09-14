@@ -23,37 +23,21 @@ function rollReward(entry) {
 
     // Shard: 0.5% — intentionally very rare.
     if (roll < 0.005) {
-        return {
-            type: 'shard',
-            souls: 0,
-            shards: 1,
-        };
+        return { type: 'shard', souls: 0, shards: 1 };
     }
 
     // Double Souls: 9.5%.
     if (roll < 0.10) {
-        return {
-            type: 'double',
-            souls: entry * 2,
-            shards: 0,
-        };
+        return { type: 'double', souls: entry * 2, shards: 0 };
     }
 
     // Common Souls: 35%.
     if (roll < 0.45) {
-        return {
-            type: 'common',
-            souls: Math.floor(entry * 1.25),
-            shards: 0,
-        };
+        return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
     }
 
     // Better Luck Next Time: 55%.
-    return {
-        type: 'loss',
-        souls: 0,
-        shards: 0,
-    };
+    return { type: 'loss', souls: 0, shards: 0 };
 }
 
 export async function playGame(client, interaction, gameKey, gameResult = {}) {
@@ -74,8 +58,6 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         };
     }
 
-    lastPlayed.set(cooldownKey, now);
-
     const userData = await getEconomyData(client, guildId, userId);
     const wallet = Number(userData.wallet || 0);
 
@@ -88,9 +70,15 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         };
     }
 
+    // Only start the cooldown after a valid game is actually played.
+    lastPlayed.set(cooldownKey, now);
+
     userData.wallet = wallet - config.entry;
 
-    const reward = rollReward(config.entry);
+    const reward = gameResult.forceLoss
+        ? { type: 'loss', souls: 0, shards: 0 }
+        : rollReward(config.entry);
+
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
 
