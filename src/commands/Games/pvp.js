@@ -307,6 +307,9 @@ export default {
         }
         const flip = Math.random() < 0.5 ? 'heads' : 'tails';
         const winners = players.filter(p => choices.get(p.id) === flip);
+        if (winners.length === 0) {
+            return interaction.editReply(`${flip === 'heads' ? SOULS : TAILS} **${flip.toUpperCase()}!**\n\nBoth players chose the opposite side. **Both players lose their ${fmt(entry)} Souls entry fee.**\n${TOTAL} Pot: **${fmt(pot)} Souls** was lost.`);
+        }
         const share = Math.floor(pot / winners.length);
         for (const winner of winners) {
             const data = await getWallet(client, guildId, winner.id);
