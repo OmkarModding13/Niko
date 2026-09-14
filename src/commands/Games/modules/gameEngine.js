@@ -10,11 +10,9 @@ const lastPlayed = new Map();
 
 export const GAME_CONFIG = {
     quickcoin: { name: 'Quick Coin', entry: 20, maxReward: 100, starter: true },
-    redblack: { name: 'Red or Black', entry: 25, maxReward: 100, starter: true },
     rps: { name: 'Rock Paper Scissors', entry: 30, maxReward: 100, starter: true },
     abyssdice: { name: 'Abyss Dice', entry: 30, maxReward: 100, starter: true },
     soulflip: { name: 'Soul Flip', entry: 50, maxReward: 150 },
-    higherlower: { name: 'Higher or Lower', entry: 75, maxReward: 225 },
     diceduel: { name: 'Dice Duel', entry: 100, maxReward: 300 },
     soulslots: { name: 'Soul Slots', entry: 150, maxReward: 450 },
 };
@@ -60,9 +58,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         };
     }
 
-    // Draws refund the entry fee and do not consume the cooldown.
     if (gameResult.draw) {
-        userData.wallet = wallet;
         await setEconomyData(client, guildId, userId, userData);
         return {
             ok: true,
@@ -115,6 +111,10 @@ export function resultText(result) {
     if (result.type === 'common') return {
         title: `${SOULS_EMOJI} SOULS FOUND!`,
         description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!`,
+    };
+    if (result.type === 'draw') return {
+        title: '🤝 DRAW!',
+        description: `Your **${formatNumber(result.entry)} ${SOULS_EMOJI}** entry fee has been **refunded**.\nYou can play again immediately.`,
     };
     return {
         title: '💔 BETTER LUCK NEXT TIME',
