@@ -22,17 +22,26 @@ function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function rollReward(entry, guaranteedReward = false) {
+function rollReward(entry) {
     const roll = Math.random();
 
-    if (roll < 0.005) return { type: 'shard', souls: 0, shards: 1 };
-    if (roll < (guaranteedReward ? 0.20 : 0.10)) {
+    // Ultra Rare: 0.5% — 1 Shard.
+    if (roll < 0.005) {
+        return { type: 'shard', souls: 0, shards: 1 };
+    }
+
+    // Rare: 14.5% total.
+    // 7.0% Double Souls, 7.5% Extra Souls (3x entry).
+    if (roll < 0.075) {
         return { type: 'double', souls: entry * 2, shards: 0 };
     }
-    if (guaranteedReward || roll < 0.45) {
-        return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
+
+    if (roll < 0.15) {
+        return { type: 'extra', souls: entry * 3, shards: 0 };
     }
-    return { type: 'loss', souls: 0, shards: 0 };
+
+    // Common win: 85%.
+    return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
 }
 
 export async function playGame(client, interaction, gameKey, gameResult = {}) {
@@ -47,7 +56,10 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 
     if (now - last < GAME_COOLDOWN) {
         const remaining = Math.ceil((GAME_COOLDOWN - (now - last)) / 1000);
-        return { ok: false, message: `⏳ Slow down! You can play **${config.name}** again in **${remaining}s**.` };
+        return {
+            ok: false,
+            message: `⏳ Slow down! You can play **${config.name}** again in **${remaining}s**.`,
+        };
     }
 
     const userData = await getEconomyData(client, guildId, userId);
@@ -63,9 +75,11 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
     lastPlayed.set(cooldownKey, now);
     userData.wallet = wallet - config.entry;
 
+    // Losing is a common game outcome. A loser gets no reward.
+    // Winning rolls the reward tier: Common → Rare → Ultra Rare.
     const reward = gameResult.forceLoss
         ? { type: 'loss', souls: 0, shards: 0 }
-        : rollReward(config.entry, Boolean(gameResult.guaranteedReward));
+        : rollReward(config.entry);
 
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
@@ -85,7 +99,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 export function resultText(result) {
     if (result.type === 'shard') {
         return {
-            title: `${SHARD_EMOJI} RARE DROP!`,
+            title: `${SHARD_EMOJI} ULTRA RARE DROP!`,
             description: `${SHARD_EMOJI} **1 Shard** has been awarded to you!\n\nThat is the rarest game reward. **1 Shard = 1,000 Souls worth.**`,
         };
     }
@@ -94,6 +108,13 @@ export function resultText(result) {
         return {
             title: `${DOUBLE_SOULS_EMOJI} DOUBLE SOULS!`,
             description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nYour entry fee was doubled.`,
+        };
+    }
+
+    if (result.type === 'extra') {
+        return {
+            title: `${SOULS_EMOJI} EXTRA SOULS!`,
+            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **3× payout**!`,
         };
     }
 
