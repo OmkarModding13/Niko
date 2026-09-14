@@ -16,58 +16,72 @@ export default {
             .setColor(0x168BFF)
             .setTitle('🎮 NIKO GAMES')
             .setDescription(
-                'Enter a game with **Souls**, take your chance, and try to collect the rare **Shards**.\n\n' +
-                '**💰 HOW ENTRY FEES WORK**\n' +
+                `Enter a game using ${SOULS_EMOJI} **Souls**. Every game has its own Entry Fee and reward limit.\n\n` +
+                `**${TOTAL_SOULS_EMOJI} HOW ENTRY FEES WORK**\n` +
                 `Every game requires an **Entry Fee** paid in ${SOULS_EMOJI} **Souls**.\n` +
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
-                '**🌱 STARTER GAMES — LOW RISK**\n' +
-                'Perfect for new members. Entry fees are low and Soul payouts are capped at **100 Souls**.\n\n' +
-                '**Available Games**'
+                '**🌱 LOW ENTRY FEE GAMES**\n' +
+                'Perfect for new members. Low entry fees with Soul rewards capped at 100.'
             )
             .addFields(
                 {
                     name: `${SOULS_EMOJI} /quickcoin — Entry Fee: 20 Souls`,
-                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails — quick coin flip. **Win up to 100 Souls.**`,
+                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **100 Souls**.`,
                     inline: false,
                 },
                 {
-                    name: '🎯 /quickguess — Entry Fee: 20 Souls',
-                    value: 'Guess 1–3. **Win up to 100 Souls.**',
-                    inline: false,
-                },
-                {
-                    name: '🔴⚫ /redblack — Entry Fee: 25 Souls',
-                    value: 'Guess Red or Black. **Win up to 100 Souls.**',
+                    name: '🎯 /redblack — Entry Fee: 25 Souls',
+                    value: 'Guess Red or Black • Win up to **100 Souls**.',
                     inline: false,
                 },
                 {
                     name: '✊ /rps — Entry Fee: 30 Souls',
-                    value: 'Rock, Paper, Scissors against Niko. **Win up to 100 Souls.**',
+                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draws cost nothing and can be played again.',
                     inline: false,
                 },
                 {
-                    name: '**💀 STANDARD GAMES**',
-                    value:
-                        `${SOULS_EMOJI} /soulflip — **100 Souls**\n` +
-                        '🎲 /abyssdice — **250 Souls**\n' +
-                        '🎰 /soulslots — **500 Souls**\n' +
-                        '⬆️⬇️ /higherlower — **150 Souls**\n' +
-                        '🎲 /diceduel — **300 Souls**\n' +
-                        '🎯 /numberguess — **200 Souls**',
+                    name: '🎲 /abyssdice — Entry Fee: 30 Souls',
+                    value: 'Roll the Abyss Dice • Win up to **100 Souls**.',
                     inline: false,
                 },
                 {
-                    name: '🎁 Possible Results',
+                    name: '**⚔️ STANDARD ENTRY FEE GAMES**',
+                    value: '\u200b',
+                    inline: false,
+                },
+                {
+                    name: `${SOULS_EMOJI} /soulflip — Entry Fee: 50 Souls`,
+                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Higher rewards and rare drops.`,
+                    inline: false,
+                },
+                {
+                    name: '⬆️⬇️ /higherlower — Entry Fee: 75 Souls',
+                    value: 'Guess whether the next number is higher or lower.',
+                    inline: false,
+                },
+                {
+                    name: '🎲 /diceduel — Entry Fee: 100 Souls',
+                    value: 'Roll against Niko. Highest roll wins.',
+                    inline: false,
+                },
+                {
+                    name: '🎰 /soulslots — Entry Fee: 150 Souls',
+                    value: 'Spin the Soul Slots for a high-risk payout.',
+                    inline: false,
+                },
+                {
+                    name: '🎁 POSSIBLE REWARDS',
                     value:
-                        `${SOULS_EMOJI} Common Souls\n` +
-                        `${DOUBLE_SOULS_EMOJI} Double Souls\n` +
-                        `${SHARD_EMOJI} **Ultra Rare Shard**\n` +
-                        '💔 Better Luck Next Time',
+                        `${SOULS_EMOJI} **Common Souls** — normal win\n` +
+                        `${DOUBLE_SOULS_EMOJI} **Double Souls** — rare\n` +
+                        `${SOULS_EMOJI} **Extra Souls** — rare bonus\n` +
+                        `${SHARD_EMOJI} **Ultra Rare Shard** — extremely rare\n` +
+                        '💔 **Better Luck Next Time** — loss',
                     inline: false,
                 },
             )
-            .setFooter({ text: `${TOTAL_SOULS_EMOJI} More games and higher-risk games coming soon.` });
+            .setFooter({ text: `${TOTAL_SOULS_EMOJI} Your wallet balance determines whether you can enter.` });
 
         return interaction.reply({ embeds: [embed] });
     },
