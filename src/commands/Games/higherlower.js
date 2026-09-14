@@ -1,21 +1,28 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { GAME_CONFIG, playGame, resultText, balanceFooter } from './modules/gameEngine.js';
 
-const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 const config = GAME_CONFIG.higherlower;
 
 export default {
     data: new SlashCommandBuilder()
         .setName('higherlower')
-        .setDescription('Guess whether the next number will be higher or lower.'),
+        .setDescription('Guess whether the next number will be higher or lower.')
+        .addStringOption(option =>
+            option
+                .setName('choice')
+                .setDescription('Your prediction')
+                .setRequired(true)
+                .addChoices(
+                    { name: 'Higher', value: 'higher' },
+                    { name: 'Lower', value: 'lower' },
+                )
+        ),
 
     async execute(interaction, configArg, client) {
         await interaction.deferReply();
         const current = Math.floor(Math.random() * 10) + 1;
         const next = Math.floor(Math.random() * 10) + 1;
-
-        const buttons = ['higher', 'lower'];
-        const choice = buttons[Math.floor(Math.random() * buttons.length)];
+        const choice = interaction.options.getString('choice');
         const wonGuess = (choice === 'higher' && next > current) || (choice === 'lower' && next < current);
 
         const played = await playGame(client, interaction, 'higherlower', {
@@ -33,8 +40,8 @@ export default {
             .setTitle(text.title)
             .setDescription(
                 `🔢 Current number: **${current}**\n` +
-                `⬆️⬇️ Your guess: **${choice.toUpperCase()}**\n` +
-                `🎯 Next number: **${next}**\n\n${text.description}`
+                `🎯 Your guess: **${choice.toUpperCase()}**\n` +
+                `🔮 Next number: **${next}**\n\n${text.description}`
             )
             .setFooter({ text: balanceFooter(played.result) });
 
