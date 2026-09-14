@@ -22,7 +22,7 @@ export default {
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
                 '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees and smaller Soul payouts.'
+                'Perfect for new members. Low entry fees and smaller Soul payouts.\n\n'
             )
             .addFields(
                 {
@@ -46,8 +46,8 @@ export default {
                     inline: false,
                 },
                 {
-                    name: '**⚔️ STANDARD ENTRY FEE GAMES**',
-                    value: '\u200b',
+                    name: '\u200b',
+                    value: '**⚔️ STANDARD ENTRY FEE GAMES**',
                     inline: false,
                 },
                 {
