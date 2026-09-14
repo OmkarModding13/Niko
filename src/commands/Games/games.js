@@ -5,6 +5,9 @@ const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
+const DICE_EMOJI = '🎲';
+const SLOTS_EMOJI = '🎰';
+
 export default {
     data: new SlashCommandBuilder()
         .setName('games')
@@ -29,13 +32,13 @@ export default {
                     inline: false,
                 },
                 {
-                    name: `${SOULS_EMOJI} /abyssdice — Entry Fee: 250 Souls`,
+                    name: `${DICE_EMOJI} /abyssdice — Entry Fee: 250 Souls`,
                     value: 'Roll the Abyss Dice and face your fate.',
                     inline: false,
                 },
                 {
-                    name: `${SOULS_EMOJI} /soulslots — Entry Fee: 500 Souls`,
-                    value: 'Spin the Soul Slots for a lucky payout.',
+                    name: `${SLOTS_EMOJI} /soulslots — Entry Fee: 500 Souls`,
+                    value: 'Spin the Soul Slots and try your luck.',
                     inline: false,
                 },
                 {
