@@ -22,7 +22,7 @@ export default {
                 `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
                 `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
                 '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees and smaller Soul payouts.\n\n'
+                'Perfect for new members. Low entry fees and smaller Soul payouts.'
             )
             .addFields(
                 {
@@ -62,7 +62,37 @@ export default {
                 },
                 {
                     name: '\u200b',
-                    value: '**🎁 POSSIBLE REWARDS**',
+                    value: '**⚔️ PVP MATCHES**',
+                    inline: false,
+                },
+                {
+                    name: '✊ /pvp — Rock Paper Scissors',
+                    value: `**2 or 3 players** • ${SOULS_EMOJI} **300 Souls each** • Winner takes the full pot (**600 / 900 Souls**).`,
+                    inline: false,
+                },
+                {
+                    name: `${SOULS_EMOJI} /pvp — Heads & Tails`,
+                    value: `**2 players** • ${SOULS_EMOJI} **900 Souls each** • Winner takes **1,800 Souls**.`,
+                    inline: false,
+                },
+                {
+                    name: '🎯 /pvp — Number Guess',
+                    value: `**4 players** • Each player chooses the same custom ${SOULS_EMOJI} bet • Guess **1–4** • Winner takes the full pot.`,
+                    inline: false,
+                },
+                {
+                    name: '\u200b',
+                    value: '**🏦 MULTIPLAYER GAMES**',
+                    inline: false,
+                },
+                {
+                    name: '🚨 /bankrob — Bank Robbery',
+                    value: `**2–10 players** • **40% success / 60% police catch** • If successful, up to **80%** of the target's wallet can be stolen and split between the crew.`,
+                    inline: false,
+                },
+                {
+                    name: '\u200b',
+                    value: '**🎁 POSSIBLE REWARDS — SOLO GAMES**',
                     inline: false,
                 },
                 {
