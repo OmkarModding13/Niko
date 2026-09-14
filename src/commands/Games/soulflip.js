@@ -6,6 +6,8 @@ import {
     balanceFooter,
 } from './modules/gameEngine.js';
 
+const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const TAILS_EMOJI = '<:Tails:1549019689022132315>';
 const config = GAME_CONFIG.soulflip;
 
 export default {
@@ -18,7 +20,7 @@ export default {
                 .setDescription('Choose Heads or Tails')
                 .setRequired(true)
                 .addChoices(
-                    { name: 'Heads', value: 'heads' },
+                    { name: 'Heads — Souls', value: 'heads' },
                     { name: 'Tails', value: 'tails' },
                 )
         ),
@@ -30,7 +32,7 @@ export default {
         const flip = Math.random() < 0.5 ? 'heads' : 'tails';
 
         await interaction.editReply({
-            content: '🪙 **The Soul Coin is flipping...**',
+            content: `${SOULS_EMOJI} **The Soul Coin is flipping...**`,
         });
 
         await new Promise(resolve => setTimeout(resolve, 900));
@@ -43,7 +45,7 @@ export default {
             {
                 flip,
                 choice,
-                forcedLoss: !wonFlip,
+                forceLoss: !wonFlip,
             }
         );
 
@@ -51,19 +53,16 @@ export default {
             return interaction.editReply({ content: played.message });
         }
 
-        if (!wonFlip) {
-            played.result.type = 'loss';
-            played.result.souls = 0;
-            played.result.shards = 0;
-        }
-
         const text = resultText(played.result);
+        const choiceEmoji = choice === 'heads' ? SOULS_EMOJI : TAILS_EMOJI;
+        const flipEmoji = flip === 'heads' ? SOULS_EMOJI : TAILS_EMOJI;
+
         const embed = new EmbedBuilder()
             .setColor(0x168BFF)
             .setTitle(text.title)
             .setDescription(
-                `🪙 You chose **${choice}**\n` +
-                `🎯 The coin landed on **${flip}**.\n\n` +
+                `${choiceEmoji} You chose **${choice === 'heads' ? 'Heads' : 'Tails'}**\n` +
+                `${flipEmoji} The coin landed on **${flip === 'heads' ? 'Heads' : 'Tails'}**.\n\n` +
                 text.description
             )
             .setFooter({ text: balanceFooter(played.result) });
