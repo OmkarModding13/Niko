@@ -22,12 +22,16 @@ function formatNumber(value) {
     return Number(value || 0).toLocaleString();
 }
 
-function rollReward(entry) {
+function rollReward(entry, guaranteedReward = false) {
     const roll = Math.random();
 
     if (roll < 0.005) return { type: 'shard', souls: 0, shards: 1 };
-    if (roll < 0.10) return { type: 'double', souls: entry * 2, shards: 0 };
-    if (roll < 0.45) return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
+    if (roll < (guaranteedReward ? 0.20 : 0.10)) {
+        return { type: 'double', souls: entry * 2, shards: 0 };
+    }
+    if (guaranteedReward || roll < 0.45) {
+        return { type: 'common', souls: Math.floor(entry * 1.25), shards: 0 };
+    }
     return { type: 'loss', souls: 0, shards: 0 };
 }
 
@@ -61,7 +65,7 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 
     const reward = gameResult.forceLoss
         ? { type: 'loss', souls: 0, shards: 0 }
-        : rollReward(config.entry);
+        : rollReward(config.entry, Boolean(gameResult.guaranteedReward));
 
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
