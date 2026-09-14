@@ -29,15 +29,9 @@ function randomBetween(min, max) {
 
 function rollReward(config) {
     const roll = Math.random();
-
-    // Ultra Rare: 0.5% — 1 Shard.
     if (roll < 0.005) return { type: 'shard', souls: 0, shards: 1 };
-
-    // Rare: 14.5% total — Double or Extra Souls.
     if (roll < 0.075) return { type: 'double', souls: Math.min(config.entry * 2, config.maxReward), shards: 0 };
     if (roll < 0.15) return { type: 'extra', souls: Math.min(config.entry * 3, config.maxReward), shards: 0 };
-
-    // Common: normal Souls, always capped by the game's max reward.
     return { type: 'common', souls: randomBetween(config.entry, config.maxReward), shards: 0 };
 }
 
@@ -66,6 +60,22 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         };
     }
 
+    // Draws refund the entry fee and do not consume the cooldown.
+    if (gameResult.draw) {
+        userData.wallet = wallet;
+        await setEconomyData(client, guildId, userId, userData);
+        return {
+            ok: true,
+            result: {
+                type: 'draw',
+                entry: config.entry,
+                balance: wallet,
+                shards: Number(userData.shards || 0),
+                ...gameResult,
+            },
+        };
+    }
+
     lastPlayed.set(cooldownKey, now);
     userData.wallet = wallet - config.entry;
 
@@ -90,30 +100,22 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
 }
 
 export function resultText(result) {
-    if (result.type === 'shard') {
-        return {
-            title: `${SHARD_EMOJI} ULTRA RARE DROP!`,
-            description: `${SHARD_EMOJI} **1 Shard** has been awarded to you!\n\nThat is the rarest game reward. **1 Shard = 1,000 Souls worth.**`,
-        };
-    }
-    if (result.type === 'double') {
-        return {
-            title: `${DOUBLE_SOULS_EMOJI} DOUBLE SOULS!`,
-            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nYour entry fee was doubled.`,
-        };
-    }
-    if (result.type === 'extra') {
-        return {
-            title: `${SOULS_EMOJI} EXTRA SOULS!`,
-            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **bonus payout**!`,
-        };
-    }
-    if (result.type === 'common') {
-        return {
-            title: `${SOULS_EMOJI} SOULS FOUND!`,
-            description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!`,
-        };
-    }
+    if (result.type === 'shard') return {
+        title: `${SHARD_EMOJI} ULTRA RARE DROP!`,
+        description: `${SHARD_EMOJI} **1 Shard** has been awarded to you!\n\nThat is the rarest game reward. **1 Shard = 1,000 Souls worth.**`,
+    };
+    if (result.type === 'double') return {
+        title: `${DOUBLE_SOULS_EMOJI} DOUBLE SOULS!`,
+        description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nYour entry fee was doubled.`,
+    };
+    if (result.type === 'extra') return {
+        title: `${SOULS_EMOJI} EXTRA SOULS!`,
+        description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!\nA rare **bonus payout**!`,
+    };
+    if (result.type === 'common') return {
+        title: `${SOULS_EMOJI} SOULS FOUND!`,
+        description: `You won **${formatNumber(result.souls)} ${SOULS_EMOJI}**!`,
+    };
     return {
         title: '💔 BETTER LUCK NEXT TIME',
         description: `The Abyss took your **${formatNumber(result.entry)} ${SOULS_EMOJI}**.\nCome back and try again.`,
