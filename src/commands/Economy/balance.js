@@ -1,10 +1,13 @@
 import { botConfig } from '../../config/bot.js';
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed } from '../../utils/embeds.js';
 import { getEconomyData, getMaxBankCapacity } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+
+const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
+const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 
 export default {
     data: new SlashCommandBuilder()
@@ -21,69 +24,64 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
-        const userOption = interaction.options.getUser("user");
+        const userOption = interaction.options.getUser('user');
         const targetUser = userOption || interaction.user;
         const guildId = interaction.guildId;
 
-        logger.info(`[ECONOMY] Balance check - userOption: ${userOption?.id || 'null'}, targetUser: ${targetUser.id}, guildId: ${guildId}, isPrefix: ${!!interaction._commandStartTime}`);
-
-        logger.debug(`[ECONOMY] Balance check for ${targetUser.id}`, { userId: targetUser.id, guildId });
+        logger.info(`[ECONOMY] Balance check - userOption: ${userOption?.id || 'null'}, targetUser: ${targetUser.id}, guildId: ${guildId}`);
 
         if (targetUser.bot) {
             throw createError(
-                "Bot user queried for balance",
+                'Bot user queried for balance',
                 ErrorTypes.VALIDATION,
                 "Bots don't have an economy balance."
             );
         }
 
         const userData = await getEconomyData(client, guildId, targetUser.id);
-
-        logger.info(`[ECONOMY] Economy data retrieved - userData:`, userData);
-
         if (!userData) {
             throw createError(
-                "Failed to load economy data",
+                'Failed to load economy data',
                 ErrorTypes.DATABASE,
-                "Failed to load economy data. Please try again later.",
+                'Failed to load economy data. Please try again later.',
                 { userId: targetUser.id, guildId }
             );
         }
 
         const maxBank = getMaxBankCapacity(userData);
-
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
-            const embed = createEmbed({
-                title: `${targetUser.username}'s Balance`,
-                description: `Here is the current financial status for ${targetUser.username}.`,
-            })
-                .addFields(
-                    
-                    {
-    name: `${botConfig.economy.currency.emoji} Souls`,
-    value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-    inline: true,
-},
-{
-    name: "🏦 Soul Bank",
-    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-    inline: true,
-},
-{
-    name: "<:Total:1547545479628333086> Total Souls",
-    value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-    inline: true,
-}
-                )
-                .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL(),
-                });
+        const embed = createEmbed({
+            title: `${targetUser.username}'s Balance`,
+            description:
+                `Here is the current financial status for ${targetUser.username}.\n\n` +
+                `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\n` +
+                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back to your wallet.`,
+        })
+            .addFields(
+                {
+                    name: `${SOULS_EMOJI} Souls`,
+                    value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
+                    inline: true,
+                },
+                {
+                    name: '🏦 Soul Bank',
+                    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
+                    inline: true,
+                },
+                {
+                    name: `${TOTAL_SOULS_EMOJI} Total Souls`,
+                    value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
+                    inline: true,
+                }
+            )
+            .setFooter({
+                text: `Requested by ${interaction.user.tag}`,
+                iconURL: interaction.user.displayAvatarURL(),
+            });
 
-            logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
-
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        logger.info('[ECONOMY] Balance retrieved', { userId: targetUser.id, wallet, bank });
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'balance' })
 };
