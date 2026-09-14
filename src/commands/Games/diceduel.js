@@ -8,14 +8,16 @@ export default {
 
     async execute(interaction, configArg, client) {
         await interaction.deferReply();
+
         const playerRoll = Math.floor(Math.random() * 6) + 1;
         const nikoRoll = Math.floor(Math.random() * 6) + 1;
-        const forceLoss = playerRoll <= nikoRoll;
+        const playerWon = playerRoll > nikoRoll;
 
         const played = await playGame(client, interaction, 'diceduel', {
             playerRoll,
             nikoRoll,
-            forceLoss,
+            forceLoss: !playerWon,
+            guaranteedReward: playerWon,
         });
 
         if (!played.ok) return interaction.editReply({ content: played.message });
@@ -23,7 +25,7 @@ export default {
         const text = resultText(played.result);
         const embed = new EmbedBuilder()
             .setColor(0x168BFF)
-            .setTitle(playerRoll > nikoRoll ? '⚔️ YOU WIN!' : '💔 YOU LOSE')
+            .setTitle(text.title)
             .setDescription(
                 `🎲 Your roll: **${playerRoll}**\n` +
                 `👿 Niko's roll: **${nikoRoll}**\n\n` +
