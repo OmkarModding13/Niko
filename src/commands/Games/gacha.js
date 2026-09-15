@@ -29,7 +29,6 @@ const __dirname = path.dirname(__filename);
 const CHARACTER_IMAGE_DIR = path.join(__dirname, '../../assets/gacha/Characters');
 const GACHA_BANNER = path.join(__dirname, '../../assets/gacha/Spin and Win.png');
 const SPIN_COSTS = { 1: 1, 10: 10 };
-const XP_PER_SPIN = 5;
 
 function randomBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -187,8 +186,10 @@ async function performGacha(interaction, client, spins) {
         if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
     }
 
-    // Every spin gives 5 XP toward the member's real level.
-    await addLevelXp(client, guildId, userId, XP_PER_SPIN * spins);
+    // 1 Spin = 0 XP. 10 Spins = 5 XP total.
+    if (spins === 10) {
+        await addLevelXp(client, guildId, userId, 5);
+    }
 
     if (rewards.some(reward => reward.type === 'xp_boost')) {
         await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
@@ -225,7 +226,7 @@ async function performGacha(interaction, client, spins) {
             },
             {
                 name: '⭐ XP Earned',
-                value: `**+${XP_PER_SPIN * spins} XP**`,
+                value: `**+${spins === 10 ? 5 : 0} XP**`,
                 inline: true
             },
             {
