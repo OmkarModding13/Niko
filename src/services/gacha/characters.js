@@ -23,8 +23,8 @@ export const CHARACTER_CATALOG = {
         rarity: 'Mystic',
         image: 'Niko.png',
         flexImage: 'OwnNiko.png',
-        ability: 'Daily reward +10 Souls.',
-        effects: { dailyBonus: 10 }
+        ability: 'Game Soul rewards +10%.',
+        effects: { gameRewardBonus: 0.10 }
     },
     Valeris: {
         name: 'Valeris',
@@ -41,8 +41,8 @@ export const CHARACTER_CATALOG = {
         rarity: 'Mystic',
         image: 'Eiris.png',
         flexImage: 'OwnEiris.png',
-        ability: 'XP gain +10%.',
-        effects: { xpMultiplierBonus: 0.10 }
+        ability: 'Gacha luck +1%.',
+        effects: { gachaLuckBonus: 1 }
     },
     Carmine: {
         name: 'Carmine',
@@ -50,8 +50,8 @@ export const CHARACTER_CATALOG = {
         rarity: 'Mystic',
         image: 'Carmine.png',
         flexImage: 'OwnCarmine.png',
-        ability: 'Game reward luck +1%.',
-        effects: { gameLuckBonus: 1 }
+        ability: 'Daily reward +10 Souls.',
+        effects: { dailyBonus: 10 }
     }
 };
 
@@ -90,8 +90,9 @@ export function getCharacterBonuses(userData) {
     const bonuses = {
         dailyBonus: 0,
         gameLuckBonus: 0,
+        gameRewardBonus: 0,
         bankProtectionHours: 0,
-        xpMultiplierBonus: 0
+        gachaLuckBonus: 0
     };
 
     for (const name of getOwnedCharacterNames(userData)) {
