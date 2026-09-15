@@ -8,6 +8,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 export default {
     data: new SlashCommandBuilder()
@@ -51,13 +52,15 @@ export default {
         const maxBank = getMaxBankCapacity(userData);
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
+        const shards = Number(userData.shards || 0);
 
         const embed = createEmbed({
             title: `${targetUser.username}'s Balance`,
             description:
                 `Here is the current financial status for ${targetUser.username}.\n\n` +
                 `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\n` +
-                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back to your wallet.`,
+                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back into your wallet.\n` +
+                `${SHARD_EMOJI} Use **/gacha** to spend Shards on character and rare rewards.`,
         })
             .addFields(
                 {
@@ -74,6 +77,11 @@ export default {
                     name: `${TOTAL_SOULS_EMOJI} Total Souls`,
                     value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
                     inline: true,
+                },
+                {
+                    name: `${SHARD_EMOJI} Shards`,
+                    value: `**${shards.toLocaleString()}**`,
+                    inline: true,
                 }
             )
             .setFooter({
@@ -81,7 +89,7 @@ export default {
                 iconURL: interaction.user.displayAvatarURL(),
             });
 
-        logger.info('[ECONOMY] Balance retrieved', { userId: targetUser.id, wallet, bank });
+        logger.info('[ECONOMY] Balance retrieved', { userId: targetUser.id, wallet, bank, shards });
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'balance' })
 };
