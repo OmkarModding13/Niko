@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 const FLEX_DIR = path.resolve(__dirname, '../../assets/gacha/flex');
 
 const WIDTH = 1200;
-const HEIGHT = 900;
+const HEIGHT = 950;
 const CARD_WIDTH = 350;
 const CARD_HEIGHT = 360;
 
