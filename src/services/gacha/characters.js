@@ -19,8 +19,8 @@ export const CHARACTER_CATALOG = {
     },
     Niko: {
         name: 'Niko',
-        stars: 5,
-        rarity: 'Mystic',
+        stars: 4,
+        rarity: 'Legendary',
         image: 'Niko.png',
         flexImage: 'OwnNiko.png',
         ability: 'Game Soul rewards +10%.',
@@ -37,8 +37,8 @@ export const CHARACTER_CATALOG = {
     },
     Eiris: {
         name: 'Eiris',
-        stars: 5,
-        rarity: 'Mystic',
+        stars: 4,
+        rarity: 'Legendary',
         image: 'Eiris.png',
         flexImage: 'OwnEiris.png',
         ability: 'Gacha luck +1%.',
