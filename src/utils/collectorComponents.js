@@ -1,8 +1,9 @@
-/** Component custom IDs handled by ephemeral message collectors — skip global handlers. */
+/** Component custom IDs handled by message collectors — skip global handlers. */
 const COLLECTOR_MANAGED_PREFIXES = [
   'config_select',
   'config_wizard',
   'cmdaccess_',
+  'gacha:',
 ];
 
 export function isCollectorManagedComponent(customId = '') {
