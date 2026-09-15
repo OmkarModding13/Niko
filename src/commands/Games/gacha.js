@@ -17,11 +17,10 @@ import {
     addCharacter,
     getCharacterBonuses
 } from '../../services/gacha/characters.js';
-import { setXpMultiplier } from '../../services/leveling/leveling.js';
+import { addLevelXp, setXpMultiplier } from '../../services/leveling/leveling.js';
 
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
-const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 const SHARD_BUTTON_EMOJI = { id: '1548962748321374218', name: 'Shard' };
 
@@ -30,6 +29,7 @@ const __dirname = path.dirname(__filename);
 const CHARACTER_IMAGE_DIR = path.join(__dirname, '../../assets/gacha/Characters');
 const GACHA_BANNER = path.join(__dirname, '../../assets/gacha/Spin and Win.png');
 const SPIN_COSTS = { 1: 1, 10: 10 };
+const XP_PER_SPIN = 5;
 
 function randomBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -66,9 +66,15 @@ function createCharacterAttachment(character) {
     );
 }
 
-function convertDuplicate(userData, character, stars) {
-    userData.wallet = Number(userData.wallet || 0) + 100;
-    return { rarity: character.rarity, type: 'duplicate_conversion', souls: 100, character, stars };
+function convertDuplicate(userData, character) {
+    userData.shards = Number(userData.shards || 0) + 2;
+    return {
+        rarity: character.rarity,
+        type: 'duplicate_conversion',
+        shards: 2,
+        character,
+        stars: character.stars
+    };
 }
 
 function grantReward(userData) {
@@ -100,14 +106,26 @@ function grantReward(userData) {
 
     if (rarity === 'Legendary') {
         const character = pickCharacter(FOUR_STAR_CHARACTERS);
-        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 4);
+        if (!character) {
+            userData.wallet = Number(userData.wallet || 0) + 100;
+            return { rarity, type: 'souls', souls: 100 };
+        }
+        if (Number(userData.characters?.[character.name] || 0) > 0) {
+            return convertDuplicate(userData, character);
+        }
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
 
     if (rarity === 'Mystic') {
         const character = pickCharacter(FIVE_STAR_CHARACTERS);
-        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 5);
+        if (!character) {
+            userData.wallet = Number(userData.wallet || 0) + 100;
+            return { rarity, type: 'souls', souls: 100 };
+        }
+        if (Number(userData.characters?.[character.name] || 0) > 0) {
+            return convertDuplicate(userData, character);
+        }
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
@@ -124,7 +142,7 @@ function rewardText(reward) {
         case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours || 24} Hours**`;
         case 'bank_capacity': return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
         case 'shard': return `${SHARD_EMOJI} **1 Shard**`;
-        case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SOULS_EMOJI} 100 Souls**`;
+        case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SHARD_EMOJI} 2 Shards**`;
         case 'character': return `✨ **${reward.character.stars}★ ${reward.character.name}** — ${reward.character.rarity}`;
         default: return 'Unknown reward';
     }
@@ -169,6 +187,9 @@ async function performGacha(interaction, client, spins) {
         if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
     }
 
+    // Every spin gives 5 XP toward the member's real level.
+    await addLevelXp(client, guildId, userId, XP_PER_SPIN * spins);
+
     if (rewards.some(reward => reward.type === 'xp_boost')) {
         await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
     }
@@ -195,15 +216,25 @@ async function performGacha(interaction, client, spins) {
     const embed = new EmbedBuilder()
         .setColor(mystic ? 0x9B59FF : legendary ? 0xFFD700 : 0x168BFF)
         .setTitle(`${SHARD_EMOJI} 🎉 CONGRATULATIONS!`)
-        .setDescription(
-            `**You got this reward!**\n\n${lines.join('\n')}\n\n${SHARD_EMOJI} Spent **${cost} Shard${cost > 1 ? 's' : ''}**.`
+        .setDescription(`**You got this reward!**\n\n${lines.join('\n')}`)
+        .addFields(
+            {
+                name: `${SHARD_EMOJI} Spent`,
+                value: `**${cost} Shard${cost > 1 ? 's' : ''}**`,
+                inline: true
+            },
+            {
+                name: '⭐ XP Earned',
+                value: `**+${XP_PER_SPIN * spins} XP**`,
+                inline: true
+            },
+            {
+                name: 'Remaining Shards',
+                value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
+                inline: true
+            }
         )
-        .addFields({
-            name: 'Remaining Shards',
-            value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
-            inline: true
-        })
-        .setFooter({ text: 'Duplicate characters are automatically converted into 100 Souls.' });
+        .setFooter({ text: 'Duplicate characters are automatically converted into 2 Shards.' });
 
     return { success: true, embed, attachments };
 }
@@ -225,7 +256,6 @@ export default {
         });
 
         const message = await interaction.fetchReply();
-
         const collector = message.createMessageComponentCollector({
             time: 10 * 60 * 1000,
             filter: buttonInteraction => buttonInteraction.customId.endsWith(`:${interaction.user.id}`)
