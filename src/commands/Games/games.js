@@ -16,113 +16,106 @@ export default {
             .setColor(0x168BFF)
             .setTitle('🎮 NIKO GAMES')
             .setDescription(
-                `Enter a game using ${SOULS_EMOJI} **Souls**. Every game has its own Entry Fee and reward limit.\n\n` +
-                `**${TOTAL_SOULS_EMOJI} HOW ENTRY FEES WORK**\n` +
-                `Every game requires an **Entry Fee** paid in ${SOULS_EMOJI} **Souls**.\n` +
-                `The fee is **deducted from your wallet when you play**. You must have enough Souls to enter.\n\n` +
-                `${SHARD_EMOJI} **1 Shard = 1,000 Souls worth**\n\n` +
-                '**🌱 LOW ENTRY FEE GAMES**\n' +
-                'Perfect for new members. Low entry fees and smaller Soul payouts.'
+                `Enter games using ${SOULS_EMOJI} **Souls**. Some games can also award ${SHARD_EMOJI} **Shards**.\n\n` +
+                `**${TOTAL_SOULS_EMOJI} ENTRY FEES**\n` +
+                `Every solo game has its own entry fee. The fee is deducted when you play.\n` +
+                `${SHARD_EMOJI} **Every winning game has a 1% base chance to drop 1 Shard.** Character luck can increase this chance.\n\n` +
+                '**🌱 SOLO GAMES**'
             )
             .addFields(
                 {
-                    name: `${SOULS_EMOJI} /quickcoin — Entry Fee: 20 Souls`,
+                    name: `${SOULS_EMOJI} /quickcoin — 20 Souls`,
                     value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **100 Souls**.`,
-                    inline: false,
+                    inline: false
                 },
                 {
-                    name: '🎲 /abyssdice — Entry Fee: 30 Souls',
+                    name: '🎲 /abyssdice — 30 Souls',
                     value: 'Roll the Abyss Dice • Win up to **100 Souls**.',
-                    inline: false,
+                    inline: false
                 },
                 {
-                    name: '✊ /rps — Entry Fee: 30 Souls',
-                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draw = entry fee refunded and immediate retry.',
-                    inline: false,
+                    name: '✊ /rps — 30 Souls',
+                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draw = refund.',
+                    inline: false
                 },
                 {
-                    name: '\u200b',
-                    value: '**⚔️ STANDARD ENTRY FEE GAMES**',
-                    inline: false,
-                },
-                {
-                    name: `${SOULS_EMOJI} /soulflip — Entry Fee: 50 Souls`,
+                    name: '⚔️ /soulflip — 50 Souls',
                     value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **150 Souls**.`,
-                    inline: false,
+                    inline: false
                 },
                 {
-                    name: '🎲 /diceduel — Entry Fee: 100 Souls',
+                    name: '🎲 /diceduel — 100 Souls',
                     value: 'Roll against Niko • Win up to **300 Souls**.',
-                    inline: false,
+                    inline: false
                 },
                 {
-                    name: '🎰 /soulslots — Entry Fee: 150 Souls',
+                    name: '🎰 /soulslots — 150 Souls',
                     value: 'Spin the Soul Slots • Win up to **450 Souls**.',
-                    inline: false,
+                    inline: false
                 },
                 {
                     name: '\u200b',
-                    value: '**⚔️ PVP MATCHES**',
-                    inline: false,
+                    value: '**⚔️ PVP MATCHES — 2/3/4 PLAYER**',
+                    inline: false
                 },
                 {
                     name: '✊ /pvp — Rock Paper Scissors',
-                    value: `**2 or 3 players** • ${SOULS_EMOJI} **300 Souls each** • Winner takes the full pot (**600 / 900 Souls**).`,
-                    inline: false,
+                    value: `**2 or 3 players** • ${SOULS_EMOJI} **300 Souls each** • Winner takes the pot (**600 / 900 Souls**). Join/Reject happens directly in the channel.`,
+                    inline: false
                 },
                 {
                     name: `${SOULS_EMOJI} /pvp — Heads & Tails`,
                     value: `**2 players** • ${SOULS_EMOJI} **900 Souls each** • Winner takes **1,800 Souls**.`,
-                    inline: false,
+                    inline: false
                 },
                 {
                     name: '🎯 /pvp — Number Guess',
-                    value: `**4 players** • Each player chooses **their own ${SOULS_EMOJI} bet** in DM • Guess **1–4** • Winner takes the full pot.`,
-                    inline: false,
+                    value: `**4 players** • Each player chooses their own ${SOULS_EMOJI} bet • Guess **1–4** • Winner takes the full pot.`,
+                    inline: false
                 },
                 {
                     name: '\u200b',
-                    value: '**🏦 MULTIPLAYER GAMES**',
-                    inline: false,
+                    value: '**🏦 MULTIPLAYER**',
+                    inline: false
                 },
                 {
                     name: '🚨 /bankrob — Bank Robbery',
-                    value: `**2–10 players** • **40% success / 60% police catch** • If successful, up to **80%** of the target's wallet can be stolen and split between the crew.`,
-                    inline: false,
+                    value: `**2–10 players** • **40% success / 60% police catch** • Up to **80%** of the target wallet can be stolen. Join/Reject happens directly in the command channel.`,
+                    inline: false
                 },
                 {
                     name: '\u200b',
-                    value: '**🎁 POSSIBLE REWARDS — SOLO GAMES**',
-                    inline: false,
+                    value: '**🎰 CHARACTER GACHA**',
+                    inline: false
                 },
                 {
-                    name: `${SOULS_EMOJI} Common Souls`,
-                    value: 'Normal win',
-                    inline: true,
+                    name: `${SHARD_EMOJI} /gacha — 1 Spin`,
+                    value: 'Cost: **1 Shard** • Common → Mystic rewards.',
+                    inline: false
                 },
                 {
-                    name: `${DOUBLE_SOULS_EMOJI} Double Souls`,
-                    value: 'Rare',
-                    inline: true,
+                    name: `${SHARD_EMOJI} /gacha — 10 Spins`,
+                    value: 'Cost: **10 Shards** • 10 reward rolls in one summon.',
+                    inline: false
                 },
                 {
-                    name: `${SOULS_EMOJI} Extra Souls`,
-                    value: 'Rare bonus',
-                    inline: true,
+                    name: '✨ /flex',
+                    value: 'Show your owned character collection and duplicate counts.',
+                    inline: false
                 },
                 {
-                    name: `${SHARD_EMOJI} Ultra Rare Shard`,
-                    value: 'Extremely rare',
-                    inline: true,
+                    name: `${SOULS_EMOJI} POSSIBLE SOLO REWARDS`,
+                    value: 'Common Souls • Double Souls • Extra Souls • 1 Shard • Better Luck Next Time',
+                    inline: false
                 },
                 {
-                    name: '💔 Better Luck Next Time',
-                    value: 'Loss',
-                    inline: true,
-                },
+                    name: '🎰 GACHA RARITIES',
+                    value: 'Common → Souls / Double Souls\nRare → XP Booster / Bank Protection\nEpic → Bank Capacity / 1 Shard\nLegendary → 4★ Character\nMystic → 5★ Character\n🔁 Duplicate Character → 100 Souls',
+                    inline: false
+                }
             )
-            .setFooter({ text: `${TOTAL_SOULS_EMOJI} Your wallet balance determines whether you can enter.` });
+            .setFooter({ text: `${TOTAL_SOULS_EMOJI} Build Souls • Collect Shards • Complete Your Character Collection` });
 
         return interaction.reply({ embeds: [embed] });
-    },
+    }
 };
