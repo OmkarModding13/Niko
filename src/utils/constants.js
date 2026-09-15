@@ -6,6 +6,8 @@ export const DEFAULT_ECONOMY_DATA = {
     bankLevel: 0,
     xp: 0,
     level: 1,
+    shards: 0,
+    characters: {},
     lastDaily: 0,
     lastWork: 0,
     lastCrime: 0,
@@ -30,6 +32,11 @@ export const DEFAULT_ECONOMY_DATA = {
 
     // Temporary shop color role
     activeColorRole: null,
+
+    // Temporary shop boosts
+    xpMultiplier: 1,
+    xpMultiplierExpiresAt: 0,
+    bankProtectionExpiresAt: 0,
 
     inventory: {},
     upgrades: {},
