@@ -84,24 +84,13 @@ function grantReward(userData) {
 
     if (rarity === 'Common') {
         const double = Math.random() < 0.25;
-        const souls = double
-            ? randomBetween(200, 500)
-            : randomBetween(50, 200);
-
+        const souls = double ? randomBetween(200, 500) : randomBetween(50, 200);
         userData.wallet = Number(userData.wallet || 0) + souls;
-
-        return {
-            rarity,
-            type: double ? 'double_souls' : 'souls',
-            souls
-        };
+        return { rarity, type: double ? 'double_souls' : 'souls', souls };
     }
 
     if (rarity === 'Rare') {
-        if (Math.random() < 0.5) {
-            return { rarity, type: 'xp_boost' };
-        }
-
+        if (Math.random() < 0.5) return { rarity, type: 'xp_boost' };
         return { rarity, type: 'bank_protection' };
     }
 
@@ -110,74 +99,46 @@ function grantReward(userData) {
             userData.bankLevel = Number(userData.bankLevel || 0) + 1;
             userData.upgrades = userData.upgrades || {};
             userData.upgrades.bank_upgrade = userData.bankLevel;
-
-            return {
-                rarity,
-                type: 'bank_capacity',
-                increase: 50000,
-                bankLevel: userData.bankLevel
-            };
+            return { rarity, type: 'bank_capacity', increase: 50000, bankLevel: userData.bankLevel };
         }
 
         userData.shards = Number(userData.shards || 0) + 1;
-
-        return {
-            rarity,
-            type: 'shard',
-            shards: 1
-        };
+        return { rarity, type: 'shard', shards: 1 };
     }
 
     if (rarity === 'Legendary') {
         const character = pickCharacter(FOUR_STAR_CHARACTERS);
-
         if (Number(userData.characters?.[character.name] || 0) > 0) {
             return convertDuplicate(userData, character, 4);
         }
-
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
 
     if (rarity === 'Mystic') {
         const character = pickCharacter(FIVE_STAR_CHARACTERS);
-
         if (Number(userData.characters?.[character.name] || 0) > 0) {
             return convertDuplicate(userData, character, 5);
         }
-
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
 
     userData.wallet = Number(userData.wallet || 0) + 50;
-    return {
-        rarity: 'Common',
-        type: 'souls',
-        souls: 50
-    };
+    return { rarity: 'Common', type: 'souls', souls: 50 };
 }
 
 function rewardText(reward) {
     switch (reward.type) {
-        case 'souls':
-            return `${SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
-        case 'double_souls':
-            return `${DOUBLE_SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
-        case 'xp_boost':
-            return '⚡ **XP Booster — 24 Hours**';
-        case 'bank_protection':
-            return `🛡️ **Bank Protection — ${reward.hours || 24} Hours**`;
-        case 'bank_capacity':
-            return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
-        case 'shard':
-            return `${SHARD_EMOJI} **1 Shard**`;
-        case 'duplicate_conversion':
-            return `🔁 **${reward.character.name} duplicate → ${SOULS_EMOJI} 100 Souls**`;
-        case 'character':
-            return `✨ **${reward.character.stars}★ ${reward.character.name}** — ${reward.character.rarity}`;
-        default:
-            return 'Unknown reward';
+        case 'souls': return `${SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
+        case 'double_souls': return `${DOUBLE_SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
+        case 'xp_boost': return '⚡ **XP Booster — 24 Hours**';
+        case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours || 24} Hours**`;
+        case 'bank_capacity': return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
+        case 'shard': return `${SHARD_EMOJI} **1 Shard**`;
+        case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SOULS_EMOJI} 100 Souls**`;
+        case 'character': return `✨ **${reward.character.stars}★ ${reward.character.name}** — ${reward.character.rarity}`;
+        default: return 'Unknown reward';
     }
 }
 
@@ -211,27 +172,17 @@ async function performGacha(interaction, client, spins) {
     }
 
     userData.shards = shards - cost;
-
     const rewards = [];
     const attachments = [];
 
     for (let i = 0; i < spins; i += 1) {
         const reward = grantReward(userData);
         rewards.push(reward);
-
-        if (reward.type === 'character') {
-            attachments.push(createCharacterAttachment(reward.character));
-        }
+        if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
     }
 
     if (rewards.some(reward => reward.type === 'xp_boost')) {
-        await setXpMultiplier(
-            client,
-            guildId,
-            userId,
-            2,
-            24 * 60 * 60 * 1000
-        );
+        await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
     }
 
     if (rewards.some(reward => reward.type === 'bank_protection')) {
@@ -240,13 +191,10 @@ async function performGacha(interaction, client, spins) {
         const now = Date.now();
         const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
         const expiry = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
-
         userData.bankProtectionExpiresAt = expiry;
 
         for (const reward of rewards) {
-            if (reward.type === 'bank_protection') {
-                reward.hours = hours;
-            }
+            if (reward.type === 'bank_protection') reward.hours = hours;
         }
     }
 
@@ -255,30 +203,20 @@ async function performGacha(interaction, client, spins) {
     const characters = rewards.filter(reward => reward.type === 'character');
     const mystic = characters.some(reward => reward.character.stars === 5);
     const legendary = characters.some(reward => reward.character.stars === 4);
-    const lines = rewards.map(
-        (reward, index) => `**${index + 1}.** ${rewardText(reward)}`
-    );
+    const lines = rewards.map((reward, index) => `**${index + 1}.** ${rewardText(reward)}`);
 
     const embed = new EmbedBuilder()
         .setColor(mystic ? 0x9B59FF : legendary ? 0xFFD700 : 0x168BFF)
         .setTitle(spins === 10 ? '🎰 GACHA ×10' : '🎰 GACHA SPIN')
-        .setDescription(
-            `${SHARD_EMOJI} Spent **${cost} Shard${cost > 1 ? 's' : ''}**.\n\n${lines.join('\n')}`
-        )
+        .setDescription(`${SHARD_EMOJI} Spent **${cost} Shard${cost > 1 ? 's' : ''}**.\n\n${lines.join('\n')}`)
         .addFields({
             name: `${TOTAL_SOULS_EMOJI} Remaining Shards`,
             value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
             inline: true
         })
-        .setFooter({
-            text: 'Duplicate characters are automatically converted into 100 Souls.'
-        });
+        .setFooter({ text: 'Duplicate characters are automatically converted into 100 Souls.' });
 
-    return {
-        success: true,
-        embed,
-        attachments
-    };
+    return { success: true, embed, attachments };
 }
 
 export default {
@@ -293,11 +231,13 @@ export default {
             name: 'Spin and Win.png'
         });
 
-        const message = await interaction.reply({
+        await interaction.reply({
             content: '🎴 **SPIN AND WIN**\nSpend Shards to summon characters and rare rewards!',
             files: [banner],
             components: [createGachaButtons(interaction.user.id)]
         });
+
+        const message = await interaction.fetchReply();
 
         const collector = message.createMessageComponentCollector({
             time: 10 * 60 * 1000,
@@ -319,11 +259,7 @@ export default {
             await buttonInteraction.deferUpdate();
 
             try {
-                const result = await performGacha(
-                    buttonInteraction,
-                    client,
-                    spins
-                );
+                const result = await performGacha(buttonInteraction, client, spins);
 
                 if (!result.success) {
                     await buttonInteraction.followUp({
@@ -334,8 +270,7 @@ export default {
                 }
 
                 const payload = {
-                    embeds: [result.embed],
-                    ephemeral: false
+                    embeds: [result.embed]
                 };
 
                 if (result.attachments.length) {
@@ -370,9 +305,7 @@ export default {
                         .setDisabled(true)
                 );
 
-                await interaction.editReply({
-                    components: [disabledRow]
-                });
+                await interaction.editReply({ components: [disabledRow] });
             } catch {
                 // The original message may have been deleted.
             }
