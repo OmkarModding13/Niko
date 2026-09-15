@@ -19,58 +19,69 @@ function buildEarnInfoEmbed() {
         .setTitle(`${TOTAL_SOULS_EMOJI} HOW TO EARN & USE SOULS`)
         .setDescription(
             '**Welcome to Hollow Devil\'s Domain.**\n' +
-            'Build your Souls, collect Shards, unlock characters and use the Shop.\n\n' +
+            'Earn Souls, collect rare Shards, unlock characters and use your rewards wisely.\n\n' +
 
             '**🎁 DAILY REWARD**\n' +
             'Use **/daily** once every 24 hours. Base reward: **25 Souls**.\n' +
-            '> 🔥 Streak bonuses increase your reward.\n' +
-            '> ⭐ Character abilities can add extra Souls to your daily claim.\n\n' +
+            '> 🔥 Consecutive claim streaks give additional bonus Souls.\n' +
+            '> ✨ Character passives can increase your daily reward.\n\n' +
 
-            '**💬 CHATTING**\n' +
-            'Stay active and chat naturally to earn Souls and leveling XP over time.\n' +
+            '**💬 CHAT REWARDS**\n' +
+            `> ${SOULS_EMOJI} Earn **2 Souls every 10 minutes** of eligible chat activity.\n` +
             '> ⚠️ Spam and message flooding will not help you earn more.\n\n' +
 
-            '**🎙️ VOICE CHAT**\n' +
-            'Hang out with other members in Voice Channels to earn Souls and XP.\n' +
+            '**🎙️ VOICE REWARDS**\n' +
+            `> ${SOULS_EMOJI} Earn **1 Soul every 15 minutes** of eligible Voice activity.\n` +
             '> 👥 At least **2 members** must be in the VC.\n' +
-            '> 🔇 Self-muted and self-deafened activity does not count.\n\n' +
+            '> 🔇 Self-muted activity does not count.\n' +
+            '> 🙉 Self-deafened activity does not count.\n\n' +
 
             '**🎮 GAMES**\n' +
-            'Use **/games** to view all available games and entry fees.\n' +
+            'Use **/games** to open the Games menu.\n' +
             `> ${SOULS_EMOJI} **Solo:** /quickcoin • /abyssdice • /rps • /soulflip • /diceduel • /soulslots\n` +
-            '> ⚔️ **PvP:** /pvp — Rock Paper Scissors, Heads & Tails, Number Guess\n' +
+            '> ⚔️ **PvP:** /pvp — RPS, Heads & Tails, Number Guess\n' +
             '> 🏦 **Multiplayer:** /bankrob — 2–10 players\n' +
-            `> ${SHARD_EMOJI} Winning games have a **1% base chance** to drop 1 Shard.\n` +
-            `> ${DOUBLE_SOULS_EMOJI} Games can also award Souls and special reward rolls.\n\n` +
+            `> ${SHARD_EMOJI} Eligible wins/successes have a **1% base chance** to drop 1 Shard.\n` +
+            `> ${SOULS_EMOJI} Game rewards depend on the game and its entry fee.\n\n` +
 
             '**🎰 CHARACTER GACHA**\n' +
-            `Use **/gacha** with ${SHARD_EMOJI} **1 Shard** or **10 Shards**.\n` +
-            '> Common → Souls / Double Souls\n' +
-            '> Rare → XP Booster 24h / Bank Protection\n' +
-            '> Epic → Bank Capacity Increase / 1 Shard\n' +
-            '> Legendary → 4★ Character\n' +
-            '> Mystic → 5★ Character\n' +
-            '> 🔁 Duplicate character → **100 Souls**\n\n' +
+            `Use **/gacha** by spending ${SHARD_EMOJI} **1 Shard for 1 Spin** or **10 Shards for 10 Spins**.\n` +
+            '**Gacha Rates per Spin:**\n' +
+            '> 🟢 Common — **75%**\n' +
+            '> 🔵 Rare — **17%**\n' +
+            '> 🟣 Epic — **6%**\n' +
+            '> ⭐ Legendary — **1.8%** → 4★ Character\n' +
+            '> ✨ Mystic — **0.2%** → 5★ Character\n' +
+            '> 💫 Total character chance — **2% per spin**\n' +
+            '> 🔁 Duplicate Character → **2 Shards**\n\n' +
+
+            '**✨ CHARACTER PASSIVES**\n' +
+            '> **Lumira** → +5 Souls to Daily reward\n' +
+            '> **Niko** → +10 Souls to Daily reward\n' +
+            '> **Seraphne** → +0.5% Game Shard chance\n' +
+            '> **Eiris** → +1 Gacha luck percentage point\n' +
+            '> **Carmine** → +1% Game Shard chance\n' +
+            '> **Valeris** → +4 hours Bank Protection duration\n\n' +
 
             '**🛒 SHOP**\n' +
             'Use **/shop** to spend Souls.\n' +
-            '> 🎨 Color Roles — 350 Souls / 7 days\n' +
-            '> 🏦 Bank Capacity Upgrade — starts at 3,000 Souls\n' +
+            '> 🎨 Color Roles — **350 Souls / 7 days**\n' +
+            '> 🏦 Bank Capacity Upgrade — **3,000 Souls** first upgrade\n' +
             '> ⚡ XP Booster — **3,000 Souls / 24 hours**\n' +
             '> 🛡️ Bank Protection — **3,000 Souls / 24 hours**\n\n' +
 
             '**📋 USEFUL COMMANDS**\n' +
             `> ${TOTAL_SOULS_EMOJI} **/balance** — Check Souls, Bank and Shards\n` +
-            '> 🎁 **/daily** — Claim daily reward\n' +
-            '> 🎰 **/gacha** — Spend Shards\n' +
+            '> 🎁 **/daily** — Claim your daily Souls\n' +
+            '> 🎰 **/gacha** — Spend Shards for rewards and characters\n' +
             '> ✨ **/flex** — Show your character collection\n' +
-            '> 🎮 **/games** — View games\n' +
+            '> 🎮 **/games** — Open the Games menu\n' +
             '> 🛒 **/shop** — Open the Shop\n' +
-            '> ⏰ **/remindme** — Daily reminder\n\n' +
+            '> ⏰ **/remindme** — Set a daily reminder\n\n' +
 
             `🩸 **Stay Active. Earn Souls. Collect Shards. Build Your Collection.** ${TOTAL_SOULS_EMOJI}`
         )
-        .setFooter({ text: 'Hollow Devil’s Domain • Economy & Gacha Guide' });
+        .setFooter({ text: 'Hollow Devil’s Domain • Economy, Games & Gacha Guide' });
 }
 
 export default {
