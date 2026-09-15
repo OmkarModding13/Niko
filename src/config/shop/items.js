@@ -11,10 +11,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#FF0000'
-        }
+        effect: { type: 'temporary_color_role', color: '#FF0000' }
     },
     {
         id: 'color_pink',
@@ -24,10 +21,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#FF69B4'
-        }
+        effect: { type: 'temporary_color_role', color: '#FF69B4' }
     },
     {
         id: 'color_purple',
@@ -37,10 +31,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#8000FF'
-        }
+        effect: { type: 'temporary_color_role', color: '#8000FF' }
     },
     {
         id: 'color_cyan',
@@ -50,10 +41,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#00FFFF'
-        }
+        effect: { type: 'temporary_color_role', color: '#00FFFF' }
     },
     {
         id: 'color_black',
@@ -63,10 +51,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#000000'
-        }
+        effect: { type: 'temporary_color_role', color: '#000000' }
     },
     {
         id: 'color_lime',
@@ -76,10 +61,7 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#32CD32'
-        }
+        effect: { type: 'temporary_color_role', color: '#32CD32' }
     },
     {
         id: 'color_yellow',
@@ -89,14 +71,11 @@ export const shopItems = [
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
-        effect: {
-            type: 'temporary_color_role',
-            color: '#FFFF00'
-        }
+        effect: { type: 'temporary_color_role', color: '#FFFF00' }
     },
 
     // =========================
-    // BANK CAPACITY UPGRADE
+    // PERMANENT UPGRADES
     // =========================
 
     {
@@ -108,6 +87,35 @@ export const shopItems = [
         effect: {
             type: 'bank_capacity',
             increase: 50000
+        }
+    },
+
+    // =========================
+    // TEMPORARY BOOSTS
+    // =========================
+
+    {
+        id: 'xp_boost_24h',
+        name: '⚡ XP Booster',
+        price: 3000,
+        description: 'Double XP earned for 24 hours.',
+        type: 'boost',
+        duration: 24 * 60 * 60 * 1000,
+        effect: {
+            type: 'xp_boost',
+            multiplier: 2
+        }
+    },
+    {
+        id: 'bank_protection_24h',
+        name: '🛡️ Bank Protection',
+        price: 3000,
+        description: 'Protect your wallet from Bank Robbery for 24 hours.',
+        type: 'protection',
+        duration: 24 * 60 * 60 * 1000,
+        effect: {
+            type: 'bank_protection',
+            hours: 24
         }
     }
 ];
@@ -129,13 +137,8 @@ export function validatePurchase(itemId, userData) {
     const item = getItemById(itemId);
 
     if (!item) {
-        return {
-            valid: false,
-            reason: 'Item not found'
-        };
+        return { valid: false, reason: 'Item not found' };
     }
 
-    return {
-        valid: true
-    };
+    return { valid: true };
 }
