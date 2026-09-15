@@ -4,6 +4,7 @@ const COLLECTOR_MANAGED_PREFIXES = [
   'config_wizard',
   'cmdaccess_',
   'gacha:',
+  'gacha',
 ];
 
 export function isCollectorManagedComponent(customId = '') {
