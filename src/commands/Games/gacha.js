@@ -30,6 +30,10 @@ const CHARACTER_IMAGE_DIR = path.join(__dirname, '../../assets/gacha/Characters'
 const GACHA_BANNER = path.join(__dirname, '../../assets/gacha/Spin and Win.png');
 const SPIN_COSTS = { 1: 1, 10: 10 };
 
+// Prevent two gacha requests for the same user from reading/writing
+// the same economy snapshot at the same time.
+const activeGachaSpins = new Set();
+
 function randomBetween(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -166,78 +170,93 @@ async function performGacha(interaction, client, spins) {
     const cost = SPIN_COSTS[spins];
     const guildId = interaction.guildId;
     const userId = interaction.user.id;
-    const userData = await getEconomyData(client, guildId, userId);
-    const shards = Number(userData.shards || 0);
+    const lockKey = `${guildId}:${userId}`;
 
-    if (shards < cost) {
+    if (activeGachaSpins.has(lockKey)) {
         return {
             success: false,
-            content: `❌ You need **${cost} ${SHARD_EMOJI} Shard${cost > 1 ? 's' : ''}** to spin, but you only have **${shards}**.`
+            content: '⏳ Your previous gacha spin is still processing. Please wait a moment.'
         };
     }
 
-    userData.shards = shards - cost;
-    const rewards = [];
-    const attachments = [];
+    activeGachaSpins.add(lockKey);
 
-    for (let i = 0; i < spins; i += 1) {
-        const reward = grantReward(userData);
-        rewards.push(reward);
-        if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
-    }
+    try {
+        const userData = await getEconomyData(client, guildId, userId);
+        const shards = Number(userData.shards || 0);
 
-    // 1 Spin = 0 XP. 10 Spins = 5 XP total.
-    if (spins === 10) {
-        await addLevelXp(client, guildId, userId, 5);
-    }
-
-    if (rewards.some(reward => reward.type === 'xp_boost')) {
-        await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
-    }
-
-    if (rewards.some(reward => reward.type === 'bank_protection')) {
-        const bonuses = getCharacterBonuses(userData);
-        const hours = 24 + Number(bonuses.bankProtectionHours || 0);
-        const now = Date.now();
-        const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
-        userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
-
-        for (const reward of rewards) {
-            if (reward.type === 'bank_protection') reward.hours = hours;
+        if (shards < cost) {
+            return {
+                success: false,
+                content: `❌ You need **${cost} ${SHARD_EMOJI} Shard${cost > 1 ? 's' : ''}** to spin, but you only have **${shards}**.`
+            };
         }
-    }
 
-    await setEconomyData(client, guildId, userId, userData);
+        userData.shards = shards - cost;
+        const rewards = [];
+        const attachments = [];
 
-    const characters = rewards.filter(reward => reward.type === 'character');
-    const mystic = characters.some(reward => reward.character.stars === 5);
-    const legendary = characters.some(reward => reward.character.stars === 4);
-    const lines = rewards.map((reward, index) => `**${index + 1}.** ${rewardText(reward)}`);
+        for (let i = 0; i < spins; i += 1) {
+            const reward = grantReward(userData);
+            rewards.push(reward);
+            if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
+        }
 
-    const embed = new EmbedBuilder()
-        .setColor(mystic ? 0x9B59FF : legendary ? 0xFFD700 : 0x168BFF)
-        .setTitle(`${SHARD_EMOJI} 🎉 CONGRATULATIONS!`)
-        .setDescription(`**You got this reward!**\n\n${lines.join('\n')}`)
-        .addFields(
-            {
-                name: `${SHARD_EMOJI} Spent`,
-                value: `**${cost} Shard${cost > 1 ? 's' : ''}**`,
-                inline: true
-            },
-            {
-                name: '⭐ XP Earned',
-                value: `**+${spins === 10 ? 5 : 0} XP**`,
-                inline: true
-            },
-            {
-                name: 'Remaining Shards',
-                value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
-                inline: true
+        // 1 Spin = 0 XP. 10 Spins = 5 XP total.
+        if (spins === 10) {
+            await addLevelXp(client, guildId, userId, 5);
+        }
+
+        if (rewards.some(reward => reward.type === 'xp_boost')) {
+            await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
+        }
+
+        if (rewards.some(reward => reward.type === 'bank_protection')) {
+            const bonuses = getCharacterBonuses(userData);
+            const hours = 24 + Number(bonuses.bankProtectionHours || 0);
+            const now = Date.now();
+            const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
+            userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
+
+            for (const reward of rewards) {
+                if (reward.type === 'bank_protection') reward.hours = hours;
             }
-        )
-        .setFooter({ text: 'Duplicate characters are automatically converted into 2 Shards.' });
+        }
 
-    return { success: true, embed, attachments };
+        await setEconomyData(client, guildId, userId, userData);
+
+        const characters = rewards.filter(reward => reward.type === 'character');
+        const mystic = characters.some(reward => reward.character.stars === 5);
+        const legendary = characters.some(reward => reward.character.stars === 4);
+        const lines = rewards.map((reward, index) => `**${index + 1}.** ${rewardText(reward)}`);
+
+        const embed = new EmbedBuilder()
+            .setColor(mystic ? 0x9B59FF : legendary ? 0xFFD700 : 0x168BFF)
+            .setTitle(`${SHARD_EMOJI} 🎉 CONGRATULATIONS!`)
+            .setDescription(`**You got this reward!**\n\n${lines.join('\n')}`)
+            .addFields(
+                {
+                    name: `${SHARD_EMOJI} Spent`,
+                    value: `**${cost} Shard${cost > 1 ? 's' : ''}**`,
+                    inline: true
+                },
+                {
+                    name: '⭐ XP Earned',
+                    value: `**+${spins === 10 ? 5 : 0} XP**`,
+                    inline: true
+                },
+                {
+                    name: 'Remaining Shards',
+                    value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
+                    inline: true
+                }
+            )
+            .setFooter({ text: 'Duplicate characters are automatically converted into 2 Shards.' });
+
+        return { success: true, embed, attachments };
+    } finally {
+        activeGachaSpins.delete(lockKey);
+    }
 }
 
 export default {
