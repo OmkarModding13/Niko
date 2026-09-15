@@ -29,8 +29,9 @@ function randomBetween(min, max) {
 function rollReward(config, userData) {
     const characterBonuses = getCharacterBonuses(userData);
     const luck = Math.max(0, Number(characterBonuses.gameLuckBonus || 0));
+    const rewardBonus = Math.max(0, Number(characterBonuses.gameRewardBonus || 0));
 
-    // Base Shard chance is now exactly 1%. Character luck can increase it.
+    // Base Shard chance is exactly 1%. Character luck can increase it.
     const shardChance = Math.min(0.05, 0.01 + (luck / 100));
     const roll = Math.random();
 
@@ -44,7 +45,7 @@ function rollReward(config, userData) {
     if (rareRoll < 0.07 + rareBoost) {
         return {
             type: 'double',
-            souls: Math.min(config.entry * 2, config.maxReward),
+            souls: Math.min(Math.floor(config.entry * 2 * (1 + rewardBonus)), config.maxReward),
             shards: 0
         };
     }
@@ -52,14 +53,15 @@ function rollReward(config, userData) {
     if (rareRoll < 0.14 + rareBoost) {
         return {
             type: 'extra',
-            souls: Math.min(config.entry * 3, config.maxReward),
+            souls: Math.min(Math.floor(config.entry * 3 * (1 + rewardBonus)), config.maxReward),
             shards: 0
         };
     }
 
+    const base = randomBetween(config.entry, config.maxReward);
     return {
         type: 'common',
-        souls: randomBetween(config.entry, config.maxReward),
+        souls: Math.min(Math.floor(base * (1 + rewardBonus)), config.maxReward),
         shards: 0
     };
 }
