@@ -1,64 +1,18 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 
 const ROLE_INFO_CHANNEL_ID = '1530876980873007180';
+const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 const ROLE_INFO = [
-    {
-        emoji: '🔵',
-        role: 'Lost Soul',
-        level: 5,
-        reward: '500 Souls',
-        description: 'First milestone. Shows you\'re an active member.',
-    },
-    {
-        emoji: '⚪',
-        role: 'Shadow Walker',
-        level: 10,
-        reward: '1,000 Souls',
-        description: 'You\'re becoming a regular.',
-    },
-    {
-        emoji: '😈',
-        role: "Devil's Pawn",
-        level: 20,
-        reward: '2,000 Souls',
-        description: 'Trusted community member.',
-    },
-    {
-        emoji: '⚔️',
-        role: 'Abyss Hunter',
-        level: 30,
-        reward: '3,000 Souls',
-        description: 'Veteran explorer.',
-    },
-    {
-        emoji: '🔥',
-        role: 'Hell Maker',
-        level: 40,
-        reward: '4,000 Souls',
-        description: 'Access to Hellborn Lounge.',
-    },
-    {
-        emoji: '💀',
-        role: 'Void Reaper',
-        level: 50,
-        reward: '5,000 Souls',
-        description: 'Self Promotion unlocked.',
-    },
-    {
-        emoji: '👑',
-        role: 'Hollow Lord',
-        level: 75,
-        reward: '7,500 Souls',
-        description: 'Elite member.',
-    },
-    {
-        emoji: '👑',
-        role: 'Hollow Legend',
-        level: 100,
-        reward: '10,000 Souls',
-        description: 'One of the most dedicated members.',
-    },
+    { emoji: '🔵', role: 'Lost Soul', level: 5, souls: 500, shards: 5, description: 'First milestone. Shows you\'re an active member.' },
+    { emoji: '⚪', role: 'Shadow Walker', level: 10, souls: 1000, shards: 10, description: 'You\'re becoming a regular.' },
+    { emoji: '😈', role: "Devil's Pawn", level: 20, souls: 2000, shards: 20, description: 'Trusted community member.' },
+    { emoji: '⚔️', role: 'Abyss Hunter', level: 30, souls: 3000, shards: 30, description: 'Veteran explorer.' },
+    { emoji: '🔥', role: 'Hell Maker', level: 40, souls: 4000, shards: 40, description: 'Access to Hellborn Lounge.' },
+    { emoji: '💀', role: 'Void Reaper', level: 50, souls: 5000, shards: 50, description: 'Self Promotion unlocked.' },
+    { emoji: '👑', role: 'Hollow Lord', level: 75, souls: 7500, shards: 75, description: 'Elite member.' },
+    { emoji: '👑', role: 'Hollow Legend', level: 100, souls: 10000, shards: 100, description: 'One of the most dedicated members.' }
 ];
 
 function buildRoleInfoMessage() {
@@ -71,9 +25,9 @@ function buildRoleInfoMessage() {
     ];
 
     for (const item of ROLE_INFO) {
-        lines.push(`**『 ${item.emoji} ${item.role} 』  [Lv.${item.level}]**`);
+        lines.push(`**『 ${item.emoji} ${item.role} 』 [Lv.${item.level}]**`);
         lines.push(`➜ ${item.description}`);
-        lines.push(`➜ **Reward:** ${item.reward} <:Souls:1547510037621112894>`);
+        lines.push(`➜ **Reward:** ${SOULS_EMOJI} **${item.souls.toLocaleString()} Souls** + ${SHARD_EMOJI} **${item.shards} Shards**`);
         lines.push('');
         lines.push('✦━━━━━━━━━━━━━━━━━━━━✦');
         lines.push('');
@@ -81,8 +35,8 @@ function buildRoleInfoMessage() {
 
     lines.push('☾━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━☽');
     lines.push('');
-    lines.push('*"Only the most loyal souls ascend through the Domain.*');
-    lines.push('*Every message, every conversation, every moment brings you one step closer to becoming a legend."*');
+    lines.push('*Every milestone now rewards both Souls and Shards.*');
+    lines.push('*Use your Shards in **/gacha** to summon characters and rare rewards.*');
     lines.push('');
     lines.push('☽━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━☾');
 
@@ -92,7 +46,7 @@ function buildRoleInfoMessage() {
 export default {
     data: new SlashCommandBuilder()
         .setName('postroleinfo')
-        .setDescription('Post the milestone role and Souls reward information')
+        .setDescription('Post the milestone role, Souls and Shard reward information')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false),
 
@@ -115,9 +69,7 @@ export default {
             });
         }
 
-        const message = buildRoleInfoMessage();
-
-        await channel.send({ content: message });
+        await channel.send({ content: buildRoleInfoMessage() });
 
         return interaction.reply({
             content: `✅ Milestone role information posted in <#${ROLE_INFO_CHANNEL_ID}>.`,
