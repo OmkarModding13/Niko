@@ -23,6 +23,7 @@ const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
+const SHARD_BUTTON_EMOJI = { id: '1548962748321374218', name: 'Shard' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,9 +41,7 @@ function pickWeightedRarity(userData) {
     const weights = GACHA_REWARD_WEIGHTS.map(item => ({ ...item }));
 
     for (const item of weights) {
-        if (item.rarity === 'Legendary' || item.rarity === 'Mystic') {
-            item.weight += luck;
-        }
+        if (item.rarity === 'Legendary' || item.rarity === 'Mystic') item.weight += luck;
     }
 
     const total = weights.reduce((sum, item) => sum + item.weight, 0);
@@ -69,14 +68,7 @@ function createCharacterAttachment(character) {
 
 function convertDuplicate(userData, character, stars) {
     userData.wallet = Number(userData.wallet || 0) + 100;
-
-    return {
-        rarity: character.rarity,
-        type: 'duplicate_conversion',
-        souls: 100,
-        character,
-        stars
-    };
+    return { rarity: character.rarity, type: 'duplicate_conversion', souls: 100, character, stars };
 }
 
 function grantReward(userData) {
@@ -108,18 +100,14 @@ function grantReward(userData) {
 
     if (rarity === 'Legendary') {
         const character = pickCharacter(FOUR_STAR_CHARACTERS);
-        if (Number(userData.characters?.[character.name] || 0) > 0) {
-            return convertDuplicate(userData, character, 4);
-        }
+        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 4);
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
 
     if (rarity === 'Mystic') {
         const character = pickCharacter(FIVE_STAR_CHARACTERS);
-        if (Number(userData.characters?.[character.name] || 0) > 0) {
-            return convertDuplicate(userData, character, 5);
-        }
+        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 5);
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
@@ -147,12 +135,12 @@ function createGachaButtons(userId) {
         new ButtonBuilder()
             .setCustomId(`gacha:1:${userId}`)
             .setLabel('1 SPIN')
-            .setEmoji('🎴')
+            .setEmoji(SHARD_BUTTON_EMOJI)
             .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId(`gacha:10:${userId}`)
             .setLabel('10 SPINS')
-            .setEmoji('🎴')
+            .setEmoji(SHARD_BUTTON_EMOJI)
             .setStyle(ButtonStyle.Success)
     );
 }
@@ -190,8 +178,7 @@ async function performGacha(interaction, client, spins) {
         const hours = 24 + Number(bonuses.bankProtectionHours || 0);
         const now = Date.now();
         const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
-        const expiry = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
-        userData.bankProtectionExpiresAt = expiry;
+        userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
 
         for (const reward of rewards) {
             if (reward.type === 'bank_protection') reward.hours = hours;
@@ -207,10 +194,12 @@ async function performGacha(interaction, client, spins) {
 
     const embed = new EmbedBuilder()
         .setColor(mystic ? 0x9B59FF : legendary ? 0xFFD700 : 0x168BFF)
-        .setTitle(spins === 10 ? '🎰 GACHA ×10' : '🎰 GACHA SPIN')
-        .setDescription(`${SHARD_EMOJI} Spent **${cost} Shard${cost > 1 ? 's' : ''}**.\n\n${lines.join('\n')}`)
+        .setTitle(`${SHARD_EMOJI} 🎉 CONGRATULATIONS!`)
+        .setDescription(
+            `**You got this reward!**\n\n${lines.join('\n')}\n\n${SHARD_EMOJI} Spent **${cost} Shard${cost > 1 ? 's' : ''}**.`
+        )
         .addFields({
-            name: `${TOTAL_SOULS_EMOJI} Remaining Shards`,
+            name: 'Remaining Shards',
             value: `${SHARD_EMOJI} **${userData.shards.toLocaleString()}**`,
             inline: true
         })
@@ -227,12 +216,10 @@ export default {
     category: 'Games',
 
     async execute(interaction, config, client) {
-        const banner = new AttachmentBuilder(GACHA_BANNER, {
-            name: 'Spin and Win.png'
-        });
+        const banner = new AttachmentBuilder(GACHA_BANNER, { name: 'Spin and Win.png' });
 
         await interaction.reply({
-            content: '🎴 **SPIN AND WIN**\nSpend Shards to summon characters and rare rewards!',
+            content: `${SHARD_EMOJI} **SPIN AND WIN**\nSpend Shards to summon characters and rare rewards!`,
             files: [banner],
             components: [createGachaButtons(interaction.user.id)]
         });
@@ -241,19 +228,14 @@ export default {
 
         const collector = message.createMessageComponentCollector({
             time: 10 * 60 * 1000,
-            filter: buttonInteraction =>
-                buttonInteraction.customId.endsWith(`:${interaction.user.id}`)
+            filter: buttonInteraction => buttonInteraction.customId.endsWith(`:${interaction.user.id}`)
         });
 
         collector.on('collect', async buttonInteraction => {
-            const parts = buttonInteraction.customId.split(':');
-            const spins = Number(parts[1]);
+            const spins = Number(buttonInteraction.customId.split(':')[1]);
 
             if (!SPIN_COSTS[spins]) {
-                return buttonInteraction.reply({
-                    content: '❌ Invalid gacha spin.',
-                    ephemeral: true
-                });
+                return buttonInteraction.reply({ content: '❌ Invalid gacha spin.', ephemeral: true });
             }
 
             await buttonInteraction.deferUpdate();
@@ -262,25 +244,15 @@ export default {
                 const result = await performGacha(buttonInteraction, client, spins);
 
                 if (!result.success) {
-                    await buttonInteraction.followUp({
-                        content: result.content,
-                        ephemeral: true
-                    });
+                    await buttonInteraction.followUp({ content: result.content, ephemeral: true });
                     return;
                 }
 
-                const payload = {
-                    embeds: [result.embed]
-                };
-
-                if (result.attachments.length) {
-                    payload.files = result.attachments;
-                }
-
+                const payload = { embeds: [result.embed] };
+                if (result.attachments.length) payload.files = result.attachments;
                 await buttonInteraction.followUp(payload);
             } catch (error) {
                 console.error('[GACHA BUTTON ERROR]', error);
-
                 await buttonInteraction.followUp({
                     content: '❌ Something went wrong while processing your gacha spin.',
                     ephemeral: true
@@ -294,20 +266,20 @@ export default {
                     new ButtonBuilder()
                         .setCustomId(`gacha:1:disabled:${interaction.user.id}`)
                         .setLabel('1 SPIN')
-                        .setEmoji('🎴')
+                        .setEmoji(SHARD_BUTTON_EMOJI)
                         .setStyle(ButtonStyle.Primary)
                         .setDisabled(true),
                     new ButtonBuilder()
                         .setCustomId(`gacha:10:disabled:${interaction.user.id}`)
                         .setLabel('10 SPINS')
-                        .setEmoji('🎴')
+                        .setEmoji(SHARD_BUTTON_EMOJI)
                         .setStyle(ButtonStyle.Success)
                         .setDisabled(true)
                 );
 
                 await interaction.editReply({ components: [disabledRow] });
             } catch {
-                // The original message may have been deleted.
+                // Original message may have been deleted.
             }
         });
     }
