@@ -26,19 +26,15 @@ const __dirname = path.dirname(__filename);
 const CHARACTER_IMAGE_DIR = path.join(__dirname, '../../assets/gacha/Characters');
 const SPIN_COSTS = { 1: 1, 10: 10 };
 
-function randomBetween(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+function randomBetween(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 function pickWeightedRarity(userData) {
     const bonuses = getCharacterBonuses(userData);
     const luck = Math.max(0, Number(bonuses.gachaLuckBonus || 0));
     const weights = GACHA_REWARD_WEIGHTS.map(item => ({ ...item }));
-
     for (const item of weights) {
         if (item.rarity === 'Legendary' || item.rarity === 'Mystic') item.weight += luck;
     }
-
     const total = weights.reduce((sum, item) => sum + item.weight, 0);
     let roll = Math.random() * total;
     for (const item of weights) {
@@ -48,13 +44,9 @@ function pickWeightedRarity(userData) {
     return 'Common';
 }
 
-function pickCharacter(list) {
-    return list[Math.floor(Math.random() * list.length)] || null;
-}
-
+function pickCharacter(list) { return list[Math.floor(Math.random() * list.length)] || null; }
 function createCharacterAttachment(character) {
-    const imagePath = path.join(CHARACTER_IMAGE_DIR, character.image);
-    return new AttachmentBuilder(imagePath, { name: character.image });
+    return new AttachmentBuilder(path.join(CHARACTER_IMAGE_DIR, character.image), { name: character.image });
 }
 
 function convertDuplicate(userData, character, stars) {
@@ -111,7 +103,7 @@ function rewardText(reward) {
         case 'souls': return `${SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'double_souls': return `${DOUBLE_SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'xp_boost': return '⚡ **XP Booster — 24 Hours**';
-        case 'bank_protection': return '🛡️ **Bank Protection — 24 Hours**';
+        case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours || 24} Hours**`;
         case 'bank_capacity': return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
         case 'shard': return `${SHARD_EMOJI} **1 Shard**`;
         case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SOULS_EMOJI} 100 Souls**`;
@@ -161,18 +153,20 @@ export default {
             if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
         }
 
-        // Rare Gacha XP Booster writes to the real leveling data, not economy data.
         if (rewards.some(reward => reward.type === 'xp_boost')) {
             await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
         }
 
-        // Rare Gacha Bank Protection uses the character-enhanced duration.
         if (rewards.some(reward => reward.type === 'bank_protection')) {
             const bonuses = getCharacterBonuses(userData);
             const hours = 24 + Number(bonuses.bankProtectionHours || 0);
             const now = Date.now();
             const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
-            userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
+            const expiry = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
+            userData.bankProtectionExpiresAt = expiry;
+            for (const reward of rewards) {
+                if (reward.type === 'bank_protection') reward.hours = hours;
+            }
         }
 
         await setEconomyData(client, guildId, userId, userData);
