@@ -14,6 +14,7 @@ import {
     addCharacter,
     getCharacterBonuses
 } from '../../services/gacha/characters.js';
+import { setXpMultiplier } from '../../services/leveling/leveling.js';
 
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
@@ -23,7 +24,6 @@ const DOUBLE_SOULS_EMOJI = '<:DoubleSouls:1549009386389766264>';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const CHARACTER_IMAGE_DIR = path.join(__dirname, '../../assets/gacha/Characters');
-
 const SPIN_COSTS = { 1: 1, 10: 10 };
 
 function randomBetween(min, max) {
@@ -36,19 +36,15 @@ function pickWeightedRarity(userData) {
     const weights = GACHA_REWARD_WEIGHTS.map(item => ({ ...item }));
 
     for (const item of weights) {
-        if (item.rarity === 'Legendary' || item.rarity === 'Mystic') {
-            item.weight += luck;
-        }
+        if (item.rarity === 'Legendary' || item.rarity === 'Mystic') item.weight += luck;
     }
 
     const total = weights.reduce((sum, item) => sum + item.weight, 0);
     let roll = Math.random() * total;
-
     for (const item of weights) {
         roll -= item.weight;
         if (roll < 0) return item.rarity;
     }
-
     return 'Common';
 }
 
@@ -61,36 +57,9 @@ function createCharacterAttachment(character) {
     return new AttachmentBuilder(imagePath, { name: character.image });
 }
 
-function applyTemporaryXpBoost(userData) {
-    const now = Date.now();
-    const currentExpiry = Number(userData.xpMultiplierExpiresAt || 0);
-    const start = Math.max(now, currentExpiry);
-
-    userData.xpMultiplier = 2;
-    userData.xpMultiplierExpiresAt = start + (24 * 60 * 60 * 1000);
-    return userData.xpMultiplierExpiresAt;
-}
-
-function applyBankProtection(userData) {
-    const now = Date.now();
-    const bonuses = getCharacterBonuses(userData);
-    const hours = 24 + Number(bonuses.bankProtectionHours || 0);
-    const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
-    const start = Math.max(now, currentExpiry);
-
-    userData.bankProtectionExpiresAt = start + (hours * 60 * 60 * 1000);
-    return hours;
-}
-
 function convertDuplicate(userData, character, stars) {
     userData.wallet = Number(userData.wallet || 0) + 100;
-    return {
-        rarity: character.rarity,
-        type: 'duplicate_conversion',
-        souls: 100,
-        character,
-        stars
-    };
+    return { rarity: character.rarity, type: 'duplicate_conversion', souls: 100, character, stars };
 }
 
 function grantReward(userData) {
@@ -104,11 +73,8 @@ function grantReward(userData) {
     }
 
     if (rarity === 'Rare') {
-        if (Math.random() < 0.5) {
-            return { rarity, type: 'xp_boost', expiresAt: applyTemporaryXpBoost(userData) };
-        }
-
-        return { rarity, type: 'bank_protection', hours: applyBankProtection(userData) };
+        if (Math.random() < 0.5) return { rarity, type: 'xp_boost' };
+        return { rarity, type: 'bank_protection' };
     }
 
     if (rarity === 'Epic') {
@@ -118,27 +84,20 @@ function grantReward(userData) {
             userData.upgrades.bank_upgrade = userData.bankLevel;
             return { rarity, type: 'bank_capacity', increase: 50000, bankLevel: userData.bankLevel };
         }
-
         userData.shards = Number(userData.shards || 0) + 1;
         return { rarity, type: 'shard', shards: 1 };
     }
 
     if (rarity === 'Legendary') {
         const character = pickCharacter(FOUR_STAR_CHARACTERS);
-        const owned = Number(userData.characters?.[character.name] || 0) > 0;
-
-        if (owned) return convertDuplicate(userData, character, 4);
-
+        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 4);
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
 
     if (rarity === 'Mystic') {
         const character = pickCharacter(FIVE_STAR_CHARACTERS);
-        const owned = Number(userData.characters?.[character.name] || 0) > 0;
-
-        if (owned) return convertDuplicate(userData, character, 5);
-
+        if (Number(userData.characters?.[character.name] || 0) > 0) return convertDuplicate(userData, character, 5);
         addCharacter(userData, character.name);
         return { rarity, type: 'character', character };
     }
@@ -152,7 +111,7 @@ function rewardText(reward) {
         case 'souls': return `${SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'double_souls': return `${DOUBLE_SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'xp_boost': return '⚡ **XP Booster — 24 Hours**';
-        case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours} Hours**`;
+        case 'bank_protection': return '🛡️ **Bank Protection — 24 Hours**';
         case 'bank_capacity': return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
         case 'shard': return `${SHARD_EMOJI} **1 Shard**`;
         case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SOULS_EMOJI} 100 Souls**`;
@@ -202,12 +161,25 @@ export default {
             if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
         }
 
+        // Rare Gacha XP Booster writes to the real leveling data, not economy data.
+        if (rewards.some(reward => reward.type === 'xp_boost')) {
+            await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
+        }
+
+        // Rare Gacha Bank Protection uses the character-enhanced duration.
+        if (rewards.some(reward => reward.type === 'bank_protection')) {
+            const bonuses = getCharacterBonuses(userData);
+            const hours = 24 + Number(bonuses.bankProtectionHours || 0);
+            const now = Date.now();
+            const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
+            userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
+        }
+
         await setEconomyData(client, guildId, userId, userData);
 
         const characters = rewards.filter(reward => reward.type === 'character');
         const mystic = characters.some(reward => reward.character.stars === 5);
         const legendary = characters.some(reward => reward.character.stars === 4);
-
         const lines = rewards.map((reward, index) => `**${index + 1}.** ${rewardText(reward)}`);
 
         const embed = new EmbedBuilder()
@@ -223,7 +195,6 @@ export default {
 
         const reply = { embeds: [embed] };
         if (attachments.length) reply.files = attachments;
-
         return interaction.reply(reply);
     }
 };
