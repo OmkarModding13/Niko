@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const LEVEL_INFO_CHANNEL_ID = '1530876981304885299';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
+const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 const EMBED_BLUE = 0x168BFF;
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,25 +18,43 @@ function buildLevelInfoEmbed() {
         .setDescription(
             '**Want to level up in Hollow Devil\'s Domain?**\n' +
             'Stay active, earn XP, and keep progressing.\n\n' +
-            '**💬 Chat Activity**\n' +
-            'Talk with the community and earn XP through active chatting.\n' +
-            '> ⚠️ Spam and message flooding will not help you level up.\n\n' +
-            '**🎙️ Voice Activity**\n' +
-            'Spend time hanging out with other members in Voice Channels to earn XP.\n' +
+            '**💬 CHAT ACTIVITY**\n' +
+            'Chat with the community to earn XP through active conversation.\n' +
+            '> ⚠️ Spam and message flooding will not help you level up.\n' +
+            '> ⏱️ Chat XP is earned through active chat time.\n\n' +
+            '**🎙️ VOICE ACTIVITY**\n' +
+            'Spend time in Voice Channels with other members to earn XP.\n' +
             '> 👥 At least **2 members** must be in the VC.\n' +
             '> 🔇 Self-muted activity does not count.\n' +
             '> 🙉 Self-deafened activity does not count.\n\n' +
-            '**🎮 Game Activity**\n' +
-            'Play Niko\'s games to earn **XP + Souls**.\n\n' +
+            '**🎮 GAME ACTIVITY**\n' +
+            'Play Niko\'s games to earn **XP + Souls**.\n' +
+            '> 🎯 Different games have different entry fees and rewards.\n' +
+            '> ✨ Winning games can also give you a chance to receive **Shards**.\n\n' +
             '**📈 XP SYSTEM**\n' +
             '> **100 XP = 1 Level**\n' +
-            '> Your level does not automatically decrease.\n\n' +
-            '**🗓️ ACTIVITY PROGRESSION**\n' +
-            '> 🟢 **Level 1–49** → Weekly Activity\n' +
-            '> 🔴 **Level 50+** → Monthly Activity\n\n' +
-            '**⚠️ XP FARMING**\n' +
-            'Cooldowns and activity checks prevent meaningless spam from being used to farm XP.\n\n' +
-            `🩸 **Stay Active. Earn XP. Rise Through the Domain.** ${SOULS_EMOJI}`,
+            '> XP carries toward your next level.\n' +
+            '> Your level does **not automatically decrease**.\n\n' +
+            '**🗓️ LEVEL PROGRESSION**\n' +
+            '> 🟢 **Level 1–49** → Weekly Activity System\n' +
+            '> 🔴 **Level 50+** → Monthly Activity System\n\n' +
+            '**📅 ACTIVITY REQUIREMENTS**\n' +
+            '**Levels 1–49 — Weekly:**\n' +
+            '> 🎙️ Voice: **21 hours/week**\n' +
+            '> 💬 Chat: **35 hours/week**\n' +
+            '> 🎮 Games: **15 games/week**\n' +
+            '> ✅ All three activities must be completed for a successful period.\n\n' +
+            '**Levels 50+ — Monthly:**\n' +
+            '> Your progression switches from weekly to monthly activity.\n' +
+            '> 📅 The monthly period is used to progress through Level 50+.\n\n' +
+            '**⚠️ FAILED ACTIVITY PERIOD**\n' +
+            '> 1st consecutive failed period → Current XP is **halved**.\n' +
+            '> 2nd consecutive failed period → Current XP becomes **0**.\n' +
+            '> 🔒 Your Level itself will **never decrease**.\n\n' +
+            '**⚡ XP BOOSTER**\n' +
+            '> 🛒 XP Booster gives **2× XP for 24 hours**.\n' +
+            '> It can be obtained through the Shop or Gacha.\n\n' +
+            `🩸 **KEEP ACTIVE. EARN XP. RISE THROUGH THE DOMAIN.** ${SOULS_EMOJI} ${SHARD_EMOJI}`,
         )
         .setFooter({ text: 'Hollow Devil’s Domain • Leveling Guide' });
 }
@@ -69,8 +88,6 @@ export default {
         const banner = new AttachmentBuilder(BANNER_PATH, { name: 'HowToLevelUp.png' });
         const embed = buildLevelInfoEmbed();
 
-        // Discord always renders an embed image at the bottom of the embed.
-        // Send the banner as its own message first so it appears above the guide.
         await channel.send({ files: [banner] });
         await channel.send({ embeds: [embed] });
 
