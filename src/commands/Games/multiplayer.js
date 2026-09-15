@@ -5,21 +5,18 @@ import {
     ButtonStyle
 } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { tryAwardGameShard } from '../../services/gacha/gameShardDrop.js';
 
 const SOULS = '<:Souls:1547510037621112894>';
 const TOTAL = '<:Total:1547545479628333086>';
+const SHARD = '<:Shard:1548962748321374218>';
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 10;
 const SUCCESS_RATE = 0.40;
 const MAX_STEAL_RATE = 0.80;
 
-function fmt(n) {
-    return Number(n || 0).toLocaleString();
-}
-
-function token() {
-    return Math.random().toString(36).slice(2, 10);
-}
+function fmt(n) { return Number(n || 0).toLocaleString(); }
+function token() { return Math.random().toString(36).slice(2, 10); }
 
 async function channelInvite(interaction, players) {
     const id = token();
@@ -27,14 +24,8 @@ async function channelInvite(interaction, players) {
     let rejectedUser = null;
 
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`rob_join_${id}`)
-            .setLabel('Join Robbery')
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`rob_reject_${id}`)
-            .setLabel('Reject')
-            .setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId(`rob_join_${id}`).setLabel('Join Robbery').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`rob_reject_${id}`).setLabel('Reject').setStyle(ButtonStyle.Danger)
     );
 
     const message = await interaction.editReply({
@@ -70,9 +61,8 @@ async function channelInvite(interaction, players) {
             accepted.add(player.id);
             await component.reply({ content: '✅ You joined the robbery crew.', ephemeral: true }).catch(() => {});
 
-            if (accepted.size === players.length) {
-                collector.stop('accepted');
-            } else {
+            if (accepted.size === players.length) collector.stop('accepted');
+            else {
                 await interaction.editReply({
                     content: `🚨 **BANK ROBBERY CREW**\n\n${players.slice(1).map(p => `• <@${p.id}> — ${accepted.has(p.id) ? '✅ Joined' : '⏳ Waiting'}`).join('\n')}\n\nWaiting for the remaining crew members...`,
                     components: [row]
@@ -82,17 +72,8 @@ async function channelInvite(interaction, players) {
 
         collector.on('end', async (_collected, reason) => {
             await interaction.editReply({ components: [] }).catch(() => {});
-
-            if (rejectedUser) {
-                resolve({ ok: false, reason: 'rejected', user: rejectedUser });
-                return;
-            }
-
-            if (reason === 'accepted' || accepted.size === players.length) {
-                resolve({ ok: true });
-                return;
-            }
-
+            if (rejectedUser) return resolve({ ok: false, reason: 'rejected', user: rejectedUser });
+            if (reason === 'accepted' || accepted.size === players.length) return resolve({ ok: true });
             resolve({ ok: false, reason: 'timeout' });
         });
     });
@@ -116,7 +97,6 @@ export default {
     async execute(interaction, config, client) {
         const target = interaction.options.getUser('target', true);
         const selected = [interaction.user];
-
         for (let i = 1; i <= 9; i += 1) {
             const user = interaction.options.getUser(`player${i}`);
             if (user) selected.push(user);
@@ -127,22 +107,17 @@ export default {
         if (target.id === interaction.user.id || target.bot) {
             return interaction.reply({ content: '❌ You cannot rob yourself or a bot.', ephemeral: true });
         }
-
         if (players.some(player => player.id === target.id)) {
             return interaction.reply({ content: '❌ The robbery target cannot be part of the crew.', ephemeral: true });
         }
-
         if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
             return interaction.reply({ content: '❌ A robbery crew must have **2–10 players**.', ephemeral: true });
         }
 
         await interaction.deferReply();
-
         const invite = await channelInvite(interaction, players);
         if (!invite.ok) {
-            if (invite.reason === 'rejected') {
-                return interaction.editReply(`❌ <@${invite.user.id}> rejected the robbery. **Robbery cancelled.**`);
-            }
+            if (invite.reason === 'rejected') return interaction.editReply(`❌ <@${invite.user.id}> rejected the robbery. **Robbery cancelled.**`);
             return interaction.editReply('⏰ Not everyone joined within 60 seconds. **Robbery cancelled.**');
         }
 
@@ -150,9 +125,7 @@ export default {
         const targetData = await getEconomyData(client, guildId, target.id);
         const targetWallet = Number(targetData.wallet || 0);
 
-        if (targetWallet <= 0) {
-            return interaction.editReply(`❌ <@${target.id}> has no Souls in their wallet to rob.`);
-        }
+        if (targetWallet <= 0) return interaction.editReply(`❌ <@${target.id}> has no Souls in their wallet to rob.`);
 
         const protectionExpiry = Number(targetData.bankProtectionExpiresAt || 0);
         if (protectionExpiry > Date.now()) {
@@ -160,15 +133,12 @@ export default {
             return interaction.editReply(`🛡️ **BANK PROTECTED!**\n\n<@${target.id}> has active Bank Protection for approximately **${remainingHours} more hour${remainingHours === 1 ? '' : 's'}**.\nNo Souls were stolen.`);
         }
 
-        const success = Math.random() < SUCCESS_RATE;
-        if (!success) {
-            return interaction.editReply(`🚔 **ROBBERY FAILED!**\n\nThe police caught the crew. **40% success / 60% police catch.**\nNo Souls were stolen.`);
+        if (Math.random() >= SUCCESS_RATE) {
+            return interaction.editReply('🚔 **ROBBERY FAILED!**\n\nThe police caught the crew. **40% success / 60% police catch.**\nNo Souls were stolen.');
         }
 
         const maxLoot = Math.floor(targetWallet * MAX_STEAL_RATE);
-        if (maxLoot <= 0) {
-            return interaction.editReply(`❌ <@${target.id}> does not have enough Souls for a successful robbery.`);
-        }
+        if (maxLoot <= 0) return interaction.editReply(`❌ <@${target.id}> does not have enough Souls for a successful robbery.`);
 
         const loot = Math.max(1, Math.floor(Math.random() * maxLoot) + 1);
         const share = Math.floor(loot / players.length);
@@ -177,10 +147,13 @@ export default {
         targetData.wallet = Math.max(0, targetWallet - loot);
         await setEconomyData(client, guildId, target.id, targetData);
 
+        const shardWinners = [];
         for (const player of players) {
             const data = await getEconomyData(client, guildId, player.id);
             data.wallet = Number(data.wallet || 0) + share;
             await setEconomyData(client, guildId, player.id, data);
+
+            if (await tryAwardGameShard(client, guildId, player.id)) shardWinners.push(player);
         }
 
         if (remainder > 0) {
@@ -195,7 +168,8 @@ export default {
             `${SOULS} **${fmt(loot)} Souls** stolen.\n` +
             `Each of the **${players.length} crew members** receives **${fmt(share)} Souls**.\n` +
             `💰 Target had **${fmt(targetWallet)} Souls** → up to **80%** could be stolen.\n` +
-            `${TOTAL} Success chance: **40%** • Police catch chance: **60%**.`
+            `${TOTAL} Success chance: **40%** • Police catch chance: **60%**.` +
+            (shardWinners.length ? `\n${SHARD} **1 Shard bonus:** ${shardWinners.map(player => `<@${player.id}>`).join(', ')}` : '')
         );
     }
 };
