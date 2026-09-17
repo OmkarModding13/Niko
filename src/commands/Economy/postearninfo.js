@@ -44,10 +44,17 @@ function buildEarnInfoEmbed() {
             `> ${SHARD_EMOJI} Shards are intentionally **very rare**.\n\n` +
 
             '**💎 SHARDS — RARE CURRENCY**\n' +
-            `> ${SHARD_EMOJI} **1 Shard = 1,000 Souls worth of value**\n` +
+            `> ${SHARD_EMOJI} **1 Shard = 10,000 Souls worth of value**\n` +
             `> ${SHARD_EMOJI} Shards are mainly obtained through rare game rewards.\n` +
             '> ⚠️ Shards are not meant to be a common currency.\n' +
             '> ✨ Save them for rare upgrades and special perks.\n\n' +
+
+            '**📚 SOULS ECONOMY CHANNELS**\n' +
+            '> ☠️ **#How-to-Earn** → Learn how to earn Souls and Shards.\n' +
+            '> ☠️ **#Characters-Ability** → View Gacha Characters, rarities, abilities and character information.\n' +
+            '> ☠️ **#Game-and-Shop** → Play Niko\'s games and use the Shop to spend Souls and Shards.\n' +
+            '> ☠️ **#Niko-notifications** → Receive important Niko notifications when DMs cannot be delivered.\n' +
+            '> ☠️ **#Inventory** → View your Characters, Shards, boosts, tickets and other items.\n\n' +
 
             '**📈 KEEP EARNING**\n' +
             `> ${TOTAL_SOULS_EMOJI} Check your balance with **/balance**.\n` +
