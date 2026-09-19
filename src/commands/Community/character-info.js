@@ -46,9 +46,9 @@ const CHARACTER_LORE = {
         arrival: 'The Hollow Devil offered Eiris a path beyond the cycle she had been trying to escape. She entered the Domain to uncover the truth behind its endless darkness.'
     },
     Seraphne: {
-        title: 'The Verdant Witch',
-        story: 'Seraphne was once a keeper of forbidden magic, protecting ancient knowledge that others feared to understand. When her magic began consuming the world around her, she disappeared into the unknown.',
-        arrival: 'Her search for a place where forbidden magic could exist without destroying everything led her to the Domain. The Hollow Devil allowed her to stay, and Seraphne became one of its most mysterious inhabitants.'
+        title: 'The Serpent Witch',
+        story: 'Seraphne was born with a strange bond to serpents. As a child, snakes gathered around her without fear, and she could sense their thoughts as if they were whispers inside her own mind. She eventually learned that the bond came from an ancient serpent spirit sealed within her bloodline. The more she embraced its power, the more serpentine traits began to appear, changing her into something neither fully human nor fully beast.',
+        arrival: 'When hunters came for her after witnessing her serpent powers, Seraphne fled into the wilderness. The ancient serpent spirit led her toward a place where darkness felt strangely familiar—the Hollow Devil’s Domain. The Hollow Devil recognized the power inside her and offered her sanctuary. Seraphne entered the Domain, where she finally stopped hiding what she had become and accepted the serpent as part of herself.'
     },
     Lumira: {
         title: 'The Golden Light',
