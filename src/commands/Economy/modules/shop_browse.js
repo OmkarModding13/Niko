@@ -53,7 +53,22 @@ const ITEM_EMOJIS = {
 function getItemsForCategory(categoryId) {
     const category = CATEGORIES[categoryId];
     if (!category) return [];
-    return shopItems.filter(item => category.types.includes(item.type));
+
+    const items = shopItems.filter(item => category.types.includes(item.type));
+
+    if (categoryId === 'color_roles') {
+        return items.filter(item => item.id.endsWith('_7d'));
+    }
+
+    return items;
+}
+
+function getColorTierItems(baseItemId) {
+    if (!baseItemId?.startsWith('color_')) return [];
+    const base = baseItemId.replace(/_(7d|1m|6m|1y)$/, '');
+    return ['7d', '1m', '6m', '1y']
+        .map(tier => shopItems.find(item => item.id === `${base}_${tier}`))
+        .filter(Boolean);
 }
 
 function getDisplayName(item) {
@@ -160,6 +175,19 @@ function createItemMenu(categoryId, userData = null) {
 }
 
 function createPurchaseButtons(itemId) {
+    if (itemId?.startsWith('color_')) {
+        const tierItems = getColorTierItems(itemId);
+
+        return new ActionRowBuilder().addComponents(
+            ...tierItems.map(item =>
+                new ButtonBuilder()
+                    .setCustomId(`shop_purchase_${item.id}`)
+                    .setLabel(`${getDurationText(item)} • ${getPrice(item).toLocaleString()}`)
+                    .setStyle(ButtonStyle.Success)
+            )
+        );
+    }
+
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`shop_purchase_${itemId}`).setLabel('Purchase').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('shop_cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary)
@@ -224,7 +252,14 @@ export default {
                                 { name: 'Balance', value: `${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`, inline: true }
                             );
 
-                        if (item.effect?.type === 'temporary_color_role') embed.addFields({ name: 'Duration', value: getDurationText(item), inline: true });
+                        if (item.effect?.type === 'temporary_color_role') {
+                            const tierItems = getColorTierItems(item.id);
+                            embed.addFields({
+                                name: 'Available Durations',
+                                value: tierItems.map(tier => `${getDurationText(tier)} — ${SOULS_EMOJI} ${getPrice(tier).toLocaleString()} Souls`).join('\n'),
+                                inline: false
+                            });
+                        }
                         if (item.effect?.type === 'xp_boost') embed.addFields({ name: 'Duration', value: '24 Hours • 2× XP', inline: true });
                         if (item.effect?.type === 'bank_protection') {
                             const bonuses = getCharacterBonuses(userData);
@@ -275,7 +310,7 @@ export default {
                             return;
                         }
 
-                        const roleName = getDisplayName(item);
+                        const roleName = item.effect?.colorName || getDisplayName(item).replace(/\s*•\s*(7 Days|1 Month|6 Months|1 Year)$/i, '');
                         const role = interaction.guild.roles.cache.find(guildRole => guildRole.name.toLowerCase() === roleName.toLowerCase());
                         if (!role) {
                             await componentInteraction.reply({ content: `❌ The **${roleName}** role was not found in this server.`, flags: MessageFlags.Ephemeral });
