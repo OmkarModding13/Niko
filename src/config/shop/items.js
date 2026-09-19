@@ -282,7 +282,7 @@ export const shopItems = [
         duration: 365 * 24 * 60 * 60 * 1000,
         roleId: null,
         effect: { type: 'temporary_color_role', color: '#FFFF00', colorName: 'Yellow', tier: '1y' }
-    }
+    },
 
     // =========================
     // PERMANENT UPGRADES
