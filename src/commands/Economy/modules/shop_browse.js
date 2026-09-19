@@ -21,7 +21,7 @@ const CATEGORIES = {
     color_roles: {
         name: 'Color Roles',
         emoji: '🎨',
-        description: 'Temporary color roles for 7 days.',
+        description: 'Temporary color roles with 7-day, 1-month, 6-month and 1-year durations.',
         types: ['role']
     },
     upgrades: {
@@ -39,8 +39,14 @@ const CATEGORIES = {
 };
 
 const ITEM_EMOJIS = {
-    color_red: '🔴', color_pink: '🩷', color_purple: '🟣', color_cyan: '🩵',
-    color_black: '⚫', color_lime: '🟢', color_yellow: '🟡', bank_upgrade: '🏦',
+    color_red_7d: '🔴', color_red_1m: '🔴', color_red_6m: '🔴', color_red_1y: '🔴',
+    color_pink_7d: '🩷', color_pink_1m: '🩷', color_pink_6m: '🩷', color_pink_1y: '🩷',
+    color_purple_7d: '🟣', color_purple_1m: '🟣', color_purple_6m: '🟣', color_purple_1y: '🟣',
+    color_cyan_7d: '🩵', color_cyan_1m: '🩵', color_cyan_6m: '🩵', color_cyan_1y: '🩵',
+    color_black_7d: '⚫', color_black_1m: '⚫', color_black_6m: '⚫', color_black_1y: '⚫',
+    color_lime_7d: '🟢', color_lime_1m: '🟢', color_lime_6m: '🟢', color_lime_1y: '🟢',
+    color_yellow_7d: '🟡', color_yellow_1m: '🟡', color_yellow_6m: '🟡', color_yellow_1y: '🟡',
+    bank_upgrade: '🏦',
     xp_boost_24h: '⚡', bank_protection_24h: '🛡️'
 };
 
