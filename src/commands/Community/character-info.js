@@ -3,7 +3,7 @@ import { CHARACTER_CATALOG } from '../../services/gacha/characters.js';
 import { getColor } from '../../config/bot.js';
 
 const CHARACTER_INFO_CHANNEL_ID = '1550118678396149910';
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/OmkarModding13/Niko/main/assets/info';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/OmkarModding13/Niko/main/src/assets/Info';
 
 const CHARACTER_ORDER = [
     'Carmine',
