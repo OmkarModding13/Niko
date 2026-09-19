@@ -13,7 +13,7 @@ import { getColor } from '../../config/bot.js';
 
 const SPIN_COST = 1000;
 const TEN_SPIN_COST = 10000;
-const SHARD_CHANCE = 0.002;
+const SHARD_CHANCE = 0.01;
 
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
@@ -82,7 +82,7 @@ function createGameEmbed(userData) {
             SOULS_EMOJI + ' **1 Spin** — 1,000 Souls\n' +
             SOULS_EMOJI + ' **10 Spins** — 10,000 Souls\n\n' +
             '**Possible Outcome**\n' +
-            SHARD_EMOJI + ' **1–10 Shards** — Extremely Rare\n' +
+            SHARD_EMOJI + ' **1–10 Shards** — Rare\n' +
             '❌ **Better Luck Next Time** — Most spins'
         )
         .addFields(
@@ -97,7 +97,7 @@ function createGameEmbed(userData) {
                 inline: true
             }
         )
-        .setFooter({ text: 'Choose your spin below • Shards are extremely rare.' });
+        .setFooter({ text: 'Choose your spin below • 1% Shard chance per spin.' });
 }
 
 function createRewardEmbed(results, cost) {
@@ -129,7 +129,7 @@ function createRewardEmbed(results, cost) {
                 inline: true
             }
         )
-        .setFooter({ text: 'Better Luck Next Time • Shards are extremely rare.' });
+        .setFooter({ text: 'Better Luck Next Time • 1% Shard chance per spin.' });
 }
 
 export default {
@@ -223,8 +223,7 @@ export default {
 
         collector.on('end', async () => {
             try {
-                const disabledRow = createButtons(true);
-                await interaction.editReply({ components: [disabledRow] });
+                await interaction.editReply({ components: [createButtons(true)] });
             } catch {}
         });
     }
