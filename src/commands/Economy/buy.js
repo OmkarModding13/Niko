@@ -15,9 +15,14 @@ const SHOP_ITEMS = shopItems;
 const CURRENCY_EMOJI = '<:Souls:1547510037621112894>';
 
 const COLOR_ROLE_NAMES = {
-    color_red: 'Red', color_pink: 'Pink', color_purple: 'Purple', color_cyan: 'Cyan',
-    color_black: 'Black', color_lime: 'Lime', color_yellow: 'Yellow'
+    red: 'Red', pink: 'Pink', purple: 'Purple', cyan: 'Cyan',
+    black: 'Black', lime: 'Lime', yellow: 'Yellow'
 };
+
+function getColorRoleName(itemId) {
+    const match = itemId.match(/^color_(red|pink|purple|cyan|black|lime|yellow)_/);
+    return match ? COLOR_ROLE_NAMES[match[1]] : null;
+}
 
 export default {
     data: new SlashCommandBuilder()
@@ -52,10 +57,10 @@ export default {
         if (item.effect?.type === 'temporary_color_role') {
             if (quantity !== 1) throw createError('Invalid quantity', ErrorTypes.VALIDATION, 'You can only purchase one color role at a time.');
 
-            const price = 350;
+            const price = Number(item.price || 0);
             if (userData.wallet < price) throw createError('Insufficient funds', ErrorTypes.VALIDATION, `You need **${CURRENCY_EMOJI} ${price.toLocaleString()}** to buy **${item.name}**, but you only have **${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}**.`);
 
-            const roleName = COLOR_ROLE_NAMES[itemId];
+            const roleName = getColorRoleName(itemId);
             if (!roleName) throw createError('Color role configuration error', ErrorTypes.CONFIGURATION, 'This color role is not configured correctly.');
 
             const role = interaction.guild.roles.cache.find(guildRole => guildRole.name === roleName);
@@ -85,7 +90,7 @@ export default {
 
             const embed = successEmbed('🎨 Color Role Purchased', `You purchased the **${roleName}** color role for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
                 .addFields(
-                    { name: 'Duration', value: '7 Days', inline: true },
+                    { name: 'Duration', value: item.description.replace(/^Temporary .* color role for /, '').replace(/\.$/, ''), inline: true },
                     { name: 'Expires', value: `<t:${Math.floor(userData.activeColorRole.expiresAt / 1000)}:R>`, inline: true },
                     { name: 'New Balance', value: `${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}`, inline: true }
                 );
