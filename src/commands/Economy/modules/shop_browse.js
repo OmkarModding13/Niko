@@ -93,6 +93,12 @@ function getDurationText(item) {
 
     if (totalHours % 24 === 0) {
         const days = totalHours / 24;
+
+        if (days === 7) return '1 Week';
+        if (days === 30) return '1 Month';
+        if (days === 180) return '6 Months';
+        if (days === 365) return '1 Year';
+
         return days === 1 ? '1 Day' : `${days} Days`;
     }
 
