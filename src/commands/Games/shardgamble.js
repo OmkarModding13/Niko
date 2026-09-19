@@ -62,6 +62,7 @@ function createButtons(disabled = false) {
             .setEmoji(SOULS_BUTTON_EMOJI)
             .setStyle(ButtonStyle.Primary)
             .setDisabled(disabled),
+
         new ButtonBuilder()
             .setCustomId('shardgamble_10')
             .setLabel('10 Spins • 10,000 Souls')
@@ -71,8 +72,8 @@ function createButtons(disabled = false) {
     );
 }
 
-function createGameEmbed(userData, resultText = null) {
-    const embed = new EmbedBuilder()
+function createGameEmbed(userData) {
+    return new EmbedBuilder()
         .setTitle('💠 Shard Gamble')
         .setColor(getColor('primary'))
         .setDescription(
@@ -97,51 +98,38 @@ function createGameEmbed(userData, resultText = null) {
             }
         )
         .setFooter({ text: 'Choose your spin below • Shards are extremely rare.' });
-
-    if (resultText) {
-        embed.addFields({
-            name: '🎯 Spin Result',
-            value: resultText,
-            inline: false
-        });
-    }
-
-    return embed;
 }
 
-function createResultText(results) {
-    const won = results.filter(result => result.won);
-    const misses = results.length - won.length;
+function createRewardEmbed(results, cost) {
+    const rewardLines = results.map((result, index) => {
+        if (!result.won) {
+            return '**' + (index + 1) + '.** ❌ **Better Luck Next Time!**';
+        }
 
-    if (won.length === 0) {
-        return '❌ **Better Luck Next Time!**\nNo Shards were found.';
-    }
+        return '**' + (index + 1) + '.** ' +
+            SHARD_EMOJI + ' **+' + result.shards + ' Shard' +
+            (result.shards === 1 ? '' : 's') + '**';
+    });
 
-    const totalShards = won.reduce((sum, result) => sum + result.shards, 0);
+    const totalShards = results.reduce((sum, result) => sum + result.shards, 0);
 
-    const rewardLines = results
-        .map((result, index) => {
-            if (!result.won) {
-                return '❌ Spin ' + (index + 1) + ': Better Luck Next Time';
+    return new EmbedBuilder()
+        .setColor(totalShards > 0 ? 0x168BFF : 0x555555)
+        .setTitle(SHARD_EMOJI + ' Shard Gamble — Rewards')
+        .setDescription(rewardLines.join('\n'))
+        .addFields(
+            {
+                name: SOULS_EMOJI + ' Souls Spent',
+                value: '**' + cost.toLocaleString() + ' Souls**',
+                inline: true
+            },
+            {
+                name: SHARD_EMOJI + ' Shards Found',
+                value: '**+' + totalShards.toLocaleString() + ' Shards**',
+                inline: true
             }
-
-            return SHARD_EMOJI + ' Spin ' + (index + 1) + ': **+' + result.shards + ' Shards**';
-        })
-        .join('\n');
-
-    let text =
-        '🎉 **You found ' +
-        totalShards +
-        ' Shard' +
-        (totalShards === 1 ? '' : 's') +
-        '!**\n\n' +
-        rewardLines;
-
-    if (misses > 0 && results.length === 10) {
-        text += '\n\n' + SHARD_EMOJI + ' **Total Found: +' + totalShards + ' Shards**';
-    }
-
-    return text;
+        )
+        .setFooter({ text: 'Better Luck Next Time • Shards are extremely rare.' });
 }
 
 export default {
@@ -152,7 +140,7 @@ export default {
     async execute(interaction, config, client) {
         const userId = interaction.user.id;
         const guildId = interaction.guildId;
-        let userData = await getEconomyData(client, guildId, userId);
+        const userData = await getEconomyData(client, guildId, userId);
 
         const assetPath = join(process.cwd(), 'src', 'assets', 'shardgamble.png');
         const banner = new AttachmentBuilder(assetPath, { name: 'shardgamble.png' });
@@ -164,7 +152,10 @@ export default {
         });
 
         const message = await interaction.fetchReply();
-        const collector = message.createMessageComponentCollector({ time: 300000 });
+
+        const collector = message.createMessageComponentCollector({
+            time: 300000
+        });
 
         collector.on('collect', async componentInteraction => {
             try {
@@ -176,13 +167,15 @@ export default {
                     return;
                 }
 
+                await componentInteraction.deferUpdate();
+
                 const spins = componentInteraction.customId === 'shardgamble_10' ? 10 : 1;
                 const cost = spins === 10 ? TEN_SPIN_COST : SPIN_COST;
 
-                userData = await getEconomyData(client, guildId, userId);
+                const latestData = await getEconomyData(client, guildId, userId);
 
-                if (Number(userData.wallet || 0) < cost) {
-                    await componentInteraction.reply({
+                if (Number(latestData.wallet || 0) < cost) {
+                    await componentInteraction.followUp({
                         content:
                             '❌ You need ' +
                             SOULS_EMOJI +
@@ -191,26 +184,25 @@ export default {
                             ' Souls**, but you only have ' +
                             TOTAL_EMOJI +
                             ' **' +
-                            Number(userData.wallet || 0).toLocaleString() +
+                            Number(latestData.wallet || 0).toLocaleString() +
                             ' Souls**.',
                         flags: MessageFlags.Ephemeral
                     });
                     return;
                 }
 
-                userData.wallet = Number(userData.wallet || 0) - cost;
-                userData.shards = Number(userData.shards || 0);
+                latestData.wallet = Number(latestData.wallet || 0) - cost;
+                latestData.shards = Number(latestData.shards || 0);
 
                 const results = Array.from({ length: spins }, spinOnce);
                 const totalShards = results.reduce((sum, result) => sum + result.shards, 0);
 
-                userData.shards += totalShards;
+                latestData.shards += totalShards;
 
-                await setEconomyData(client, guildId, userId, userData);
+                await setEconomyData(client, guildId, userId, latestData);
 
-                await componentInteraction.update({
-                    embeds: [createGameEmbed(userData, createResultText(results))],
-                    components: [createButtons()]
+                await componentInteraction.followUp({
+                    embeds: [createRewardEmbed(results, cost)]
                 });
             } catch (error) {
                 console.error('[SHARD_GAMBLE] Component error:', error);
@@ -220,18 +212,19 @@ export default {
                         content: '❌ Something went wrong while processing the gamble.',
                         flags: MessageFlags.Ephemeral
                     }).catch(() => {});
+                } else {
+                    await componentInteraction.followUp({
+                        content: '❌ Something went wrong while processing the gamble.',
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
                 }
             }
         });
 
         collector.on('end', async () => {
             try {
-                const latestData = await getEconomyData(client, guildId, userId);
-
-                await message.edit({
-                    embeds: [createGameEmbed(latestData)],
-                    components: [createButtons(true)]
-                });
+                const disabledRow = createButtons(true);
+                await interaction.editReply({ components: [disabledRow] });
             } catch {}
         });
     }
