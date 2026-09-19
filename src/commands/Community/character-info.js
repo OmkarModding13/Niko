@@ -30,18 +30,18 @@ const RARITY_EMOJIS = {
 
 function createCharacterEmbed(character) {
     const imageFile = INFO_IMAGES[character.name];
-    const imageUrl = \`${GITHUB_RAW_BASE}/${encodeURIComponent(imageFile)}\`;
+    const imageUrl = `${GITHUB_RAW_BASE}/${encodeURIComponent(imageFile)}`;
 
     return new EmbedBuilder()
-        .setTitle(\`${RARITY_EMOJIS[character.stars] || ''} ${character.name}\`)
+        .setTitle(`${RARITY_EMOJIS[character.stars] || ''} ${character.name}`)
         .setColor(character.stars === 5 ? getColor('economy') : getColor('primary'))
         .addFields(
             {
                 name: '👤 Character Info',
                 value:
-                    \`**Name:** ${character.name}\\n\` +
-                    \`**Rarity:** ${character.stars}★\\n\` +
-                    \`**Class:** ${character.rarity}\`,
+                    `**Name:** ${character.name}\n` +
+                    `**Rarity:** ${character.stars}★\n` +
+                    `**Class:** ${character.rarity}`,
                 inline: false
             },
             {
@@ -73,7 +73,7 @@ export default {
 
         if (!channel?.isTextBased()) {
             await interaction.reply({
-                content: \`❌ Character info channel <#${CHARACTER_INFO_CHANNEL_ID}> could not be found or is not a text channel.\`,
+                content: `❌ Character info channel <#${CHARACTER_INFO_CHANNEL_ID}> could not be found or is not a text channel.`,
                 ephemeral: true
             });
             return;
@@ -96,7 +96,7 @@ export default {
         }
 
         await interaction.editReply({
-            content: \`✅ Posted **${posted} character info posts** in <#${CHARACTER_INFO_CHANNEL_ID}>.\`
+            content: `✅ Posted **${posted} character info posts** in <#${CHARACTER_INFO_CHANNEL_ID}>.`
         });
     }
 };
