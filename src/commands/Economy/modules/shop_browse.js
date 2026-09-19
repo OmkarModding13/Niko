@@ -63,8 +63,25 @@ function getPrice(item, userData = null) {
     return item.price || 0;
 }
 
+function getDurationText(item) {
+    const duration = Number(item.duration || 0);
+
+    if (!duration) return '';
+
+    const totalHours = Math.round(duration / (60 * 60 * 1000));
+
+    if (totalHours % 24 === 0) {
+        const days = totalHours / 24;
+        return days === 1 ? '1 Day' : `${days} Days`;
+    }
+
+    return totalHours === 1 ? '1 Hour' : `${totalHours} Hours`;
+}
+
 function getItemDescription(item) {
-    if (item.effect?.type === 'temporary_color_role') return 'Temporary color role for 7 days.';
+    if (item.effect?.type === 'temporary_color_role') {
+        return `Temporary color role for ${getDurationText(item)}.`;
+    }
     if (item.effect?.type === 'bank_capacity') return 'Increase your bank capacity by 50,000 Souls.';
     if (item.effect?.type === 'xp_boost') return 'Double XP earned for 24 hours.';
     if (item.effect?.type === 'bank_protection') return 'Protect your wallet from Bank Robbery for 24 hours. Character abilities can extend this duration.';
@@ -120,12 +137,19 @@ function createItemMenu(categoryId, userData = null) {
         new StringSelectMenuBuilder()
             .setCustomId('shop_item')
             .setPlaceholder('Select an item to purchase...')
-            .addOptions(items.map(item => ({
-                label: getDisplayName(item),
-                value: item.id,
-                description: `${getPrice(item, userData).toLocaleString()} Souls`,
-                emoji: ITEM_EMOJIS[item.id] || '🛍️'
-            })))
+            .addOptions(items.map(item => {
+                const priceText = `${getPrice(item, userData).toLocaleString()} Souls`;
+                const durationText = getDurationText(item);
+
+                return {
+                    label: getDisplayName(item),
+                    value: item.id,
+                    description: durationText
+                        ? `${priceText} • ${durationText}`
+                        : priceText,
+                    emoji: ITEM_EMOJIS[item.id] || '🛍️'
+                };
+            }))
     );
 }
 
@@ -194,7 +218,7 @@ export default {
                                 { name: 'Balance', value: `${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`, inline: true }
                             );
 
-                        if (item.effect?.type === 'temporary_color_role') embed.addFields({ name: 'Duration', value: '7 Days', inline: true });
+                        if (item.effect?.type === 'temporary_color_role') embed.addFields({ name: 'Duration', value: getDurationText(item), inline: true });
                         if (item.effect?.type === 'xp_boost') embed.addFields({ name: 'Duration', value: '24 Hours • 2× XP', inline: true });
                         if (item.effect?.type === 'bank_protection') {
                             const bonuses = getCharacterBonuses(userData);
@@ -262,7 +286,11 @@ export default {
                         }
 
                         userData.wallet -= price;
-                        userData.activeColorRole = { roleId: role.id, roleName: role.name, expiresAt: Date.now() + (7 * 24 * 60 * 60 * 1000) };
+                        userData.activeColorRole = {
+                            roleId: role.id,
+                            roleName: role.name,
+                            expiresAt: Date.now() + Number(item.duration || 0)
+                        };
                     } else if (item.effect?.type === 'bank_capacity') {
                         userData.wallet -= price;
                         userData.bankLevel = Number(userData.bankLevel || 0) + 1;
