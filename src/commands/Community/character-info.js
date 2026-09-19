@@ -26,34 +26,34 @@ const INFO_IMAGES = {
 
 const CHARACTER_LORE = {
     Carmine: {
-        title: 'The Crimson Temptation',
-        story: 'Carmine was once a noble soul who lost everything to betrayal. Her grief hardened into a crimson hunger, and she wandered until the Hollow Devil found her at the edge of the abyss.',
-        arrival: 'The Hollow Devil offered her a place where broken souls were not judged. Carmine entered the Domain willingly, choosing to turn her past into power rather than let it consume her.'
+        title: 'The Sweet Ruin',
+        story: 'Carmine was once touched by the light of Heaven, but eternity felt empty to her. She became fascinated by forbidden desires and slowly abandoned the purity expected of her. What began as curiosity became obsession, and her heavenly grace twisted into a beautiful ruin. She learned that the sweetest desires can become the most destructive sins.',
+        arrival: 'Carmine followed the whisper of forbidden desire until it led her to the gates of the Hollow Devil’s Domain. The Hollow Devil did not ask her to return to Heaven or hide what she had become. Instead, the Domain gave her a place where desire could exist without chains. Carmine entered willingly and made the darkness her new sanctuary.'
     },
     Valeris: {
-        title: 'The Fallen Crown',
-        story: 'Valeris was once a feared ruler who built her kingdom through strength and absolute resolve. When her empire fell, she remained alone among its ruins, refusing to surrender her will.',
-        arrival: 'The Hollow Devil witnessed her final stand and opened the gates of the Domain. Valeris accepted the invitation, seeing the Domain as a new kingdom where her ambition could survive.'
+        title: 'The Tempting Void',
+        story: 'Valeris was drawn to the Void not because she feared it, but because she wanted to understand what existed beyond it. Every step into the darkness revealed another desire, another secret, and another reason to continue. Eventually, the Void stopped feeling empty and began calling to her like a promise she could never ignore.',
+        arrival: 'The Hollow Devil found Valeris standing at the edge of the Void, already knowing there was no reason to turn back. The gates of the Domain opened before her, and she stepped through without hesitation. From that moment on, Valeris belonged to the darkness beyond the Void—and anyone who follows her may find it impossible to return.'
     },
     Niko: {
-        title: 'The Silent Wanderer',
-        story: 'Niko appeared without a past, carrying only fragments of memories and an instinctive connection to the strange energy surrounding the abyss. No one knows exactly where Niko came from.',
-        arrival: 'A strange pull led Niko to the gates of the Hollow Devil’s Domain. Instead of turning away, Niko stepped inside and became one of its mysterious inhabitants.'
+        title: 'The Fallen Beauty',
+        story: 'Niko was once seen as something almost angelic—beautiful, distant, and untouched by darkness. But even the purest light can fall. Niko eventually discovered that the abyss did not destroy beauty; it transformed it. Instead of fearing the darkness, Niko embraced it and found a strange sense of belonging within it.',
+        arrival: 'Niko entered the Hollow Devil’s Domain after choosing the abyss over the world that expected perfection. The Domain became a place where falling was not a weakness and darkness did not erase beauty. Niko remained there by choice, believing that some souls are meant to shine from the shadows.'
     },
     Eiris: {
-        title: 'The Eternal Reign',
-        story: 'Eiris spent centuries searching for a way to escape the limits of ordinary existence. Her search eventually brought her face-to-face with forces beyond the mortal world.',
-        arrival: 'The Hollow Devil offered Eiris a path beyond the cycle she had been trying to escape. She entered the Domain to uncover the truth behind its endless darkness.'
+        title: 'The Eternal Requiem',
+        story: 'Eiris became obsessed with the idea that beauty should never truly disappear. She watched people, memories, and entire eras fade away, and she refused to accept that everything beautiful must eventually be forgotten. Her search led her toward forbidden powers that could preserve an echo long after the original was gone.',
+        arrival: 'The Hollow Devil’s Domain reached Eiris through a voice that promised her one thing: she would be remembered. She crossed into the Domain and discovered a place where the dead, the forgotten, and the eternal could leave their mark. Eiris stayed, becoming a quiet presence whose voice lingers long after others have gone.'
     },
     Seraphne: {
-        title: 'The Serpent Witch',
-        story: 'Seraphne was born with a strange bond to serpents. As a child, snakes gathered around her without fear, and she could sense their thoughts as if they were whispers inside her own mind. She eventually learned that the bond came from an ancient serpent spirit sealed within her bloodline. The more she embraced its power, the more serpentine traits began to appear, changing her into something neither fully human nor fully beast.',
-        arrival: 'When hunters came for her after witnessing her serpent powers, Seraphne fled into the wilderness. The ancient serpent spirit led her toward a place where darkness felt strangely familiar—the Hollow Devil’s Domain. The Hollow Devil recognized the power inside her and offered her sanctuary. Seraphne entered the Domain, where she finally stopped hiding what she had become and accepted the serpent as part of herself.'
+        title: 'The Toxic Grace',
+        story: 'Seraphne was born with an unnatural connection to serpents. Snakes gathered around her from childhood, responding to her as if she were one of their own. Hidden within her bloodline was an ancient serpent spirit whose power slowly awakened inside her. Its venom changed her magic, her nature, and eventually the way others saw her. She became beautiful, graceful, and dangerously poisonous.',
+        arrival: 'When people began to fear the serpent power within Seraphne, she was driven away from the world she once knew. The ancient serpent spirit guided her toward the Hollow Devil’s Domain, where darkness welcomed what the outside world rejected. Seraphne entered the Domain and accepted the serpent within her, becoming its living embodiment of toxic grace.'
     },
     Lumira: {
-        title: 'The Golden Light',
-        story: 'Lumira carried a light that never seemed to fade, even when surrounded by darkness. She spent her life searching for a place where that light could coexist with the shadows within her.',
-        arrival: 'Lumira discovered the Hollow Devil’s Domain and found that its darkness did not extinguish her light. She entered to discover why the two forces seemed strangely connected.'
+        title: 'The Guiding Sin',
+        story: 'Lumira carried a radiant light that could guide others through even the darkest places. But her light came with a strange curse: whenever someone she cared about was lost, she could feel their presence calling from the shadows. Instead of abandoning them, Lumira began walking into the darkness herself, determined to find those who could no longer find their way back.',
+        arrival: 'Her search eventually brought Lumira to the Hollow Devil’s Domain. She entered its darkness believing that even the deepest abyss could contain someone worth saving. The Hollow Devil allowed her to remain, and Lumira became a guide between light and shadow—following lost souls wherever they disappear.'
     }
 };
 
