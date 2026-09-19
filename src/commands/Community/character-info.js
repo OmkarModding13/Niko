@@ -72,14 +72,14 @@ function createCharacterPost(character) {
         .setImage(imageUrl);
 
     const infoEmbed = new EmbedBuilder()
-        .setTitle(`${RARITY_EMOJIS[character.stars] || ''} ${character.name}`)
+        
         .setColor(character.stars === 5 ? getColor('economy') : getColor('primary'))
         .addFields(
             {
                 name: '👤 Character Info',
                 value:
                     `**Name:** ${character.name}\n` +
-                    `**Rarity:** ${character.stars}★\n` +
+                    `**Rarity:** ${RARITY_EMOJIS[character.stars] || `${character.stars}★`}\n` +
                     `**Class:** ${character.rarity}\n` +
                     `**Title:** ${lore?.title || 'Unknown'}`,
                 inline: false
