@@ -363,7 +363,21 @@ export default {
                         return;
                     }
 
-                    await setEconomyData(client, guildId, userId, userData);
+                    const saved = await setEconomyData(client, guildId, userId, userData);
+                    if (!saved) {
+                        if (item.effect?.type === 'temporary_color_role') {
+                            const member = await interaction.guild.members.fetch(userId).catch(() => null);
+                            const role = member?.roles?.cache?.get(item.effect?.roleId);
+                            if (role) {
+                                await member.roles.remove(role, 'Rolling back failed shop purchase').catch(() => {});
+                            }
+                        }
+                        await componentInteraction.reply({
+                            content: '❌ Your purchase could not be saved safely. No purchase was confirmed. Please try again.',
+                            flags: MessageFlags.Ephemeral
+                        }).catch(() => {});
+                        return;
+                    }
                     selectedItemId = null;
 
                     await componentInteraction.update({
