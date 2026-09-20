@@ -17,8 +17,9 @@ export default {
             .setTitle('🎮 NIKO GAMES')
             .setDescription(
                 `Enter games using ${SOULS_EMOJI} **Souls**. Some games can also award ${SHARD_EMOJI} **Shards**.\n\n` +
-                `**${TOTAL_SOULS_EMOJI} ENTRY FEES**\n` +
-                `Every solo game has its own entry fee. The fee is deducted when you play.\n` +
+                `**${TOTAL_SOULS_EMOJI} HOW GAME FEES WORK**\n` +
+                `**ENTRY** = Souls removed when you start the game.\n` +
+                `**WIN** = maximum Souls payout you can receive. The entry fee is separate.\n` +
                 `${SHARD_EMOJI} **Every winning game has a 1% base chance to drop 1 Shard.** Character luck can increase this chance.\n\n` +
                 '**🌱 SOLO GAMES**'
             )
@@ -39,18 +40,18 @@ export default {
                     inline: false
                 },
                 {
-                    name: '⚔️ /soulflip — 50 Souls',
-                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **150 Souls**.`,
+                    name: '⚔️ /soulflip',
+                    value: `**Entry:** ${SOULS_EMOJI} **50 Souls**\n${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • **Win up to 150 Souls**.,
                     inline: false
                 },
                 {
                     name: '🎲 /diceduel',
-                    value: `**Entry:** ${SOULS_EMOJI} **100 Souls**\nRoll against Niko • **Win up to 300 Souls**.,
+                    value: `**Entry:** ${SOULS_EMOJI} **100 Souls**\nRoll against Niko • **Win up to 300 Souls**.`,
                     inline: false
                 },
                 {
                     name: '🎰 /soulslots',
-                    value: `**Entry:** ${SOULS_EMOJI} **150 Souls**\nSpin the Soul Slots • **Win up to 450 Souls**.,
+                    value: `**Entry:** ${SOULS_EMOJI} **150 Souls**\nSpin the Soul Slots • **Win up to 450 Souls**.`,
                     inline: false
                 },
                 {
@@ -99,8 +100,8 @@ export default {
                     inline: false
                 },
                 {
-                    name: `${SOULS_EMOJI} POSSIBLE SOLO REWARDS`,
-                    value: 'Common Souls • Double Souls • Extra Souls • 1 Shard • Better Luck Next Time',
+                    name: `${SHARD_EMOJI} SOLO REWARD TYPES`,
+                    value: 'Common → Souls payout • Double → 2× entry payout • Extra → 3× entry payout • Rare → 1 Shard • Loss → no payout',
                     inline: false
                 },
                 {
