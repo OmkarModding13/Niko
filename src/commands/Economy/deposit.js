@@ -19,7 +19,7 @@ export default {
 
     execute: withErrorHandling(async (interaction, config, client) => {
         if (!isInventoryChannel(interaction.channel)) {
-            return interaction.reply({ content: '❌ Please use **/deposit** in the **『Inventory』** channel.', ephemeral: true });
+            return interaction.reply({ content: '❌ Please use **/deposit** in the <#1550120893982703616> channel.', ephemeral: true });
         }
 
         const deferred = await InteractionHelper.safeDefer(interaction);
