@@ -20,7 +20,7 @@ import { botConfig } from '../../config/bot.js';
 import { getCharacterBonuses } from '../../services/gacha/characters.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
-const DAILY_AMOUNT = 25;
+const DAILY_AMOUNT = Number(botConfig?.economy?.dailyAmount ?? 25);
 const PREMIUM_BONUS_PERCENTAGE = 0.1;
 
 export default {
