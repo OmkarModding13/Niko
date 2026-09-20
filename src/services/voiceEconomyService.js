@@ -35,19 +35,32 @@ export async function checkVoiceEconomy(client) {
 
                     if (!userData) continue;
 
-                    const lastVoiceReward =
-                        userData.lastVoiceReward || 0;
+                    // Track only eligible voice time. This prevents a user
+                    // from earning instantly after a bot restart or after
+                    // staying self-muted/deafened for a long period.
+                    const eligibleSince = Number(userData.voiceEligibleSince || 0);
 
-                    // 15-minute cooldown
-                    if (now - lastVoiceReward < VOICE_INTERVAL) {
+                    if (member.voice.selfMute || member.voice.selfDeaf) {
+                        userData.voiceEligibleSince = now;
+                        await setEconomyData(client, guildId, userId, userData);
                         continue;
                     }
 
-                    // Give 1 Soul
+                    if (!eligibleSince) {
+                        userData.voiceEligibleSince = now;
+                        await setEconomyData(client, guildId, userId, userData);
+                        continue;
+                    }
+
+                    if (now - eligibleSince < VOICE_INTERVAL) {
+                        continue;
+                    }
+
+                    // Give 1 Soul for each completed 15-minute eligible interval.
                     userData.wallet =
                         (userData.wallet || 0) + VOICE_REWARD;
-
                     userData.lastVoiceReward = now;
+                    userData.voiceEligibleSince = now;
 
                     await setEconomyData(
                         client,
