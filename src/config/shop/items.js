@@ -5,9 +5,9 @@ export const shopItems = [
 
     {
         id: 'color_red_7d',
-        name: '🔴 Red • 7 Days',
+        name: '🔴 Red • Week',
         price: 350,
-        description: 'Temporary Red color role for 7 Days.',
+        description: 'Temporary Red color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -25,7 +25,7 @@ export const shopItems = [
     },
     {
         id: 'color_red_6m',
-        name: '🔴 Red • 6 Months',
+        name: '🔴 Red • 6 Month',
         price: 9000,
         description: 'Temporary Red color role for 6 Months.',
         type: 'role',
@@ -45,9 +45,9 @@ export const shopItems = [
     },
     {
         id: 'color_pink_7d',
-        name: '🩷 Pink • 7 Days',
+        name: '🩷 Pink • Week',
         price: 350,
-        description: 'Temporary Pink color role for 7 Days.',
+        description: 'Temporary Pink color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -65,7 +65,7 @@ export const shopItems = [
     },
     {
         id: 'color_pink_6m',
-        name: '🩷 Pink • 6 Months',
+        name: '🩷 Pink • 6 Month',
         price: 9000,
         description: 'Temporary Pink color role for 6 Months.',
         type: 'role',
@@ -85,9 +85,9 @@ export const shopItems = [
     },
     {
         id: 'color_purple_7d',
-        name: '🟣 Purple • 7 Days',
+        name: '🟣 Purple • Week',
         price: 350,
-        description: 'Temporary Purple color role for 7 Days.',
+        description: 'Temporary Purple color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -105,7 +105,7 @@ export const shopItems = [
     },
     {
         id: 'color_purple_6m',
-        name: '🟣 Purple • 6 Months',
+        name: '🟣 Purple • 6 Month',
         price: 9000,
         description: 'Temporary Purple color role for 6 Months.',
         type: 'role',
@@ -125,9 +125,9 @@ export const shopItems = [
     },
     {
         id: 'color_cyan_7d',
-        name: '🩵 Cyan • 7 Days',
+        name: '🩵 Cyan • Week',
         price: 350,
-        description: 'Temporary Cyan color role for 7 Days.',
+        description: 'Temporary Cyan color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -145,7 +145,7 @@ export const shopItems = [
     },
     {
         id: 'color_cyan_6m',
-        name: '🩵 Cyan • 6 Months',
+        name: '🩵 Cyan • 6 Month',
         price: 9000,
         description: 'Temporary Cyan color role for 6 Months.',
         type: 'role',
@@ -165,9 +165,9 @@ export const shopItems = [
     },
     {
         id: 'color_black_7d',
-        name: '⚫ Black • 7 Days',
+        name: '⚫ Black • Week',
         price: 350,
-        description: 'Temporary Black color role for 7 Days.',
+        description: 'Temporary Black color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -185,7 +185,7 @@ export const shopItems = [
     },
     {
         id: 'color_black_6m',
-        name: '⚫ Black • 6 Months',
+        name: '⚫ Black • 6 Month',
         price: 9000,
         description: 'Temporary Black color role for 6 Months.',
         type: 'role',
@@ -205,9 +205,9 @@ export const shopItems = [
     },
     {
         id: 'color_lime_7d',
-        name: '🟢 Lime • 7 Days',
+        name: '🟢 Lime • Week',
         price: 350,
-        description: 'Temporary Lime color role for 7 Days.',
+        description: 'Temporary Lime color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -225,7 +225,7 @@ export const shopItems = [
     },
     {
         id: 'color_lime_6m',
-        name: '🟢 Lime • 6 Months',
+        name: '🟢 Lime • 6 Month',
         price: 9000,
         description: 'Temporary Lime color role for 6 Months.',
         type: 'role',
@@ -245,9 +245,9 @@ export const shopItems = [
     },
     {
         id: 'color_yellow_7d',
-        name: '🟡 Yellow • 7 Days',
+        name: '🟡 Yellow • Week',
         price: 350,
-        description: 'Temporary Yellow color role for 7 Days.',
+        description: 'Temporary Yellow color role for 1 Week.',
         type: 'role',
         duration: 7 * 24 * 60 * 60 * 1000,
         roleId: null,
@@ -265,7 +265,7 @@ export const shopItems = [
     },
     {
         id: 'color_yellow_6m',
-        name: '🟡 Yellow • 6 Months',
+        name: '🟡 Yellow • 6 Month',
         price: 9000,
         description: 'Temporary Yellow color role for 6 Months.',
         type: 'role',
