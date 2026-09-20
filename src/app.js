@@ -24,7 +24,8 @@ import {
 
 import {
     loadCommands,
-    registerCommands as registerSlashCommands
+    registerCommands as registerSlashCommands,
+    registerGuildCommands
 } from './handlers/loaders/commandLoader.js';
 
 import {
@@ -214,6 +215,16 @@ class TitanBot extends Client {
             );
 
             await this.registerCommands();
+
+            // Also register directly to every current guild so command updates,
+            // visibility permissions, and channel-routing changes are immediate.
+            for (const guild of this.guilds.cache.values()) {
+                try {
+                    await registerGuildCommands(this, guild.id);
+                } catch (error) {
+                    logger.error(`Failed to register guild commands for ${guild.id}:`, error);
+                }
+            }
 
             startupLog(
                 'Slash commands registration complete'
