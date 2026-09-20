@@ -5,7 +5,7 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const SLUT_COOLDOWN = 45 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';\nconst SLUT_COOLDOWN = 45 * 60 * 1000;
 
 const SLUT_ACTIVITIES = [
     { name: "Cam Stream", min: 120, max: 450, risk: 0.2 },
@@ -104,7 +104,7 @@ function resolveOutcome(activity, wallet) {
 export default {
     data: new SlashCommandBuilder()
         .setName('slut')
-        .setDescription('Take a risky provocative job for random payout or loss'),
+        .setDescription('Take a risky provocative job for random Souls payout or loss'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -166,14 +166,14 @@ export default {
                 timestamp: new Date().toISOString()
             });
 
-            const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}$${Math.abs(outcome.delta).toLocaleString()}`;
+            const amountLabel = `${outcome.delta >= 0 ? '+' : '-'}${SOULS} ${Math.abs(outcome.delta).toLocaleString()} Souls`;
             const summaryLines = [
                 `${outcome.message}`,
                 `💸 **Net Result:** ${amountLabel}`,
-                `💳 **Current Balance:** $${userData.wallet.toLocaleString()}`,
+                `💳 **Current Souls Balance:** ${SOULS} ${userData.wallet.toLocaleString()} Souls`,
                 `📊 **Total Sessions:** ${userData.totalSluts}`,
-                `💵 **Total Earned:** $${(userData.totalSlutEarnings || 0).toLocaleString()}`,
-                `🧾 **Total Lost:** $${(userData.totalSlutLosses || 0).toLocaleString()}`
+                `💵 **Total Earned:** ${SOULS} ${(userData.totalSlutEarnings || 0).toLocaleString()} Souls`,
+                `🧾 **Total Lost:** ${SOULS} ${(userData.totalSlutLosses || 0).toLocaleString()} Souls`
             ];
 
             const embed = createEmbed({
