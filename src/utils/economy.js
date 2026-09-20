@@ -75,6 +75,14 @@ export async function getEconomyData(client, guildId, userId) {
             throw new Error('Database not available');
         }
 
+        // Economy data must never be served from the in-memory fallback.
+        // A fallback account can disappear on restart and could make a user
+        // appear to have a fresh balance. Keep economy read-only/unavailable
+        // until persistent PostgreSQL storage is healthy again.
+        if (typeof client.db.isDegraded === 'function' && client.db.isDegraded()) {
+            throw new Error('Persistent economy database unavailable');
+        }
+
         const key =
             getEconomyKey(guildId, userId);
 
@@ -116,6 +124,10 @@ export async function setEconomyData(
             throw new Error('Database not available');
         }
 
+        if (typeof client.db.isDegraded === 'function' && client.db.isDegraded()) {
+            throw new Error('Persistent economy database unavailable');
+        }
+
         const key =
             getEconomyKey(guildId, userId);
 
@@ -125,10 +137,14 @@ export async function setEconomyData(
                 DEFAULT_ECONOMY_DATA
             );
 
-        await client.db.set(
+        const saved = await client.db.set(
             key,
             normalized
         );
+
+        if (!saved) {
+            throw new Error('Database rejected economy save');
+        }
 
         return true;
 
@@ -154,6 +170,15 @@ export async function updateBalance(
             guildId,
             userId
         );
+
+    if (!data) {
+        throw createError(
+            'Economy data unavailable',
+            ErrorTypes.DATABASE,
+            'Your economy data could not be loaded. Please try again later.',
+            { guildId, userId }
+        );
+    }
 
     if (options.wallet !== undefined) {
         data.wallet =
@@ -207,12 +232,21 @@ export async function updateBalance(
         }
     }
 
-    await setEconomyData(
+    const saved = await setEconomyData(
         client,
         guildId,
         userId,
         data
     );
+
+    if (!saved) {
+        throw createError(
+            'Economy save failed',
+            ErrorTypes.DATABASE,
+            'Your economy change could not be saved safely. Please try again.',
+            { guildId, userId }
+        );
+    }
 
     return data;
 }
