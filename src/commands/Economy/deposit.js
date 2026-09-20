@@ -6,18 +6,22 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 
+function isInventoryChannel(channel) {
+    if (!channel?.name) return false;
+    return channel.name.toLowerCase().replace(/[^a-z0-9]/g, '') === 'inventory';
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('deposit')
         .setDescription('Deposit Souls from your wallet into your Soul Bank')
-        .addStringOption(option =>
-            option
-                .setName('amount')
-                .setDescription('Amount of Souls to deposit, or "all"')
-                .setRequired(true)
-        ),
+        .addStringOption(option => option.setName('amount').setDescription('Amount of Souls to deposit, or "all"').setRequired(true)),
 
     execute: withErrorHandling(async (interaction, config, client) => {
+        if (!isInventoryChannel(interaction.channel)) {
+            return interaction.reply({ content: '❌ Please use **/deposit** in the **『Inventory』** channel.', ephemeral: true });
+        }
+
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
@@ -27,103 +31,46 @@ export default {
         const userData = await getEconomyData(client, guildId, userId);
 
         if (!userData) {
-            throw createError(
-                'Failed to load economy data',
-                ErrorTypes.DATABASE,
-                'Failed to load your economy data. Please try again later.',
-                { userId, guildId }
-            );
+            throw createError('Failed to load economy data', ErrorTypes.DATABASE, 'Failed to load your economy data. Please try again later.', { userId, guildId });
         }
 
         const maxBank = getMaxBankCapacity(userData);
-        let depositAmount;
+        let depositAmount = amountInput.toLowerCase() === 'all' ? Number(userData.wallet || 0) : parseInt(amountInput, 10);
 
-        if (amountInput.toLowerCase() === 'all') {
-            depositAmount = Number(userData.wallet || 0);
-        } else {
-            depositAmount = parseInt(amountInput, 10);
-            if (isNaN(depositAmount) || depositAmount <= 0) {
-                throw createError(
-                    'Invalid deposit amount',
-                    ErrorTypes.VALIDATION,
-                    `Please enter a valid Souls amount or **all**.`,
-                    { amountInput, userId }
-                );
-            }
+        if (amountInput.toLowerCase() !== 'all' && (isNaN(depositAmount) || depositAmount <= 0)) {
+            throw createError('Invalid deposit amount', ErrorTypes.VALIDATION, 'Please enter a valid Souls amount or **all**.', { amountInput, userId });
         }
 
         if (depositAmount <= 0 || userData.wallet <= 0) {
-            throw createError(
-                'Zero deposit amount',
-                ErrorTypes.VALIDATION,
-                `You don't have any ${SOULS_EMOJI} **Souls** in your wallet to deposit.`,
-                { userId, walletBalance: userData.wallet }
-            );
+            throw createError('Zero deposit amount', ErrorTypes.VALIDATION, `You don't have any ${SOULS_EMOJI} **Souls** in your wallet to deposit.`, { userId, walletBalance: userData.wallet });
         }
 
         if (depositAmount > userData.wallet) {
             depositAmount = userData.wallet;
-            await interaction.followUp({
-                embeds: [
-                    buildUserErrorEmbed(
-                        'validation',
-                        `You tried to deposit more than you have. Depositing your remaining **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls**.`
-                    )
-                ],
-                flags: MessageFlags.Ephemeral,
-            });
+            await interaction.followUp({ embeds: [buildUserErrorEmbed('validation', `You tried to deposit more than you have. Depositing your remaining **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls**.`)], flags: MessageFlags.Ephemeral });
         }
 
         const availableSpace = maxBank - userData.bank;
         if (availableSpace <= 0) {
-            throw createError(
-                'Bank is full',
-                ErrorTypes.VALIDATION,
-                `Your Soul Bank is full (**${maxBank.toLocaleString()} Souls**). Purchase a **Bank Upgrade** to increase your capacity.`,
-                { maxBank, currentBank: userData.bank, userId }
-            );
+            throw createError('Bank is full', ErrorTypes.VALIDATION, `Your Soul Bank is full (**${maxBank.toLocaleString()} Souls**). Purchase a **Bank Upgrade** to increase your capacity.`, { maxBank, currentBank: userData.bank, userId });
         }
 
         if (depositAmount > availableSpace) {
             depositAmount = availableSpace;
-            await interaction.followUp({
-                embeds: [
-                    buildUserErrorEmbed(
-                        'validation',
-                        `Your bank only has space for **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls**. The rest remains in your wallet.`
-                    )
-                ],
-                flags: MessageFlags.Ephemeral,
-            });
+            await interaction.followUp({ embeds: [buildUserErrorEmbed('validation', `Your bank only has space for **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls**. The rest remains in your wallet.`)], flags: MessageFlags.Ephemeral });
         }
 
         if (depositAmount <= 0) {
-            throw createError(
-                'No deposit space',
-                ErrorTypes.VALIDATION,
-                'There is no available bank space for this deposit.',
-                { depositAmount, availableSpace, userId }
-            );
+            throw createError('No deposit space', ErrorTypes.VALIDATION, 'There is no available bank space for this deposit.', { depositAmount, availableSpace, userId });
         }
 
         userData.wallet -= depositAmount;
         userData.bank += depositAmount;
         await setEconomyData(client, guildId, userId, userData);
 
-        const embed = successEmbed(
-            'Deposit Successful',
-            `You deposited **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls** into your Soul Bank.`
-        ).addFields(
-            {
-                name: `${SOULS_EMOJI} Wallet`,
-                value: `${userData.wallet.toLocaleString()} Souls`,
-                inline: true,
-            },
-            {
-                name: '🏦 Soul Bank',
-                value: `${userData.bank.toLocaleString()} / ${maxBank.toLocaleString()} Souls`,
-                inline: true,
-            }
+        const embed = successEmbed('Deposit Successful', `You deposited **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls** into your Soul Bank.`).addFields(
+            { name: `${SOULS_EMOJI} Wallet`, value: `${userData.wallet.toLocaleString()} Souls`, inline: true },
+            { name: '🏦 Soul Bank', value: `${userData.bank.toLocaleString()} / ${maxBank.toLocaleString()} Souls`, inline: true }
         );
 
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
