@@ -99,10 +99,9 @@ export async function getEconomyData(client, guildId, userId) {
             error
         );
 
-        return normalizeEconomyData(
-            {},
-            DEFAULT_ECONOMY_DATA
-        );
+        // Do not silently return a fresh default account on a database
+        // failure. That can make callers overwrite real balances with zero.
+        return null;
     }
 }
 
