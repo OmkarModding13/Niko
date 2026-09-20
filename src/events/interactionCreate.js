@@ -177,7 +177,7 @@ export default {
 
                 await interaction.reply({
                   content:
-                    `❌ Please use `/${interaction.commandName}` in the **${channelLabel}** channel: <#${requiredChannelId}>.`,
+                    `❌ Please use /${interaction.commandName} in the **${channelLabel}** channel: <#${requiredChannelId}>.`,
                   flags: MessageFlags.Ephemeral
                 });
 
