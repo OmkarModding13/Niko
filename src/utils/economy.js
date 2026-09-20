@@ -62,9 +62,9 @@ export function getMaxBankCapacity(userData) {
     );
 }
 
-export function formatCurrency(amount) {
+export function `${BotConfig.economy?.currency?.emoji || ''} ${formatCurrency(amount)}` {
     const currencyName =
-        ECONOMY_CONFIG.currency?.name || 'coins';
+        ECONOMY_CONFIG.currency?.name || 'Souls';
 
     return `${amount.toLocaleString()} ${currencyName}`;
 }
@@ -317,7 +317,7 @@ export function getWorkReward() {
         amount,
         job,
         message:
-            `You ${job} and earned ${formatCurrency(amount)}!`
+            `You ${job} and earned ${`${BotConfig.economy?.currency?.emoji || ''} ${formatCurrency(amount)}`}!`
     };
 }
 
@@ -339,7 +339,7 @@ export function getCrimeOutcome() {
                     Math.random() * 100
                 ) + 20,
             message:
-                'You pickpocketed someone and stole {amount}!'
+                'You pickpocketed someone and stole {amount} Souls!'
         },
         {
             success: true,
@@ -348,7 +348,7 @@ export function getCrimeOutcome() {
                     Math.random() * 150
                 ) + 30,
             message:
-                'You hacked into a bank account and transferred {amount} to yourself!'
+                'You hacked into a bank account and transferred {amount} Souls to yourself!'
         },
         {
             success: false,
@@ -357,7 +357,7 @@ export function getCrimeOutcome() {
                     Math.random() * 100
                 ) + 50,
             message:
-                'You got caught and had to pay a fine of {fine}!'
+                'You got caught and had to pay a fine of {fine} Souls!'
         },
         {
             success: false,
@@ -392,7 +392,7 @@ export function getRobOutcome(
             success: false,
             amount: 0,
             message:
-                'The target has no money to steal!'
+                'The target has no Souls to steal!'
         };
     }
 
