@@ -329,7 +329,11 @@ export default {
             const finish = async (outcome) => {
                 if (finished) return;
                 finished = true;
-                activeLobbies.delete(initiator.id);
+                for (const player of players) {
+                    if (activeLobbies.get(player.id) === lobbyId) {
+                        activeLobbies.delete(player.id);
+                    }
+                }
                 collector.stop('finished');
                 await InteractionHelper.safeEditReply(interaction, {
                     content: '',
@@ -426,8 +430,18 @@ export default {
                 }).catch(() => {});
 
                 if (players.length >= targetCount) {
-                    const outcome = await resolveRobbery(interaction, client, targetUser, players);
-                    await finish(outcome);
+                    try {
+                        const outcome = await resolveRobbery(interaction, client, targetUser, players);
+                        await finish(outcome);
+                    } catch (error) {
+                        await finish({
+                            embed: warningEmbed(
+                                '❌ Robbery Error',
+                                'The robbery could not be completed safely. No additional rewards were processed.'
+                            ),
+                        });
+                        throw error;
+                    }
                     return;
                 }
 
