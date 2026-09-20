@@ -47,6 +47,40 @@ const COMMAND_ERROR_SUBTYPES = {
   greroll: 'giveaway_failed',
 };
 
+const GAME_SHOP_CHANNEL_ID = '1547531709959118911';
+const INVENTORY_CHANNEL_ID = '1550120893982703616';
+
+// Commands allowed in the Game + Shop channel.
+const GAME_SHOP_COMMANDS = new Set([
+  'shop',
+]);
+
+// Commands related to the user's bank/balance and character inventory.
+const INVENTORY_COMMANDS = new Set([
+  'balance',
+  'bank',
+  'deposit',
+  'withdraw',
+  'flex',
+]);
+
+function getRequiredCommandChannel(command, interaction) {
+  if (GAME_SHOP_COMMANDS.has(command)) {
+    return GAME_SHOP_CHANNEL_ID;
+  }
+
+  if (INVENTORY_COMMANDS.has(command)) {
+    return INVENTORY_CHANNEL_ID;
+  }
+
+  // Every Games command belongs in the Game + Shop channel.
+  if (interaction.commandName && command?.category === 'Games') {
+    return GAME_SHOP_CHANNEL_ID;
+  }
+
+  return null;
+}
+
 function withTraceContext(context = {}, traceContext = {}) {
   return {
     traceId: traceContext.traceId,
@@ -75,26 +109,6 @@ export default {
           ResponseCoordinator.attach(interaction);
 
           if (interaction.isChatInputCommand()) {
-            const COMMAND_CHANNEL_ID =
-              '1547531709959118911';
-
-            // Only allow normal members to use commands
-            // in the command channel.
-            // Server owner can use commands anywhere.
-            if (
-              interaction.guild &&
-              interaction.guild.ownerId !== interaction.user.id &&
-              interaction.channelId !== COMMAND_CHANNEL_ID
-            ) {
-              await interaction.reply({
-                content:
-                  `❌ Please use commands in <#${COMMAND_CHANNEL_ID}>.`,
-                flags: MessageFlags.Ephemeral
-              });
-
-              return;
-            }
-
             try {
               logger.info(
                 `Command executed: /${interaction.commandName} by ${interaction.user.tag}`,
@@ -133,6 +147,41 @@ export default {
                     interactionTraceContext
                   )
                 );
+              }
+
+              // Channel routing:
+              // - Game + Shop channel: all Games commands + /shop
+              // - Inventory channel: balance/bank/deposit/withdraw + /flex
+              // - Commands outside these groups are unchanged.
+              // - Server owner and bot owner can use commands anywhere.
+              const requiredChannelId =
+                getRequiredCommandChannel(
+                  command,
+                  interaction
+                );
+
+              const isOwner =
+                isBotOwner(interaction.user.id) ||
+                interaction.guild?.ownerId === interaction.user.id;
+
+              if (
+                interaction.guild &&
+                requiredChannelId &&
+                !isOwner &&
+                interaction.channelId !== requiredChannelId
+              ) {
+                const channelLabel =
+                  requiredChannelId === GAME_SHOP_CHANNEL_ID
+                    ? 'Game & Shop'
+                    : 'Inventory';
+
+                await interaction.reply({
+                  content:
+                    `❌ Please use `/${interaction.commandName}` in the **${channelLabel}** channel: <#${requiredChannelId}>.`,
+                  flags: MessageFlags.Ephemeral
+                });
+
+                return;
               }
 
               if (
@@ -257,59 +306,50 @@ export default {
               let guildConfig = null;
 
               if (interaction.guild) {
-                guildConfig =
-                  await getGuildConfig(
-                    client,
-                    interaction.guild.id,
-                    interactionTraceContext
-                  );
-
-                const accessKey =
-                  resolveSlashAccessKey(interaction);
-
-                if (
-                  !(await isCommandEnabled(
-                    client,
-                    interaction.guild.id,
-                    accessKey,
-                    command.category
-                  ))
-                ) {
-                  throw createError(
-                    `Command ${accessKey} is disabled in this guild`,
-                    ErrorTypes.CONFIGURATION,
-                    'This command has been disabled for this server.',
-                    withTraceContext(
-                      {
-                        commandName: accessKey,
-                        guildId:
-                          interaction.guild.id
-                      },
-                      interactionTraceContext
-                    )
-                  );
-                }
-              }
-
-              const permissionAllowed =
-                await enforceDefaultCommandPermissions(
-                  interaction,
-                  command,
-                  {
-                    source: 'interactionCreate',
-                    guildConfig,
-                  }
+                guildConfig = await getGuildConfig(
+                  client,
+                  interaction.guildId
                 );
-
-              if (!permissionAllowed) {
-                return;
               }
 
-              await command.execute(
+              const accessKey =
+                resolveSlashAccessKey(interaction);
+
+              if (!isCommandEnabled(
+                client,
+                interaction.guildId,
+                accessKey
+              )) {
+                throw createError(
+                  `Command disabled: ${accessKey}`,
+                  ErrorTypes.PERMISSION,
+                  getBotMessage('commandDisabled'),
+                  withTraceContext(
+                    {
+                      commandName: interaction.commandName,
+                      accessKey
+                    },
+                    interactionTraceContext
+                  )
+                );
+              }
+
+              enforceDefaultCommandPermissions(
                 interaction,
-                guildConfig,
-                client
+                command
               );
+
+              if (
+                command.execute
+              ) {
+                await command.execute(
+                  interaction,
+                  guildConfig,
+                  client
+                );
+              }
+
+              return;
 
             } catch (error) {
               await handleInteractionError(
@@ -332,7 +372,6 @@ export default {
             }
 
           } else if (interaction.isAutocomplete()) {
-
             const autocompleteCommand =
               client.commands.get(
                 interaction.commandName
@@ -406,11 +445,7 @@ export default {
                     .slice(0, 25)
                     .map(role => ({
                       name:
-                        `${role.name}${
-                          role.enabled === false
-                            ? ' (disabled)'
-                            : ''
-                        }`,
+                        `${role.name}${role.enabled === false ? ' (disabled)' : ''}`,
                       value: role.name
                     }))
                 );
@@ -471,11 +506,7 @@ export default {
                     .slice(0, 25)
                     .map(role => ({
                       name:
-                        `${role.name}${
-                          role.enabled === false
-                            ? ' (disabled)'
-                            : ''
-                        }`,
+                        `${role.name}${role.enabled === false ? ' (disabled)' : ''}`,
                       value: role.name
                     }))
                 );
@@ -657,7 +688,6 @@ export default {
             }
 
           } else if (interaction.isButton()) {
-
             if (
               interaction.customId.startsWith(
                 'shared_todo_'
@@ -772,7 +802,6 @@ export default {
           } else if (
             interaction.isStringSelectMenu()
           ) {
-
             const [
               customId,
               ...args
@@ -829,7 +858,6 @@ export default {
           } else if (
             interaction.isModalSubmit()
           ) {
-
             if (
               interaction.customId.startsWith(
                 'app_modal_'
@@ -939,7 +967,6 @@ export default {
           }
 
         } catch (error) {
-
           logger.error(
             'Unhandled error in interactionCreate:',
             {
