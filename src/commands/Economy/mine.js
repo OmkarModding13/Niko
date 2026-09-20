@@ -4,7 +4,8 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const SOULS = '<:Souls:1547510037621112894>';\nconst MINE_COOLDOWN = 60 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';
+const MINE_COOLDOWN = 60 * 60 * 1000;
 const BASE_MIN_REWARD = 400;
 const BASE_MAX_REWARD = 1200;
 const PICKAXE_MULTIPLIER = 1.2;
