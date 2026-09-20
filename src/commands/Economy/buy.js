@@ -86,7 +86,10 @@ export default {
 
             userData.wallet -= price;
             userData.activeColorRole = { roleId: role.id, roleName, expiresAt: Date.now() + item.duration };
-            await setEconomyData(client, guildId, userId, userData);
+            const saved = await setEconomyData(client, guildId, userId, userData);
+            if (!saved) {
+                throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
+            }
 
             const embed = successEmbed('🎨 Color Role Purchased', `You purchased the **${roleName}** color role for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
                 .addFields(
@@ -114,7 +117,10 @@ export default {
             userData.bankLevel = currentBankLevel + 1;
             userData.upgrades = userData.upgrades || {};
             userData.upgrades.bank_upgrade = userData.bankLevel;
-            await setEconomyData(client, guildId, userId, userData);
+            const saved = await setEconomyData(client, guildId, userId, userData);
+            if (!saved) {
+                throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
+            }
 
             const newCapacity = 100000 + (userData.bankLevel * 50000);
             const embed = successEmbed('🏦 Bank Upgrade Purchased', 'Your bank capacity has been increased by **50,000 Souls**!')
@@ -141,7 +147,10 @@ export default {
 
             await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
             userData.wallet -= price;
-            await setEconomyData(client, guildId, userId, userData);
+            const saved = await setEconomyData(client, guildId, userId, userData);
+            if (!saved) {
+                throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
+            }
 
             const embed = successEmbed('⚡ XP Booster Purchased', `You activated **2× XP** for **24 hours** for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
                 .addFields({ name: 'New Balance', value: `${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}`, inline: true });
@@ -167,7 +176,10 @@ export default {
 
             userData.wallet -= price;
             userData.bankProtectionExpiresAt = start + (hours * 60 * 60 * 1000);
-            await setEconomyData(client, guildId, userId, userData);
+            const saved = await setEconomyData(client, guildId, userId, userData);
+            if (!saved) {
+                throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
+            }
 
             const embed = successEmbed('🛡️ Bank Protection Purchased', `Your wallet is protected from Bank Robbery for **${hours} hours**.`)
                 .addFields(
