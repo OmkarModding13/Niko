@@ -142,7 +142,7 @@ function rewardText(reward) {
         case 'souls': return `${SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'double_souls': return `${DOUBLE_SOULS_EMOJI} **${reward.souls.toLocaleString()} Souls**`;
         case 'xp_boost': return '⚡ **XP Booster — 24 Hours**';
-        case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours || 24} Hours**`;
+        case 'bank_protection': return `🛡️ **Bank Protection — ${reward.hours || 1} Hours**`;
         case 'bank_capacity': return `🏦 **+${reward.increase.toLocaleString()} Bank Capacity**`;
         case 'shard': return `${SHARD_EMOJI} **1 Shard**`;
         case 'duplicate_conversion': return `🔁 **${reward.character.name} duplicate → ${SHARD_EMOJI} 2 Shards**`;
@@ -213,7 +213,7 @@ async function performGacha(interaction, client, spins) {
 
         if (rewards.some(reward => reward.type === 'bank_protection')) {
             const bonuses = getCharacterBonuses(userData);
-            const hours = 24 + Number(bonuses.bankProtectionHours || 0);
+            const hours = 1 + Number(bonuses.bankProtectionHours || 0);
             const now = Date.now();
             const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
             userData.bankProtectionExpiresAt = Math.max(now, currentExpiry) + (hours * 60 * 60 * 1000);
