@@ -4,6 +4,8 @@ import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getUserLevelData, getLevelingConfig, getXpForLevel } from '../../services/leveling/leveling.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+
+const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
 export default {
   data: new SlashCommandBuilder()
     .setName('rank')
@@ -18,6 +20,15 @@ export default {
   category: 'Leveling',
 
   async execute(interaction, config, client) {
+    const isOwner = interaction.guild?.ownerId === interaction.user.id;
+
+    if (!isOwner && interaction.channelId !== LEVEL_CHECK_CHANNEL_ID) {
+      return interaction.reply({
+        content: `❌ Please use **/rank** in <#${LEVEL_CHECK_CHANNEL_ID}>.`,
+        ephemeral: true
+      });
+    }
+
     await InteractionHelper.safeDefer(interaction);
 
     const levelingConfig = await getLevelingConfig(client, interaction.guildId);
@@ -55,6 +66,7 @@ export default {
     };
 
     const xpNeeded = getXpForLevel(safeUserData.level + 1);
+    const xpRemaining = Math.max(0, xpNeeded - safeUserData.xp);
     const progress = xpNeeded > 0 ? Math.floor((safeUserData.xp / xpNeeded) * 100) : 0;
     const progressBar = createProgressBar(progress, 20);
 
@@ -69,7 +81,7 @@ export default {
         },
         {
           name: 'XP',
-          value: `${safeUserData.xp}/${xpNeeded}`,
+          value: `${safeUserData.xp}/${xpNeeded} XP\n**${xpRemaining} XP needed** to level up`,
           inline: true
         },
         {
