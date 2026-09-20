@@ -8,7 +8,7 @@ import { successEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/emb
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { BotConfig } from '../../config/bot.js';
+import { BotConfig, isBotOwner } from '../../config/bot.js';
 
 const SOULS = '<:Souls:1547510037621112894>';
 const SHARD = '<:Shard:1548962748321374218>';
@@ -21,17 +21,13 @@ const POLICE_COOLDOWN = 10 * 60 * 1000;
 const RARE_SHARD_CHANCE = 0.05;
 const LOBBY_TIMEOUT = 60 * 1000;
 
-const activeLobbies = new Set();
-
-function token() {
-    return Math.random().toString(36).slice(2, 10);
-}
-
 function fmt(amount) {
     return Number(amount || 0).toLocaleString();
 }
 
-function cooldownRemaining(userData, now = Date.now()) {
+function cooldownRemaining(userData, now = Date.now(), userId = null) {
+    if (userId && isBotOwner(userId)) return 0;
+
     const lastRob = Number(userData?.lastRob || 0);
     return Math.max(0, (lastRob + ROB_COOLDOWN) - now);
 }
@@ -107,7 +103,7 @@ async function runRobbery(interaction, client, targetUser, players) {
 
     for (const player of players) {
         const data = playerData.get(player.id);
-        const remaining = cooldownRemaining(data, now);
+        const remaining = cooldownRemaining(data, now, player.id);
 
         if (remaining > 0) {
             return {
@@ -130,7 +126,9 @@ async function runRobbery(interaction, client, targetUser, players) {
             data.wallet = Math.max(0, Number(data.wallet || 0) - POLICE_FINE);
 
             // Store the 10-minute police cooldown using the existing lastRob field.
-            data.lastRob = now - ROB_COOLDOWN + POLICE_COOLDOWN;
+            if (!isBotOwner(player.id)) {
+                data.lastRob = now - ROB_COOLDOWN + POLICE_COOLDOWN;
+            }
 
             await setEconomyData(client, guildId, player.id, data);
             results.push(`• <@${player.id}> — ${SOULS} **1,000 Souls fine**`);
@@ -170,7 +168,9 @@ async function runRobbery(interaction, client, targetUser, players) {
     for (const player of players) {
         const data = playerData.get(player.id);
         data.wallet = Number(data.wallet || 0) + share;
-        data.lastRob = now;
+        if (!isBotOwner(player.id)) {
+            data.lastRob = now;
+        }
         await setEconomyData(client, guildId, player.id, data);
     }
 
@@ -237,13 +237,59 @@ export default {
                 .setDescription('The player you want to rob.')
                 .setRequired(true)
         )
-        .addIntegerOption(option =>
+        .addUserOption(option =>
             option
-                .setName('players')
-                .setDescription('Total number of robbers, including you.')
-                .setMinValue(2)
-                .setMaxValue(10)
+                .setName('player2')
+                .setDescription('The second robber.')
                 .setRequired(true)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player3')
+                .setDescription('The third robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player4')
+                .setDescription('The fourth robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player5')
+                .setDescription('The fifth robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player6')
+                .setDescription('The sixth robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player7')
+                .setDescription('The seventh robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player8')
+                .setDescription('The eighth robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player9')
+                .setDescription('The ninth robber (optional).')
+                .setRequired(false)
+        )
+        .addUserOption(option =>
+            option
+                .setName('player10')
+                .setDescription('The tenth robber (optional).')
+                .setRequired(false)
         ),
 
     category: 'Games',
@@ -253,10 +299,15 @@ export default {
         if (!deferred) return;
 
         const targetUser = interaction.options.getUser('target', true);
-        const targetCount = interaction.options.getInteger('players', true);
         const initiator = interaction.user;
         const guildId = interaction.guildId;
-        const lobbyKey = `${guildId}:${initiator.id}`;
+
+        const selectedPlayers = ['player2', 'player3', 'player4', 'player5', 'player6', 'player7', 'player8', 'player9', 'player10']
+            .map(name => interaction.options.getUser(name))
+            .filter(Boolean);
+
+        const players = [initiator, ...selectedPlayers];
+        const targetCount = players.length;
 
         if (targetUser.id === initiator.id) {
             throw createError(
@@ -284,7 +335,7 @@ export default {
 
         const initiatorData = await getEconomyData(client, guildId, initiator.id);
         const now = Date.now();
-        const remaining = cooldownRemaining(initiatorData, now);
+        const remaining = cooldownRemaining(initiatorData, now, initiator.id);
 
         if (remaining > 0) {
             throw createError(
@@ -314,130 +365,11 @@ export default {
             );
         }
 
-        activeLobbies.add(lobbyKey);
-
-        const players = [initiator];
-        const lobbyId = token();
-
-        const joinButton = new ButtonBuilder()
-            .setCustomId(`bankrob_join_${lobbyId}`)
-            .setLabel('Join Robbery')
-            .setStyle(ButtonStyle.Success);
-
-        const cancelButton = new ButtonBuilder()
-            .setCustomId(`bankrob_cancel_${lobbyId}`)
-            .setLabel('Cancel')
-            .setStyle(ButtonStyle.Danger);
-
-        const row = new ActionRowBuilder().addComponents(joinButton, cancelButton);
-
         try {
-            const message = await interaction.editReply({
+            await interaction.editReply({
                 content: lobbyText(initiator, targetUser, targetCount, players),
-                components: [row],
+                components: [],
             });
-
-            const collector = message.createMessageComponentCollector({
-                time: LOBBY_TIMEOUT,
-                filter: component =>
-                    component.customId === `bankrob_join_${lobbyId}` ||
-                    component.customId === `bankrob_cancel_${lobbyId}`,
-            });
-
-            const result = await new Promise(resolve => {
-                collector.on('collect', async component => {
-                    if (component.customId === `bankrob_cancel_${lobbyId}`) {
-                        if (component.user.id !== initiator.id) {
-                            await component.reply({
-                                content: '❌ Only the robbery leader can cancel this lobby.',
-                                ephemeral: true,
-                            }).catch(() => {});
-                            return;
-                        }
-
-                        await component.deferUpdate().catch(() => {});
-                        collector.stop('cancelled');
-                        return;
-                    }
-
-                    if (component.user.bot) {
-                        await component.reply({
-                            content: '❌ Bots cannot join Bank Robbery.',
-                            ephemeral: true,
-                        }).catch(() => {});
-                        return;
-                    }
-
-                    if (component.user.id === targetUser.id) {
-                        await component.reply({
-                            content: '❌ The target cannot join their own robbery.',
-                            ephemeral: true,
-                        }).catch(() => {});
-                        return;
-                    }
-
-                    if (players.some(player => player.id === component.user.id)) {
-                        await component.reply({
-                            content: '❌ You are already in this robbery.',
-                            ephemeral: true,
-                        }).catch(() => {});
-                        return;
-                    }
-
-                    if (players.length >= targetCount) {
-                        await component.reply({
-                            content: '❌ This robbery crew is already full.',
-                            ephemeral: true,
-                        }).catch(() => {});
-                        return;
-                    }
-
-                    const joiningData = await getEconomyData(client, guildId, component.user.id);
-                    const joiningRemaining = cooldownRemaining(joiningData, Date.now());
-
-                    if (joiningRemaining > 0) {
-                        await component.reply({
-                            content: `❌ You are on Bank Robbery cooldown for **${formatCooldown(joiningRemaining)}**.`,
-                            ephemeral: true,
-                        }).catch(() => {});
-                        return;
-                    }
-
-                    players.push(component.user);
-                    await component.reply({
-                        content: '✅ You joined the Bank Robbery crew.',
-                        ephemeral: true,
-                    }).catch(() => {});
-
-                    if (players.length >= targetCount) {
-                        collector.stop('ready');
-                        return;
-                    }
-
-                    await interaction.editReply({
-                        content: lobbyText(initiator, targetUser, targetCount, players),
-                        components: [row],
-                    }).catch(() => {});
-                });
-
-                collector.on('end', async (_collected, reason) => {
-                    await interaction.editReply({ components: [] }).catch(() => {});
-                    resolve({
-                        ready: reason === 'ready' && players.length === targetCount,
-                        cancelled: reason === 'cancelled',
-                    });
-                });
-            });
-
-            if (!result.ready) {
-                await interaction.editReply({
-                    content: result.cancelled
-                        ? '❌ Bank Robbery cancelled.'
-                        : `⌛ Bank Robbery lobby expired. **${players.length}/${targetCount}** robbers joined.`,
-                    components: [],
-                }).catch(() => {});
-                return;
-            }
 
             const outcome = await runRobbery(interaction, client, targetUser, players);
 
@@ -446,8 +378,6 @@ export default {
                 embeds: [outcome.embed],
                 components: [],
             });
-        } finally {
-            activeLobbies.delete(lobbyKey);
         }
     }, { command: 'bankrob' }),
 };
