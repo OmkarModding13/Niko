@@ -1095,7 +1095,7 @@ class NikoBot extends Client {
     ) {
 
         shutdownLog(
-            `TitanBot is shutting down (${reason})...`
+            `Niko is shutting down (${reason})...`
         );
 
 
@@ -1275,7 +1275,7 @@ class NikoBot extends Client {
 try {
 
     const bot =
-        new TitanBot();
+        new NikoBot();
 
 
     const setupShutdown =
@@ -1418,4 +1418,4 @@ try {
 }
 
 
-export default TitanBot;
+export default NikoBot;
