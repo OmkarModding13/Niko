@@ -21,31 +21,27 @@ const POLICE_COOLDOWN = 10 * 60 * 1000;
 const RARE_SHARD_CHANCE = 0.05;
 const LOBBY_TIMEOUT = 60 * 1000;
 
+const activeLobbies = new Map();
+
 function fmt(amount) {
     return Number(amount || 0).toLocaleString();
 }
 
-function cooldownRemaining(userData, now = Date.now(), userId = null) {
-    if (userId && isBotOwner(userId)) return 0;
-
-    // Bank Robbery uses its own cooldown so it does not interfere with
-    // any other robbery/economy command.
-    const bankRobCooldown = Number(userData?.bankRobCooldownExpiresAt || 0);
-    if (bankRobCooldown > now) {
-        return bankRobCooldown - now;
-    }
-
-    return 0;
-}
-
-function formatCooldown(ms) {
-    const minutes = Math.floor(ms / 60000);
-    const seconds = Math.floor((ms % 60000) / 1000);
+function formatDuration(ms) {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
     if (minutes > 0) return `${minutes}m ${seconds}s`;
     return `${seconds}s`;
 }
 
-function lobbyText(initiator, target, targetCount, players) {
+function cooldownRemaining(userData, now = Date.now(), userId = null) {
+    if (userId && isBotOwner(userId)) return 0;
+    const expiry = Number(userData?.bankRobCooldownExpiresAt || 0);
+    return Math.max(0, expiry - now);
+}
+
+function lobbyText(target, targetCount, players) {
     const lines = players.map((player, index) =>
         `${index + 1}. <@${player.id}>${index === 0 ? ' — Leader' : ' — Joined'}`
     );
@@ -64,17 +60,22 @@ function lobbyText(initiator, target, targetCount, players) {
     ].join('\n');
 }
 
-async function runRobbery(interaction, client, targetUser, players) {
+async function saveEconomyDataOrThrow(client, guildId, userId, data) {
+    const saved = await setEconomyData(client, guildId, userId, data);
+    if (!saved) {
+        throw createError(
+            'Economy save failed',
+            ErrorTypes.DATABASE,
+            'The robbery could not be saved safely. No further rewards were processed.'
+        );
+    }
+}
+
+async function resolveRobbery(interaction, client, targetUser, players) {
     const guildId = interaction.guildId;
     const now = Date.now();
 
     const targetData = await getEconomyData(client, guildId, targetUser.id);
-    const playerData = new Map();
-
-    for (const player of players) {
-        playerData.set(player.id, await getEconomyData(client, guildId, player.id));
-    }
-
     if (!targetData) {
         throw createError(
             'Failed to load target economy',
@@ -83,15 +84,26 @@ async function runRobbery(interaction, client, targetUser, players) {
         );
     }
 
-    // Bank Protection protects the target from Bank Robbery.
+    const playerData = new Map();
+    for (const player of players) {
+        const data = await getEconomyData(client, guildId, player.id);
+        if (!data) {
+            throw createError(
+                'Failed to load crew economy',
+                ErrorTypes.DATABASE,
+                `Failed to load <@${player.id}>'s economy data. The robbery was cancelled before rewards were applied.`
+            );
+        }
+        playerData.set(player.id, data);
+    }
+
     const protectionExpiry = Number(targetData.bankProtectionExpiresAt || 0);
     if (protectionExpiry > now) {
-        const remaining = formatCooldown(protectionExpiry - now);
         return {
             type: 'blocked',
             embed: warningEmbed(
                 '🛡️ Bank Robbery Blocked',
-                `<@${targetUser.id}> is protected by **Bank Protection** for another **${remaining}**. The robbery cannot go ahead.`
+                `<@${targetUser.id}> is protected by **Bank Protection** for another **${formatDuration(protectionExpiry - now)}**. No Souls were stolen.`
             ),
         };
     }
@@ -108,47 +120,39 @@ async function runRobbery(interaction, client, targetUser, players) {
     }
 
     for (const player of players) {
-        const data = playerData.get(player.id);
-        const remaining = cooldownRemaining(data, now, player.id);
-
+        const remaining = cooldownRemaining(playerData.get(player.id), now, player.id);
         if (remaining > 0) {
             return {
                 type: 'blocked',
                 embed: warningEmbed(
                     'Robbery Crew Blocked',
-                    `<@${player.id}> is still on Bank Robbery cooldown for **${formatCooldown(remaining)}**.`
+                    `<@${player.id}> is still on Bank Robbery cooldown for **${formatDuration(remaining)}**.`
                 ),
             };
         }
     }
 
-    const isSuccessful = Math.random() < BASE_ROB_SUCCESS_CHANCE;
-
-    if (!isSuccessful) {
-        const results = [];
-
+    if (Math.random() >= BASE_ROB_SUCCESS_CHANCE) {
         for (const player of players) {
             const data = playerData.get(player.id);
             data.wallet = Math.max(0, Number(data.wallet || 0) - POLICE_FINE);
-
-            // Police penalty: 1,000 Souls + exactly 10 minutes Bank Robbery cooldown.
             if (!isBotOwner(player.id)) {
                 data.bankRobCooldownExpiresAt = now + POLICE_COOLDOWN;
             }
-
-            await setEconomyData(client, guildId, player.id, data);
-            results.push(`• <@${player.id}> — ${SOULS} **1,000 Souls fine**`);
+            await saveEconomyDataOrThrow(client, guildId, player.id, data);
         }
 
         const embed = buildUserErrorEmbed(
             'unknown',
-            `The police caught the entire crew! **Every robber loses 1,000 Souls**. Non-owner robbers also receive a **10-minute Bank Robbery cooldown**.`,
+            'The police caught the entire crew! **Every robber loses 1,000 Souls**. Non-owner robbers also receive a **10-minute Bank Robbery cooldown**.',
             { titleOverride: '🚔 ROBBERY FAILED — POLICE CAUGHT YOU!' }
         );
 
         embed.addFields({
             name: '👮 Police Penalty',
-            value: results.join('\n'),
+            value: players
+                .map(player => `• <@${player.id}> — ${SOULS} **1,000 Souls fine**`)
+                .join('\n'),
             inline: false,
         });
 
@@ -156,10 +160,10 @@ async function runRobbery(interaction, client, targetUser, players) {
     }
 
     const totalReward = Math.floor(targetSouls * ROB_REWARD_PERCENTAGE);
-    const share = Math.floor(totalReward / players.length);
-    const distributed = share * players.length;
+    const baseShare = Math.floor(totalReward / players.length);
+    const remainder = totalReward % players.length;
 
-    if (share < 1) {
+    if (baseShare < 1) {
         return {
             type: 'blocked',
             embed: warningEmbed(
@@ -169,31 +173,34 @@ async function runRobbery(interaction, client, targetUser, players) {
         };
     }
 
-    targetData.wallet = targetSouls - distributed;
+    targetData.wallet = targetSouls - totalReward;
 
-    for (const player of players) {
+    for (let index = 0; index < players.length; index += 1) {
+        const player = players[index];
         const data = playerData.get(player.id);
+        const share = baseShare + (index < remainder ? 1 : 0);
+
         data.wallet = Number(data.wallet || 0) + share;
-        // Successful robbery: normal 4-hour Bank Robbery cooldown.
         if (!isBotOwner(player.id)) {
             data.bankRobCooldownExpiresAt = now + ROB_COOLDOWN;
         }
-        await setEconomyData(client, guildId, player.id, data);
+
+        await saveEconomyDataOrThrow(client, guildId, player.id, data);
     }
 
-    await setEconomyData(client, guildId, targetUser.id, targetData);
+    await saveEconomyDataOrThrow(client, guildId, targetUser.id, targetData);
 
     let rareShardWinner = null;
     if (Math.random() < RARE_SHARD_CHANCE) {
         rareShardWinner = players[Math.floor(Math.random() * players.length)];
         const winnerData = playerData.get(rareShardWinner.id);
         winnerData.shards = Number(winnerData.shards || 0) + 1;
-        await setEconomyData(client, guildId, rareShardWinner.id, winnerData);
+        await saveEconomyDataOrThrow(client, guildId, rareShardWinner.id, winnerData);
     }
 
     const embed = successEmbed(
         '🏦 Bank Robbery Successful',
-        `The crew successfully robbed **${SOULS} ${fmt(distributed)} Souls** from <@${targetUser.id}>!`
+        `The crew successfully robbed **${SOULS} ${fmt(totalReward)} Souls** from <@${targetUser.id}>!`
     );
 
     embed.addFields(
@@ -204,18 +211,18 @@ async function runRobbery(interaction, client, targetUser, players) {
         },
         {
             name: '💰 Reward Per Player',
-            value: `${SOULS} **${fmt(share)} Souls**`,
+            value: `The ${fmt(totalReward)} Souls were split equally across the crew.`,
             inline: true,
         },
         {
             name: '🎯 Target Lost',
-            value: `${SOULS} **${fmt(distributed)} Souls**`,
+            value: `${SOULS} **${fmt(totalReward)} Souls**`,
             inline: true,
         },
         {
             name: '⏱️ Next Robbery',
             value: players.some(player => isBotOwner(player.id))
-                ? '**No cooldown for Owner**\\n**4 hours for other robbers**'
+                ? '**No cooldown for Owner**\n**4 hours for other robbers**'
                 : '**4 hours**',
             inline: true,
         },
@@ -230,7 +237,7 @@ async function runRobbery(interaction, client, targetUser, players) {
     }
 
     embed.setFooter({
-        text: 'The crew shared 80% of the target\'s Souls equally.',
+        text: 'The crew shared exactly 80% of the target\'s Souls.',
     });
 
     return { type: 'success', embed };
@@ -246,59 +253,13 @@ export default {
                 .setDescription('The player you want to rob.')
                 .setRequired(true)
         )
-        .addUserOption(option =>
+        .addIntegerOption(option =>
             option
-                .setName('player2')
-                .setDescription('The second robber.')
+                .setName('players')
+                .setDescription('Total number of robbers, including you.')
+                .setMinValue(2)
+                .setMaxValue(10)
                 .setRequired(true)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player3')
-                .setDescription('The third robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player4')
-                .setDescription('The fourth robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player5')
-                .setDescription('The fifth robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player6')
-                .setDescription('The sixth robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player7')
-                .setDescription('The seventh robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player8')
-                .setDescription('The eighth robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player9')
-                .setDescription('The ninth robber (optional).')
-                .setRequired(false)
-        )
-        .addUserOption(option =>
-            option
-                .setName('player10')
-                .setDescription('The tenth robber (optional).')
-                .setRequired(false)
         ),
 
     category: 'Games',
@@ -308,105 +269,204 @@ export default {
         if (!deferred) return;
 
         const targetUser = interaction.options.getUser('target', true);
+        const targetCount = interaction.options.getInteger('players', true);
         const initiator = interaction.user;
         const guildId = interaction.guildId;
 
-        const selectedPlayers = ['player2', 'player3', 'player4', 'player5', 'player6', 'player7', 'player8', 'player9', 'player10']
-            .map(name => interaction.options.getUser(name))
-            .filter(Boolean);
-
-        const players = [initiator, ...selectedPlayers];
-        const targetCount = players.length;
-
-        // Validate every explicitly selected robber before starting.
-        const uniquePlayerIds = new Set(players.map(player => player.id));
-        if (uniquePlayerIds.size !== players.length) {
-            throw createError(
-                'Duplicate robber selected',
-                ErrorTypes.VALIDATION,
-                'Each robber must be a different user.'
-            );
-        }
-
-        const invalidPlayer = players.find(player => player.id === targetUser.id);
-        if (invalidPlayer) {
-            throw createError(
-                'Target selected as robber',
-                ErrorTypes.VALIDATION,
-                'The target cannot also be one of the robbers.'
-            );
-        }
-
-        const botPlayer = players.find(player => player.bot);
-        if (botPlayer) {
-            throw createError(
-                'Bot selected as robber',
-                ErrorTypes.VALIDATION,
-                'Bots cannot be part of a Bank Robbery crew.'
-            );
-        }
-
         if (targetUser.id === initiator.id) {
-            throw createError(
-                'Cannot rob self',
-                ErrorTypes.VALIDATION,
-                'You cannot target yourself.'
-            );
+            throw createError('Cannot rob self', ErrorTypes.VALIDATION, 'You cannot target yourself.');
         }
 
         if (targetUser.bot) {
+            throw createError('Cannot rob bot', ErrorTypes.VALIDATION, 'Bots cannot be targeted by Bank Robbery.');
+        }
+
+        if (activeLobbies.has(initiator.id)) {
             throw createError(
-                'Cannot rob bot',
-                ErrorTypes.VALIDATION,
-                'Bots cannot be targeted by Bank Robbery.'
+                'Robbery already active',
+                ErrorTypes.RATE_LIMIT,
+                'You already have an active Bank Robbery lobby.'
             );
         }
 
         const initiatorData = await getEconomyData(client, guildId, initiator.id);
-        const now = Date.now();
-        const remaining = cooldownRemaining(initiatorData, now, initiator.id);
-
-        if (remaining > 0) {
+        const initiatorCooldown = cooldownRemaining(initiatorData, Date.now(), initiator.id);
+        if (initiatorCooldown > 0) {
             throw createError(
                 'Robbery cooldown active',
                 ErrorTypes.RATE_LIMIT,
-                `You need to lay low for another **${formatCooldown(remaining)}**.`
+                `You need to lay low for another **${formatDuration(initiatorCooldown)}**.`
             );
         }
 
-        const targetData = await getEconomyData(client, guildId, targetUser.id);
-        const protectionExpiry = Number(targetData?.bankProtectionExpiresAt || 0);
+        const lobbyId = `${guildId}:${initiator.id}:${Date.now()}`;
+        const players = [initiator];
+        activeLobbies.set(initiator.id, lobbyId);
 
-        if (protectionExpiry > now) {
-            throw createError(
-                'Bank protection active',
-                ErrorTypes.VALIDATION,
-                `<@${targetUser.id}> has active **Bank Protection** for another **${formatCooldown(protectionExpiry - now)}**.`
-            );
-        }
-
-        const targetSouls = Number(targetData?.wallet || 0);
-        if (targetSouls < 500) {
-            throw createError(
-                'Victim too poor',
-                ErrorTypes.VALIDATION,
-                `<@${targetUser.id}> needs at least **${SOULS} 500 Souls** to be worth robbing.`
-            );
-        }
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`bankrob_join:${lobbyId}`)
+                .setLabel('Join Robbery')
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId(`bankrob_cancel:${lobbyId}`)
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Danger)
+        );
 
         try {
-            await interaction.editReply({
-                content: lobbyText(initiator, targetUser, targetCount, players),
-                components: [],
+            const message = await interaction.editReply({
+                content: lobbyText(targetUser, targetCount, players),
+                components: [row],
             });
 
-            const outcome = await runRobbery(interaction, client, targetUser, players);
-
-            await InteractionHelper.safeEditReply(interaction, {
-                content: '',
-                embeds: [outcome.embed],
-                components: [],
+            const collector = message.createMessageComponentCollector({
+                time: LOBBY_TIMEOUT,
             });
+
+            let finished = false;
+
+            const finish = async (outcome) => {
+                if (finished) return;
+                finished = true;
+                activeLobbies.delete(initiator.id);
+                collector.stop('finished');
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: '',
+                    embeds: outcome?.embed ? [outcome.embed] : [],
+                    components: [],
+                });
+            };
+
+            collector.on('collect', async component => {
+                if (finished) return;
+
+                if (component.user.bot) {
+                    await component.reply({
+                        content: '❌ Bots cannot join a Bank Robbery.',
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                if (component.customId === `bankrob_cancel:${lobbyId}`) {
+                    if (component.user.id !== initiator.id) {
+                        await component.reply({
+                            content: '❌ Only the robbery leader can cancel this lobby.',
+                            ephemeral: true,
+                        }).catch(() => {});
+                        return;
+                    }
+
+                    await component.reply({
+                        content: '❌ Robbery cancelled.',
+                        ephemeral: true,
+                    }).catch(() => {});
+
+                    await finish({
+                        embed: warningEmbed(
+                            '🏦 Robbery Cancelled',
+                            'The robbery leader cancelled the Bank Robbery.'
+                        ),
+                    });
+                    return;
+                }
+
+                if (component.customId !== `bankrob_join:${lobbyId}`) return;
+
+                if (component.user.id === targetUser.id) {
+                    await component.reply({
+                        content: '❌ The target cannot join their own robbery.',
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                if (players.some(player => player.id === component.user.id)) {
+                    await component.reply({
+                        content: '✅ You are already in the crew.',
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                if (players.length >= targetCount) {
+                    await component.reply({
+                        content: '❌ This robbery crew is already full.',
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                const joinerData = await getEconomyData(client, guildId, component.user.id);
+                const joinerCooldown = cooldownRemaining(joinerData, Date.now(), component.user.id);
+
+                if (joinerCooldown > 0) {
+                    await component.reply({
+                        content: `❌ You are on Bank Robbery cooldown for **${formatDuration(joinerCooldown)}**.`,
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                if (activeLobbies.has(component.user.id)) {
+                    await component.reply({
+                        content: '❌ You are already leading another Bank Robbery.',
+                        ephemeral: true,
+                    }).catch(() => {});
+                    return;
+                }
+
+                players.push(component.user);
+                activeLobbies.set(component.user.id, lobbyId);
+
+                await component.reply({
+                    content: '✅ You joined the Bank Robbery crew.',
+                    ephemeral: true,
+                }).catch(() => {});
+
+                if (players.length >= targetCount) {
+                    const outcome = await resolveRobbery(interaction, client, targetUser, players);
+                    await finish(outcome);
+                    return;
+                }
+
+                await InteractionHelper.safeEditReply(interaction, {
+                    content: lobbyText(targetUser, targetCount, players),
+                    components: [row],
+                });
+            });
+
+            collector.on('end', async (_collected, reason) => {
+                if (finished) return;
+
+                finished = true;
+                for (const player of players) {
+                    if (activeLobbies.get(player.id) === lobbyId) {
+                        activeLobbies.delete(player.id);
+                    }
+                }
+
+                if (reason === 'time') {
+                    await InteractionHelper.safeEditReply(interaction, {
+                        content: '',
+                        embeds: [
+                            warningEmbed(
+                                '⏰ Robbery Cancelled',
+                                'Not enough robbers joined within **60 seconds**. No Souls were changed.'
+                            ),
+                        ],
+                        components: [],
+                    });
+                }
+            });
+        } catch (error) {
+            for (const player of players) {
+                if (activeLobbies.get(player.id) === lobbyId) {
+                    activeLobbies.delete(player.id);
+                }
+            }
+            throw error;
         }
     }, { command: 'bankrob' }),
 };
