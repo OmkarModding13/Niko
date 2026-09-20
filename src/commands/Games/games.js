@@ -55,6 +55,11 @@ export default {
                     inline: false
                 },
                 {
+                    name: `💠 /shardgamble`,
+                    value: `**Entry:** ${SOULS_EMOJI} **1,000 Souls per spin**\nRisk Souls for a **1% Shard chance** • Win **1–10 Shards**. 10 Spins = **10,000 Souls**.`,
+                    inline: false
+                },
+                {
                     name: '\u200b',
                     value: '**⚔️ PVP MATCHES — 2/3/4 PLAYER**',
                     inline: false
