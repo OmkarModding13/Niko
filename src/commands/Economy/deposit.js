@@ -6,9 +6,10 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 
+const INVENTORY_CHANNEL_ID = '1550120893982703616';
+
 function isInventoryChannel(channel) {
-    if (!channel?.name) return false;
-    return channel.name.toLowerCase().replace(/[^a-z0-9]/g, '') === 'inventory';
+    return channel?.id === INVENTORY_CHANNEL_ID;
 }
 
 export default {
