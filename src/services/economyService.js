@@ -152,7 +152,7 @@ class EconomyService {
         available: senderData.wallet
       });
       throw createError(
-        Insufficient Souls,
+        "Insufficient Souls",
         ErrorTypes.VALIDATION,
         `You only have **$${senderData.wallet.toLocaleString()}** in cash.`,
         { required: amount, available: senderData.wallet, senderId }
@@ -279,7 +279,7 @@ class EconomyService {
       throw createError(
         Insufficient Souls,
         ErrorTypes.VALIDATION,
-        `You only have **$${balanceBefore.toLocaleString()}**.`,
+        `You only have **<:Souls:1547510037621112894> ${balanceBefore.toLocaleString()} Souls**.`,
         { required: amount, available: balanceBefore, reason }
       );
     }
@@ -312,7 +312,7 @@ class EconomyService {
       throw createError(
         Insufficient Souls,
         ErrorTypes.VALIDATION,
-        `You only have **$${userData.wallet.toLocaleString()}** in cash.`,
+        `You only have **<:Souls:1547510037621112894> ${userData.wallet.toLocaleString()} Souls**.`,
         { required: amount, available: userData.wallet }
       );
     }
@@ -322,7 +322,7 @@ class EconomyService {
       throw createError(
         "Bank capacity exceeded",
         ErrorTypes.VALIDATION,
-        `Your bank can only hold **$${maxBank.toLocaleString()}**. You would exceed capacity by **$${(currentBank + amount - maxBank).toLocaleString()}**.`,
+        `Your bank can only hold **<:Souls:1547510037621112894> ${maxBank.toLocaleString()} Souls**. You would exceed capacity by **<:Souls:1547510037621112894> ${(currentBank + amount - maxBank).toLocaleString()} Souls**.`,
         { capacity: maxBank, current: currentBank, requested: amount }
       );
     }
@@ -360,7 +360,7 @@ class EconomyService {
       throw createError(
         "Insufficient bank balance",
         ErrorTypes.VALIDATION,
-        `You only have **$${bank.toLocaleString()}** in your bank.`,
+        `You only have **<:Souls:1547510037621112894> ${bank.toLocaleString()} Souls** in your bank.`,
         { required: amount, available: bank }
       );
     }
