@@ -65,16 +65,20 @@ const INVENTORY_COMMANDS = new Set([
 ]);
 
 function getRequiredCommandChannel(command, interaction) {
-  if (GAME_SHOP_COMMANDS.has(command)) {
-    return GAME_SHOP_CHANNEL_ID;
-  }
+  // These command names are explicit so category metadata can never override
+  // the dedicated channel routing.
+  const commandName = interaction?.commandName;
 
-  if (INVENTORY_COMMANDS.has(command)) {
+  if (INVENTORY_COMMANDS.has(commandName)) {
     return INVENTORY_CHANNEL_ID;
   }
 
-  // Every Games command belongs in the Game + Shop channel.
-  if (interaction.commandName && command?.category === 'Games') {
+  if (GAME_SHOP_COMMANDS.has(commandName)) {
+    return GAME_SHOP_CHANNEL_ID;
+  }
+
+  // Every other Games command belongs in the Game + Shop channel.
+  if (command?.category === 'Games') {
     return GAME_SHOP_CHANNEL_ID;
   }
 
