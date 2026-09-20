@@ -61,6 +61,11 @@ import {
 } from '../services/commandAccessService.js';
 
 import {
+  getCommandDefaultPermissions,
+  memberMeetsCommandPermissions
+} from '../utils/permissionGuard.js';
+
+import {
   getCountingGameConfig,
   saveCountingGameConfig,
   isValidCountingMessage,
@@ -86,6 +91,28 @@ import {
  * Later we can replace this with a proper session
  * based tracker.
  */
+
+const PREFIX_COMMAND_CHANNELS = new Map([
+  ['games', '1547531709959118911'],
+  ['quickcoin', '1547531709959118911'],
+  ['abyssdice', '1547531709959118911'],
+  ['rps', '1547531709959118911'],
+  ['soulflip', '1547531709959118911'],
+  ['diceduel', '1547531709959118911'],
+  ['soulslots', '1547531709959118911'],
+  ['pvp', '1547531709959118911'],
+  ['bankrob', '1547531709959118911'],
+  ['gacha', '1547531709959118911'],
+  ['shardgamble', '1547531709959118911'],
+  ['shop', '1551192004241793084'],
+  ['daily', '1551192004241793084'],
+  ['remindme', '1551192004241793084'],
+  ['balance', '1550120893982703616'],
+  ['deposit', '1550120893982703616'],
+  ['withdraw', '1550120893982703616'],
+  ['flex', '1550120893982703616'],
+  ['rank', '1551159198425948180'],
+]);
 
 const CHAT_ACTIVITY_RATE_LIMIT_ATTEMPTS = 1;
 
