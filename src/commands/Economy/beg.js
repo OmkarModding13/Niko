@@ -5,7 +5,7 @@ import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const COOLDOWN = 30 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';\nconst COOLDOWN = 30 * 60 * 1000;
 const MIN_WIN = Number(botConfig?.economy?.begMin) || 50;
 const MAX_WIN = Number(botConfig?.economy?.begMax) || 200;
 const SUCCESS_CHANCE = 0.7;
@@ -13,7 +13,7 @@ const SUCCESS_CHANCE = 0.7;
 export default {
     data: new SlashCommandBuilder()
         .setName('beg')
-        .setDescription('Beg for a small amount of money'),
+        .setDescription('Beg for a small amount of Souls'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -54,19 +54,19 @@ export default {
             const success = Math.random() < SUCCESS_CHANCE;
 
             let replyEmbed;
-            let newCash = userData.wallet;
+            let newSouls = userData.wallet;
 
             if (success) {
                 const amountWon =
                     Math.floor(Math.random() * (MAX_WIN - MIN_WIN + 1)) + MIN_WIN;
 
-                newCash += amountWon;
+                newSouls += amountWon;
 
                 const successMessages = [
-                    `A kind stranger drops **$${amountWon.toLocaleString()}** into your cup.`,
-                    `You spotted an unattended wallet! You grab **$${amountWon.toLocaleString()}** and run.`,
-                    `Someone took pity on you and gave you **$${amountWon.toLocaleString()}**!`,
-                    `You found **$${amountWon.toLocaleString()}** under a park bench.`,
+                    `A kind stranger drops **${SOULS} ${amountWon.toLocaleString()} Souls** into your cup.`,
+                    `You spotted an unattended wallet! You grab **${SOULS} ${amountWon.toLocaleString()} Souls** and run.`,
+                    `Someone took pity on you and gave you **${SOULS} ${amountWon.toLocaleString()} Souls**!`,
+                    `You found **${SOULS} ${amountWon.toLocaleString()} Souls** under a park bench.`,
                 ];
 
                 replyEmbed = successEmbed(
@@ -89,7 +89,7 @@ export default {
                 );
             }
 
-            userData.wallet = newCash;
+            userData.wallet = newSouls;
 userData.lastBeg = Date.now();
 
             await setEconomyData(client, guildId, userId, userData);
