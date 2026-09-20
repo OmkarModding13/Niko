@@ -16,6 +16,7 @@ const COMMAND_COUNT_WARN_THRESHOLD = 90;
 const PUBLIC_COMMANDS = new Set([
     'rank',
     'games',
+    'shop',
     'quickcoin',
     'abyssdice',
     'rps',
