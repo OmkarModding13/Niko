@@ -107,7 +107,6 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         };
     }
 
-    lastPlayed.set(cooldownKey, now);
     userData.wallet = wallet - config.entry;
 
     const reward = gameResult.forceLoss
@@ -126,7 +125,15 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
         ...gameResult
     };
 
-    await setEconomyData(client, guildId, userId, userData);
+    const saved = await setEconomyData(client, guildId, userId, userData);
+    if (!saved) {
+        return {
+            ok: false,
+            message: '❌ Your game result could not be saved safely. No reward was confirmed. Please try again.'
+        };
+    }
+
+    lastPlayed.set(cooldownKey, now);
     return { ok: true, result };
 }
 
