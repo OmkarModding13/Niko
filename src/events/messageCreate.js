@@ -1,6 +1,6 @@
 // messageCreate.js
 
-import { Events, PermissionFlagsBits } from 'discord.js';
+import { Events } from 'discord.js';
 
 import { logger } from '../utils/logger.js';
 
