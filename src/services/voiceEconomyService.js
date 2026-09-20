@@ -22,11 +22,6 @@ export async function checkVoiceEconomy(client) {
                 if (members.size < 2) continue;
 
                 for (const [userId, member] of members) {
-                    // User must not be self-muted/deafened
-                    if (member.voice.selfMute || member.voice.selfDeaf) {
-                        continue;
-                    }
-
                     const userData = await getEconomyData(
                         client,
                         guildId,
