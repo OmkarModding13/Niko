@@ -6,12 +6,6 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 
-const INVENTORY_CHANNEL_ID = '1550120893982703616';
-
-function isInventoryChannel(channel) {
-    return channel?.id === INVENTORY_CHANNEL_ID;
-}
-
 export default {
     data: new SlashCommandBuilder()
         .setName('deposit')
@@ -19,9 +13,6 @@ export default {
         .addStringOption(option => option.setName('amount').setDescription('Amount of Souls to deposit, or "all"').setRequired(true)),
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        if (!isInventoryChannel(interaction.channel)) {
-            return interaction.reply({ content: '❌ Please use **/deposit** in the <#1550120893982703616> channel.', ephemeral: true });
-        }
 
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
