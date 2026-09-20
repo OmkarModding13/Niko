@@ -1,6 +1,7 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { getGuildConfig, setGuildConfig } from '../services/config/guildConfig.js';
+import { registerGuildCommands } from '../handlers/loaders/commandLoader.js';
 
 export default {
   name: Events.GuildCreate,
@@ -15,6 +16,9 @@ export default {
 
       const config = await getGuildConfig(client, guild.id);
       await setGuildConfig(client, guild.id, config);
+
+      await registerGuildCommands(client, guild.id);
+      logger.info(`Registered guild commands for newly joined guild ${guild.id}`);
     } catch (error) {
       logger.error(`Error initializing guild ${guild?.id} on join:`, error);
     }
