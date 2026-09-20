@@ -54,6 +54,7 @@ const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
 // Public member commands and their dedicated channels.
 // Commands not listed here are hidden from normal members by commandLoader.js.
 const GAME_SHOP_COMMANDS = new Set([
+  'shop',
   'games',
   'quickcoin',
   'abyssdice',
