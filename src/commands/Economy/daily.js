@@ -115,7 +115,15 @@ export default {
         userData.lastDaily = now;
         userData.dailyStreak = newDailyStreak;
 
-        await setEconomyData(client, guildId, userId, userData);
+        const saved = await setEconomyData(client, guildId, userId, userData);
+        if (!saved) {
+            throw createError(
+                'Failed to save daily claim',
+                ErrorTypes.DATABASE,
+                'Your daily reward could not be saved safely. Please try again.',
+                { userId, guildId }
+            );
+        }
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
             userId,
