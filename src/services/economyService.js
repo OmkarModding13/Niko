@@ -128,7 +128,9 @@ class EconomyService {
 
     this.validateAmount(amount, { operation: 'transfer', senderId, receiverId });
 
-    return await Mutex.runExclusive(`economy-transfer:${guildId}`, async () => {\n\n    const [senderData, receiverData] = await Promise.all([
+    return await Mutex.runExclusive(`economy-transfer:${guildId}`, async () => {
+
+    const [senderData, receiverData] = await Promise.all([
       getEconomyData(client, guildId, senderId),
       getEconomyData(client, guildId, receiverId)
     ]);
