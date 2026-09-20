@@ -262,7 +262,9 @@ export default {
                                 { name: 'Balance', value: `${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`, inline: true }
                             );
 
-                        if (item.effect?.type === 'temporary_color_role') {
+                        let assignedColorRole = null;
+
+                    if (item.effect?.type === 'temporary_color_role') {
                             const tierItems = getColorTierItems(item.id);
                             embed.addFields({
                                 name: 'Available Durations',
@@ -330,6 +332,7 @@ export default {
                         const member = await interaction.guild.members.fetch(userId);
                         try {
                             await member.roles.add(role, `Purchased ${roleName} color role`);
+                            assignedColorRole = role;
                         } catch (roleError) {
                             logger.error('[SHOP] Failed to assign color role:', roleError);
                             await componentInteraction.reply({ content: '❌ I could not give you the role. Your Souls were not deducted.', flags: MessageFlags.Ephemeral });
@@ -367,9 +370,8 @@ export default {
                     if (!saved) {
                         if (item.effect?.type === 'temporary_color_role') {
                             const member = await interaction.guild.members.fetch(userId).catch(() => null);
-                            const role = member?.roles?.cache?.get(item.effect?.roleId);
-                            if (role) {
-                                await member.roles.remove(role, 'Rolling back failed shop purchase').catch(() => {});
+                            if (member && assignedColorRole) {
+                                await member.roles.remove(assignedColorRole, 'Rolling back failed shop purchase').catch(() => {});
                             }
                         }
                         await componentInteraction.reply({
