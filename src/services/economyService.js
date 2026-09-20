@@ -152,7 +152,7 @@ class EconomyService {
         available: senderData.wallet
       });
       throw createError(
-        "Insufficient funds",
+        Insufficient Souls,
         ErrorTypes.VALIDATION,
         `You only have **$${senderData.wallet.toLocaleString()}** in cash.`,
         { required: amount, available: senderData.wallet, senderId }
@@ -277,7 +277,7 @@ class EconomyService {
 
     if (balanceBefore < amount) {
       throw createError(
-        "Insufficient funds",
+        Insufficient Souls,
         ErrorTypes.VALIDATION,
         `You only have **$${balanceBefore.toLocaleString()}**.`,
         { required: amount, available: balanceBefore, reason }
@@ -310,7 +310,7 @@ class EconomyService {
 
     if (userData.wallet < amount) {
       throw createError(
-        "Insufficient cash",
+        Insufficient Souls,
         ErrorTypes.VALIDATION,
         `You only have **$${userData.wallet.toLocaleString()}** in cash.`,
         { required: amount, available: userData.wallet }
