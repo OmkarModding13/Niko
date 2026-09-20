@@ -8,12 +8,14 @@ import { BotConfig } from '../../config/bot.js';
 const ROB_COOLDOWN = BotConfig.economy?.cooldowns?.rob ?? 4 * 60 * 60 * 1000;
 const BASE_ROB_SUCCESS_CHANCE = BotConfig.economy?.robSuccessRate ?? 0.4;
 const ROB_PERCENTAGE = 0.15;
-const FINE_PERCENTAGE = 0.1;
+const POLICE_FINE = 1000;
+const CAUGHT_COOLDOWN = 10 * 60 * 1000;
+const RARE_SHARD_CHANCE = 0.05;
 
 export default {
     data: new SlashCommandBuilder()
-        .setName('rob')
-        .setDescription('Attempt to rob another user (very risky)')
+        .setName('bankrob')
+        .setDescription('Attempt a bank robbery against another user (very risky)')
         .addUserOption(option =>
             option
                 .setName('user')
@@ -102,6 +104,7 @@ export default {
 
             const isSuccessful = Math.random() < BASE_ROB_SUCCESS_CHANCE;
             let resultEmbed;
+            let rareShardReward = false;
 
             if (isSuccessful) {
                 const amountStolen = Math.floor(victimData.wallet * ROB_PERCENTAGE);
@@ -109,27 +112,38 @@ export default {
                 robberData.wallet = (robberData.wallet || 0) + amountStolen;
                 victimData.wallet = (victimData.wallet || 0) - amountStolen;
 
+                if (Math.random() < RARE_SHARD_CHANCE) {
+                    robberData.shards = Number(robberData.shards || 0) + 1;
+                    rareShardReward = true;
+                }
+
                 resultEmbed = successEmbed(
                     'Robbery Successful',
-                    `You successfully stole **$${amountStolen.toLocaleString()}** from ${victimUser.username}!`
+                    'You successfully stole **$' + amountStolen.toLocaleString() + '** from ' + victimUser.username + '!'
                 );
-            } else {
-                const fineAmount = Math.floor((robberData.wallet || 0) * FINE_PERCENTAGE);
 
-                if ((robberData.wallet || 0) < fineAmount) {
-                    robberData.wallet = 0;
-                } else {
-                    robberData.wallet = (robberData.wallet || 0) - fineAmount;
+                if (rareShardReward) {
+                    resultEmbed.addFields({
+                        name: '💎 Rare Robbery Bonus',
+                        value: 'You found **1 Shard** during the robbery! (5% chance)',
+                        inline: false
+                    });
                 }
+            } else {
+                const fineAmount = POLICE_FINE;
+                robberData.wallet = Math.max(0, Number(robberData.wallet || 0) - fineAmount);
+
+                // A failed robbery puts the player in police custody for 10 minutes.
+                robberData.lastRob = now - ROB_COOLDOWN + CAUGHT_COOLDOWN;
 
                 resultEmbed = buildUserErrorEmbed(
                     'unknown',
-                    `You failed the robbery and were caught! You were fined **$${fineAmount.toLocaleString()}** of your own cash.`,
-                    { titleOverride: 'Robbery Failed' }
+                    'You failed the robbery and were caught by the police! You were fined **$' + fineAmount.toLocaleString() + '**. You cannot attempt another Bank Robbery for **10 minutes**.',
+                    { titleOverride: '🚔 Robbery Failed — Police Caught You' }
                 );
             }
 
-            robberData.lastRob = now;
+            if (isSuccessful) robberData.lastRob = now;
 
             await setEconomyData(client, guildId, robberId, robberData);
             await setEconomyData(client, guildId, victimUser.id, victimData);
@@ -147,7 +161,7 @@ export default {
                         inline: true,
                     },
                 )
-                .setFooter({ text: `Next robbery available in ${Math.ceil(ROB_COOLDOWN / (60 * 60 * 1000))} hours.` });
+                .setFooter({ text: `Successful robberies have a 4-hour cooldown. Failed robberies have a 10-minute police cooldown.` });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [resultEmbed] });
     }, { command: 'rob' })
