@@ -44,7 +44,7 @@ import {
 } from './config/database/schemaVersion.js';
 
 
-class TitanBot extends Client {
+class NikoBot extends Client {
 
     constructor() {
 
@@ -92,7 +92,7 @@ class TitanBot extends Client {
         try {
 
             startupLog(
-                'Starting TitanBot...'
+                'Starting Niko...'
             );
 
             await new Promise(
@@ -585,7 +585,7 @@ class TitanBot extends Client {
                     .json({
 
                         message:
-                            'TitanBot System Online',
+                            'Niko System Online',
 
                         version:
                             pkg.version,
