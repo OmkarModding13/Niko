@@ -4,7 +4,7 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const FISH_COOLDOWN = 45 * 60 * 1000; 
+const SOULS = '<:Souls:1547510037621112894>';\nconst FISH_COOLDOWN = 45 * 60 * 1000; 
 const BASE_MIN_REWARD = 300;
 const BASE_MAX_REWARD = 900;
 const FISHING_ROD_MULTIPLIER = 1.5;
@@ -32,7 +32,7 @@ const CATCH_MESSAGES = [
 export default {
     data: new SlashCommandBuilder()
         .setName('fish')
-        .setDescription('Go fishing to catch fish and earn money'),
+        .setDescription('Go fishing to catch fish and earn Souls'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -110,13 +110,13 @@ export default {
 
             const embed = createEmbed({
                 title: 'Fishing Success!',
-                description: `${catchMessage}\n\nYou caught a **${fishCaught.emoji} ${fishCaught.name}**! You sold it for **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
+                description: `${catchMessage}\n\nYou caught a **${fishCaught.emoji} ${fishCaught.name}**! You sold it for **${SOULS} ${finalEarned.toLocaleString()} Souls**!${multiplierMessage}`,
                 color: rarityColors[fishCaught.rarity]
             })
                 .addFields(
                     {
-                        name: "New Cash Balance",
-                        value: `$${userData.wallet.toLocaleString()}`,
+                        name: "New Souls Balance",
+                        value: `${SOULS} ${userData.wallet.toLocaleString()} Souls`,
                         inline: true,
                     },
                     {
