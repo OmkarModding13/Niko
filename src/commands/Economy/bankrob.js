@@ -28,8 +28,14 @@ function fmt(amount) {
 function cooldownRemaining(userData, now = Date.now(), userId = null) {
     if (userId && isBotOwner(userId)) return 0;
 
-    const lastRob = Number(userData?.lastRob || 0);
-    return Math.max(0, (lastRob + ROB_COOLDOWN) - now);
+    // Bank Robbery uses its own cooldown so it does not interfere with
+    // any other robbery/economy command.
+    const bankRobCooldown = Number(userData?.bankRobCooldownExpiresAt || 0);
+    if (bankRobCooldown > now) {
+        return bankRobCooldown - now;
+    }
+
+    return 0;
 }
 
 function formatCooldown(ms) {
@@ -125,9 +131,9 @@ async function runRobbery(interaction, client, targetUser, players) {
             const data = playerData.get(player.id);
             data.wallet = Math.max(0, Number(data.wallet || 0) - POLICE_FINE);
 
-            // Store the 10-minute police cooldown using the existing lastRob field.
+            // Police penalty: 1,000 Souls + exactly 10 minutes Bank Robbery cooldown.
             if (!isBotOwner(player.id)) {
-                data.lastRob = now - ROB_COOLDOWN + POLICE_COOLDOWN;
+                data.bankRobCooldownExpiresAt = now + POLICE_COOLDOWN;
             }
 
             await setEconomyData(client, guildId, player.id, data);
@@ -136,8 +142,8 @@ async function runRobbery(interaction, client, targetUser, players) {
 
         const embed = buildUserErrorEmbed(
             'unknown',
-            `The police caught the entire crew! Every robber was fined **${SOULS} 1,000 Souls**. Non-owner robbers must wait **10 minutes** before another Bank Robbery.`,
-            { titleOverride: '🚔 Robbery Failed — Police Caught You' }
+            `The police caught the entire crew! **Every robber loses 1,000 Souls**. Non-owner robbers also receive a **10-minute Bank Robbery cooldown**.`,
+            { titleOverride: '🚔 ROBBERY FAILED — POLICE CAUGHT YOU!' }
         );
 
         embed.addFields({
@@ -168,8 +174,9 @@ async function runRobbery(interaction, client, targetUser, players) {
     for (const player of players) {
         const data = playerData.get(player.id);
         data.wallet = Number(data.wallet || 0) + share;
+        // Successful robbery: normal 4-hour Bank Robbery cooldown.
         if (!isBotOwner(player.id)) {
-            data.lastRob = now;
+            data.bankRobCooldownExpiresAt = now + ROB_COOLDOWN;
         }
         await setEconomyData(client, guildId, player.id, data);
     }
