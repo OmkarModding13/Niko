@@ -33,6 +33,9 @@ const FALLBACK_CHANNEL_NAME = 'Voice Room';
 
 const MAX_TRACKED_COOLDOWNS = 10000;
 
+// Existing server trigger channel previously handled by another bot.
+const EXISTING_JTC_TRIGGER_CHANNEL_ID = '1536728008600068156';
+
 /*
  * ==================================================
  * LEVELING VOICE SESSIONS
@@ -100,6 +103,30 @@ export default {
                     client,
                     guildId
                 );
+
+            // Adopt the existing trigger channel instead of creating a second one.
+            if (
+                newState.channel?.id === EXISTING_JTC_TRIGGER_CHANNEL_ID &&
+                !config.triggerChannels.includes(EXISTING_JTC_TRIGGER_CHANNEL_ID)
+            ) {
+                const triggerChannel = newState.guild.channels.cache.get(EXISTING_JTC_TRIGGER_CHANNEL_ID);
+
+                if (triggerChannel?.type === ChannelType.GuildVoice) {
+                    config.triggerChannels.push(EXISTING_JTC_TRIGGER_CHANNEL_ID);
+                    config.enabled = true;
+                    config.channelOptions = config.channelOptions || {};
+                    config.channelOptions[EXISTING_JTC_TRIGGER_CHANNEL_ID] = {
+                        ...(config.channelOptions[EXISTING_JTC_TRIGGER_CHANNEL_ID] || {}),
+                        nameTemplate: config.channelOptions[EXISTING_JTC_TRIGGER_CHANNEL_ID]?.nameTemplate || "{username}'s Room",
+                        userLimit: config.channelOptions[EXISTING_JTC_TRIGGER_CHANNEL_ID]?.userLimit ?? 0,
+                        bitrate: config.channelOptions[EXISTING_JTC_TRIGGER_CHANNEL_ID]?.bitrate ?? DEFAULT_VOICE_BITRATE,
+                        categoryId: triggerChannel.parentId || null
+                    };
+
+                    await client.db.set("guild:" + guildId + ":jointocreate", config);
+                    logger.info("Adopted existing Join to Create trigger " + EXISTING_JTC_TRIGGER_CHANNEL_ID + " for guild " + guildId);
+                }
+            }
 
             if (
                 !config.enabled ||
