@@ -143,7 +143,7 @@ export default {
             userData.wallet -= price;
             await setEconomyData(client, guildId, userId, userData);
 
-            const embed = successEmbed('⚡ XP Booster Purchased', `You activated **2× XP** for **1 hour** for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
+            const embed = successEmbed('⚡ XP Booster Purchased', `You activated **2× XP** for **24 hours** for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
                 .addFields({ name: 'New Balance', value: `${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}`, inline: true });
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: [MessageFlags.Ephemeral] });
