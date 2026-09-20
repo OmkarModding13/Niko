@@ -111,7 +111,7 @@ function getItemDescription(item) {
     }
     if (item.effect?.type === 'bank_capacity') return 'Increase your bank capacity by 50,000 Souls.';
     if (item.effect?.type === 'xp_boost') return 'Double XP earned for 24 hours.';
-    if (item.effect?.type === 'bank_protection') return 'Protect your wallet from Bank Robbery for 24 hours. Character abilities can extend this duration.';
+    if (item.effect?.type === 'bank_protection') return 'Protect your wallet from Bank Robbery for 1 hour. Character abilities can extend this duration.';
     return item.description || '';
 }
 
@@ -273,7 +273,7 @@ export default {
                         if (item.effect?.type === 'xp_boost') embed.addFields({ name: 'Duration', value: '24 Hours • 2× XP', inline: true });
                         if (item.effect?.type === 'bank_protection') {
                             const bonuses = getCharacterBonuses(userData);
-                            embed.addFields({ name: 'Duration', value: `${24 + Number(bonuses.bankProtectionHours || 0)} Hours`, inline: true });
+                            embed.addFields({ name: 'Duration', value: `${1 + Number(bonuses.bankProtectionHours || 0)} Hour${1 + Number(bonuses.bankProtectionHours || 0) === 1 ? '' : 's'}`, inline: true });
                         }
                         if (item.effect?.type === 'bank_capacity') embed.addFields({ name: 'Upgrade', value: '+50,000 Bank Capacity', inline: true });
 
@@ -353,7 +353,7 @@ export default {
                     } else if (item.effect?.type === 'bank_protection') {
                         const now = Date.now();
                         const bonuses = getCharacterBonuses(userData);
-                        const hours = 24 + Number(bonuses.bankProtectionHours || 0);
+                        const hours = 1 + Number(bonuses.bankProtectionHours || 0);
                         const currentExpiry = Number(userData.bankProtectionExpiresAt || 0);
                         const start = Math.max(now, currentExpiry);
                         userData.wallet -= price;
