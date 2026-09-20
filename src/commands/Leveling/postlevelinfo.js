@@ -1,68 +1,41 @@
-import { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LEVEL_INFO_CHANNEL_ID = '1530876981304885299';
-const SOULS_EMOJI = '<:Souls:1547510037621112894>';
-const SHARD_EMOJI = '<:Shard:1548962748321374218>';
+const LEVEL_INFO_CHANNEL_ID = '1551159198425948180';
 const EMBED_BLUE = 0x168BFF;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const BANNER_PATH = path.join(__dirname, '../../assets/HowToLevelUp.png');
 
 function buildLevelInfoEmbed() {
     return new EmbedBuilder()
         .setColor(EMBED_BLUE)
-        .setTitle('⚡ HOW TO LEVEL UP')
+        .setTitle('📊 CHECK YOUR LEVEL')
         .setDescription(
-            '**Want to level up in Hollow Devil\'s Domain?**\n' +
-            'Stay active, earn XP, and keep progressing.\n\n' +
-            '**💬 CHAT ACTIVITY**\n' +
-            'Chat with the community to earn XP through active conversation.\n' +
-            '> ⚠️ Spam and message flooding will not help you level up.\n' +
-            '> ⏱️ Chat XP is earned through active chat time.\n\n' +
-            '**🎙️ VOICE ACTIVITY**\n' +
-            'Spend time in Voice Channels with other members to earn XP.\n' +
-            '> 👥 At least **2 members** must be in the VC.\n' +
-            '> 🔇 Self-muted activity does not count.\n' +
-            '> 🙉 Self-deafened activity does not count.\n\n' +
-            '**🎮 GAME ACTIVITY**\n' +
-            'Play Niko\'s games to earn **XP + Souls**.\n' +
-            '> 🎯 Different games have different entry fees and rewards.\n' +
-            '> ✨ Winning games can also give you a chance to receive **Shards**.\n\n' +
-            '**📈 XP SYSTEM**\n' +
-            '> **100 XP = 1 Level**\n' +
-            '> XP carries toward your next level.\n' +
-            '> Your level does **not automatically decrease**.\n\n' +
-            '**🗓️ LEVEL PROGRESSION**\n' +
-            '> 🟢 **Level 1–49** → Weekly Activity System\n' +
-            '> 🔴 **Level 50+** → Monthly Activity System\n\n' +
-            '**📅 ACTIVITY REQUIREMENTS**\n' +
-            '**Levels 1–49 — Weekly:**\n' +
-            '> 🎙️ Voice: **21 hours/week**\n' +
-            '> 💬 Chat: **35 hours/week**\n' +
-            '> 🎮 Games: **15 games/week**\n' +
-            '> ✅ All three activities must be completed for a successful period.\n\n' +
-            '**Levels 50+ — Monthly:**\n' +
-            '> Your progression switches from weekly to monthly activity.\n' +
-            '> 📅 The monthly period is used to progress through Level 50+.\n\n' +
-            '**⚠️ FAILED ACTIVITY PERIOD**\n' +
-            '> 1st consecutive failed period → Current XP is **halved**.\n' +
-            '> 2nd consecutive failed period → Current XP becomes **0**.\n' +
-            '> 🔒 Your Level itself will **never decrease**.\n\n' +
-            '**⚡ XP BOOSTER**\n' +
-            '> 🛒 XP Booster gives **2× XP for 24 hours**.\n' +
-            '> It can be obtained through the Shop or Gacha.\n\n' +
-            `🩸 **KEEP ACTIVE. EARN XP. RISE THROUGH THE DOMAIN.** ${SOULS_EMOJI} ${SHARD_EMOJI}`,
+            '**Want to know your current level and XP progress?**\n\n' +
+            'Niko keeps track of your activity and XP as you participate in the Domain.\n\n' +
+            '**🔎 HOW TO CHECK YOUR LEVEL**\n' +
+            '> Use **/rank** in this channel.\n' +
+            '> Niko will show your **current Level, current XP, Total XP, and progress toward your next Level**.\n\n' +
+            '**📈 XP PROGRESS**\n' +
+            '> Your current XP is shown like **75 / 100 XP**.\n' +
+            '> The message also tells you exactly **how much XP you still need to reach the next Level**.\n' +
+            '> **100 XP = 1 Level**.\n\n' +
+            '**👤 CHECK SOMEONE ELSE**\n' +
+            '> You can use **/rank** and select a **user** to view their Level and XP progress too.\n\n' +
+            '**⚡ HOW TO EARN XP**\n' +
+            '> 💬 Stay active in chat.\n' +
+            '> 🎙️ Spend time in voice channels with other members.\n' +
+            '> 🎮 Play Niko\'s games.\n\n' +
+            '**💡 TIP**\n' +
+            '> Keep being active in the Domain and watch your XP progress toward the next Level.\n\n' +
+            '🩸 **CHECK YOUR LEVEL. TRACK YOUR XP. RISE THROUGH THE DOMAIN.**'
         )
-        .setFooter({ text: 'Hollow Devil’s Domain • Leveling Guide' });
+        .setFooter({ text: 'Hollow Devil’s Domain • Level Check' });
 }
 
 export default {
     data: new SlashCommandBuilder()
         .setName('postlevelinfo')
-        .setDescription('Post the How to Level Up guide')
+        .setDescription('Post the Check Your Level guide')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false),
 
@@ -85,14 +58,12 @@ export default {
             });
         }
 
-        const banner = new AttachmentBuilder(BANNER_PATH, { name: 'HowToLevelUp.png' });
         const embed = buildLevelInfoEmbed();
 
-        await channel.send({ files: [banner] });
         await channel.send({ embeds: [embed] });
 
         return interaction.reply({
-            content: `✅ How to Level Up guide posted in <#${LEVEL_INFO_CHANNEL_ID}>.`,
+            content: `✅ Check Your Level guide posted in <#${LEVEL_INFO_CHANNEL_ID}>.`,
             ephemeral: true,
         });
     },
