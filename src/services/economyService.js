@@ -154,7 +154,7 @@ class EconomyService {
       throw createError(
         "Insufficient Souls",
         ErrorTypes.VALIDATION,
-        `You only have **$${senderData.wallet.toLocaleString()}** in cash.`,
+        `You only have **<:Souls:1547510037621112894> ${senderData.wallet.toLocaleString()} Souls**.`,
         { required: amount, available: senderData.wallet, senderId }
       );
     }
