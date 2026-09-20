@@ -6,12 +6,6 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 
-const INVENTORY_CHANNEL_ID = '1550120893982703616';
-
-function isInventoryChannel(channel) {
-    return channel?.id === INVENTORY_CHANNEL_ID;
-}
-
 export default {
     data: new SlashCommandBuilder()
         .setName('withdraw')
@@ -19,9 +13,6 @@ export default {
         .addIntegerOption(option => option.setName('amount').setDescription('Amount of Souls to withdraw').setRequired(true).setMinValue(1)),
 
     execute: withErrorHandling(async (interaction, config, client) => {
-        if (!isInventoryChannel(interaction.channel)) {
-            return interaction.reply({ content: '❌ Please use **/withdraw** in the <#1550120893982703616> channel.', ephemeral: true });
-        }
 
         await InteractionHelper.safeDefer(interaction);
 
