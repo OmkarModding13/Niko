@@ -62,7 +62,7 @@ export function getMaxBankCapacity(userData) {
     );
 }
 
-export function `${BotConfig.economy?.currency?.emoji || ''} ${formatCurrency(amount)}` {
+export function formatCurrency(amount) {
     const currencyName =
         ECONOMY_CONFIG.currency?.name || 'Souls';
 
@@ -317,7 +317,7 @@ export function getWorkReward() {
         amount,
         job,
         message:
-            `You ${job} and earned ${`${BotConfig.economy?.currency?.emoji || ''} ${formatCurrency(amount)}`}!`
+            `You ${job} and earned ${BotConfig.economy?.currency?.emoji || ''} ${formatCurrency(amount)}!`
     };
 }
 
@@ -482,7 +482,7 @@ export const addMoney =
                 type !== 'bank'
             ) {
                 throw createError(
-                    'Invalid money type',
+                    'Invalid currency type',
                     ErrorTypes.VALIDATION,
                     'Type must be "wallet" or "bank".',
                     {
@@ -567,7 +567,7 @@ export const addMoney =
             service: 'economy',
             operation: 'addMoney',
             userMessage:
-                'Failed to add money. Please try again.'
+                'Failed to add Souls. Please try again.'
         }
     );
 
@@ -700,7 +700,7 @@ export const removeMoney =
             service: 'economy',
             operation: 'removeMoney',
             userMessage:
-                'Failed to remove money. Please try again.'
+                'Failed to remove Souls. Please try again.'
         }
     );
 
