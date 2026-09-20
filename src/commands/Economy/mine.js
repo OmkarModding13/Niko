@@ -4,7 +4,7 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const MINE_COOLDOWN = 60 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';\nconst MINE_COOLDOWN = 60 * 60 * 1000;
 const BASE_MIN_REWARD = 400;
 const BASE_MAX_REWARD = 1200;
 const PICKAXE_MULTIPLIER = 1.2;
@@ -21,7 +21,7 @@ const MINE_LOCATIONS = [
 export default {
     data: new SlashCommandBuilder()
         .setName('mine')
-        .setDescription('Go mining to earn money'),
+        .setDescription('Go mining to earn Souls'),
 
     execute: withErrorHandling(async (interaction, config, client) => {
         const deferred = await InteractionHelper.safeDefer(interaction);
@@ -79,11 +79,11 @@ userData.lastMine = now;
 
             const embed = successEmbed(
                 "💰 Mining Expedition Successful!",
-                `You explored a **${location}** and managed to find minerals worth **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
+                `You explored a **${location}** and managed to find minerals worth **${SOULS} ${finalEarned.toLocaleString()} Souls**!${multiplierMessage}`,
             )
                 .addFields({
-                    name: "New Cash Balance",
-                    value: `$${userData.wallet.toLocaleString()}`,
+                    name: "New Souls Balance",
+                    value: `${SOULS} ${userData.wallet.toLocaleString()} Souls`,
                     inline: true,
                 })
                 .setFooter({ text: `Next mine available in 1 hour.` });
