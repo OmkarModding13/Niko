@@ -24,18 +24,18 @@ export default {
             )
             .addFields(
                 {
-                    name: `${SOULS_EMOJI} /quickcoin — 20 Souls`,
-                    value: `${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • Win up to **100 Souls**.`,
+                    name: `🪙 /quickcoin`,
+                    value: `**Entry:** ${SOULS_EMOJI} **20 Souls**\n${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • **Win up to 100 Souls**.`,
                     inline: false
                 },
                 {
-                    name: '🎲 /abyssdice — 30 Souls',
-                    value: 'Roll the Abyss Dice • Win up to **100 Souls**.',
+                    name: '🎲 /abyssdice',
+                    value: `**Entry:** ${SOULS_EMOJI} **30 Souls**\nRoll the Abyss Dice • **Win up to 100 Souls**.`,
                     inline: false
                 },
                 {
-                    name: '✊ /rps — 30 Souls',
-                    value: 'Rock, Paper, Scissors against Niko • Win up to **100 Souls**. Draw = refund.',
+                    name: '✊ /rps',
+                    value: `**Entry:** ${SOULS_EMOJI} **30 Souls**\nRock, Paper, Scissors against Niko • **Win up to 100 Souls**. Draw = refund.`,
                     inline: false
                 },
                 {
@@ -44,13 +44,13 @@ export default {
                     inline: false
                 },
                 {
-                    name: '🎲 /diceduel — 100 Souls',
-                    value: 'Roll against Niko • Win up to **300 Souls**.',
+                    name: '🎲 /diceduel',
+                    value: `**Entry:** ${SOULS_EMOJI} **100 Souls**\nRoll against Niko • **Win up to 300 Souls**.,
                     inline: false
                 },
                 {
-                    name: '🎰 /soulslots — 150 Souls',
-                    value: 'Spin the Soul Slots • Win up to **450 Souls**.',
+                    name: '🎰 /soulslots',
+                    value: `**Entry:** ${SOULS_EMOJI} **150 Souls**\nSpin the Soul Slots • **Win up to 450 Souls**.,
                     inline: false
                 },
                 {
@@ -60,17 +60,17 @@ export default {
                 },
                 {
                     name: '✊ /pvp — Rock Paper Scissors',
-                    value: `**2 or 3 players** • ${SOULS_EMOJI} **300 Souls each** • Winner takes the pot (**600 / 900 Souls**). Join/Reject happens directly in the channel.`,
+                    value: `**Entry:** ${SOULS_EMOJI} **300 Souls per player**\n**2 or 3 players** • Winner takes the full pot (**600 / 900 Souls**). Join/Reject happens directly in the channel.`,
                     inline: false
                 },
                 {
                     name: `${SOULS_EMOJI} /pvp — Heads & Tails`,
-                    value: `**2 players** • ${SOULS_EMOJI} **900 Souls each** • Winner takes **1,800 Souls**.`,
+                    value: `**Entry:** ${SOULS_EMOJI} **900 Souls per player**\n**2 players** • Winner takes the full **1,800 Souls** pot.`,
                     inline: false
                 },
                 {
                     name: '🎯 /pvp — Number Guess',
-                    value: `**4 players** • Each player chooses their own ${SOULS_EMOJI} bet • Guess **1–4** • Winner takes the full pot.`,
+                    value: `**Entry:** Each player chooses their own ${SOULS_EMOJI} **bet (minimum 1 Soul)**\n**4 players** • Guess **1–4** • Correct guessers split the full pot.`,
                     inline: false
                 },
                 {
@@ -80,7 +80,7 @@ export default {
                 },
                 {
                     name: '🚨 /bankrob — Bank Robbery',
-                    value: `**2–10 players** • **40% success / 60% police catch** • Up to **80%** of the target wallet can be stolen. Join/Reject happens directly in the command channel.`,
+                    value: `**Entry:** No Souls fee\n**2–10 players** • **40% success / 60% police catch** • Success steals **exactly 80%** of the target's wallet, split across the crew. Failure = **1,000 Souls fine per robber + 10-minute cooldown**.`,
                     inline: false
                 },
                 {
