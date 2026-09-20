@@ -310,7 +310,7 @@ export const shopItems = [
         price: 3000,
         description: 'Double XP earned for 24 hours.',
         type: 'boost',
-        duration: 24 * 60 * 60 * 1000,
+        duration: 1 * 60 * 60 * 1000,
         effect: {
             type: 'xp_boost',
             multiplier: 2
@@ -320,12 +320,12 @@ export const shopItems = [
         id: 'bank_protection_24h',
         name: '🛡️ Bank Protection',
         price: 3000,
-        description: 'Protect your wallet from Bank Robbery for 24 hours.',
+        description: 'Protect your wallet from Bank Robbery for 1 hour.',
         type: 'protection',
         duration: 24 * 60 * 60 * 1000,
         effect: {
             type: 'bank_protection',
-            hours: 24
+            hours: 1
         }
     }
 ];
