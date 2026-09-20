@@ -46,6 +46,16 @@ export default {
                 timestamp: now
             });
 
+            // Prevent the in-memory anti-spam map from growing forever.
+            if (recentMessages.size > 10000) {
+                for (const [key, entry] of recentMessages) {
+                    if (now - entry.timestamp > 30 * 1000) {
+                        recentMessages.delete(key);
+                    }
+                    if (recentMessages.size <= 8000) break;
+                }
+            }
+
             const userData = await getEconomyData(
                 client,
                 guildId,
