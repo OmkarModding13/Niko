@@ -50,7 +50,7 @@ function buildEarnInfoEmbed() {
             `> ${SHARD_EMOJI} Shards are intentionally **very rare**.\n\n` +
 
             '**💎 SHARDS — RARE CURRENCY**\n' +
-            `> ${SHARD_EMOJI} **1 Shard = 10,000 Souls worth of value**\n` +
+            `> ${SHARD_EMOJI} Shards are a separate rare currency with no direct Souls conversion.\n` +
             `> ${SHARD_EMOJI} Shards are mainly obtained through rare game rewards.\n` +
             '> ⚠️ Shards are not meant to be a common currency.\n' +
             '> ✨ Save them for rare upgrades and special perks.\n\n' +
