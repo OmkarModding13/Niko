@@ -4,6 +4,7 @@ import { logger } from '../utils/logger.js';
 import { getEconomyData, setEconomyData, getMaxBankCapacity } from '../utils/economy.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { wrapServiceClassMethods } from '../utils/serviceErrorBoundary.js';
+import { Mutex } from '../utils/mutex.js';
 
 class EconomyService {
 
@@ -16,7 +17,7 @@ class EconomyService {
   static FISH_COOLDOWN = 45 * 60 * 1000;
   static BEG_COOLDOWN = 30 * 60 * 1000;
   
-  static DAILY_AMOUNT = 1000;
+  static DAILY_AMOUNT = 25;
   static MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 
   static assertSafeBalance(value, context = {}) {
@@ -127,7 +128,7 @@ class EconomyService {
 
     this.validateAmount(amount, { operation: 'transfer', senderId, receiverId });
 
-    const [senderData, receiverData] = await Promise.all([
+    return await Mutex.runExclusive(`economy-transfer:${guildId}`, async () => {\n\n    const [senderData, receiverData] = await Promise.all([
       getEconomyData(client, guildId, senderId),
       getEconomyData(client, guildId, receiverId)
     ]);
@@ -224,6 +225,7 @@ class EconomyService {
         { senderId, receiverId, amount }
       );
     }
+    });
   }
 
   static async addMoney(client, guildId, userId, amount, source = 'unknown') {
