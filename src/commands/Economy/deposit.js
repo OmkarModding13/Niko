@@ -58,7 +58,10 @@ export default {
 
         userData.wallet -= depositAmount;
         userData.bank += depositAmount;
-        await setEconomyData(client, guildId, userId, userData);
+        const saved = await setEconomyData(client, guildId, userId, userData);
+        if (!saved) {
+            throw createError('Failed to save deposit', ErrorTypes.DATABASE, 'Your deposit could not be saved safely. Please try again.', { userId, guildId });
+        }
 
         const embed = successEmbed('Deposit Successful', `You deposited **${depositAmount.toLocaleString()} ${SOULS_EMOJI} Souls** into your Soul Bank.`).addFields(
             { name: `${SOULS_EMOJI} Wallet`, value: `${userData.wallet.toLocaleString()} Souls`, inline: true },
