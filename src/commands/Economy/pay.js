@@ -28,7 +28,8 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
             
-            const SOULS = '<:Souls:1547510037621112894>';\n            const senderId = interaction.user.id;
+            const SOULS = '<:Souls:1547510037621112894';
+            const senderId = interaction.user.id;
             const receiver = interaction.options.getUser("user");
             const amount = interaction.options.getInteger("amount");
             const guildId = interaction.guildId;
