@@ -69,7 +69,14 @@ class EconomyService {
     userData.lastDaily = now;
 
     try {
-      await setEconomyData(client, guildId, userId, userData);
+      const saved = await setEconomyData(client, guildId, userId, userData);
+      if (!saved) {
+        throw createError(
+          "Failed to save economy data",
+          ErrorTypes.DATABASE,
+          "Your economy change could not be saved safely. Please try again."
+        );
+      }
       
       logger.info(`[ECONOMY_TRANSACTION] Daily claimed`, {
         userId,
@@ -174,18 +181,39 @@ class EconomyService {
 
     try {
       
-      await setEconomyData(client, guildId, senderId, senderData);
+      const senderSaved = await setEconomyData(client, guildId, senderId, senderData);
+      if (!senderSaved) {
+        throw createError(
+          "Failed to save sender balance",
+          ErrorTypes.DATABASE,
+          "The payment could not be saved safely. Please try again."
+        );
+      }
       
       try {
         
-        await setEconomyData(client, guildId, receiverId, receiverData);
+        const receiverSaved = await setEconomyData(client, guildId, receiverId, receiverData);
+        if (!receiverSaved) {
+          throw createError(
+            "Failed to save receiver balance",
+            ErrorTypes.DATABASE,
+            "The payment could not be completed safely."
+          );
+        }
       } catch (receiverError) {
         
         logger.error(`[ECONOMY_CRITICAL] Failed to credit receiver ${receiverId}. Attempting rollback for sender ${senderId}...`, receiverError);
         
         senderData.wallet = walletBefore;
         try {
-          await setEconomyData(client, guildId, senderId, senderData);
+          const senderSaved = await setEconomyData(client, guildId, senderId, senderData);
+      if (!senderSaved) {
+        throw createError(
+          "Failed to save sender balance",
+          ErrorTypes.DATABASE,
+          "The payment could not be saved safely. Please try again."
+        );
+      }
           logger.info(`[ECONOMY_ROLLBACK] Successfully rolled back sender ${senderId} after receiver credit failure.`);
         } catch (rollbackError) {
           logger.error(`[ECONOMY_FATAL] ROLLBACK FAILED for sender ${senderId}! Data is now inconsistent.`, rollbackError);
@@ -314,7 +342,7 @@ class EconomyService {
 
     if (userData.wallet < amount) {
       throw createError(
-        Insufficient Souls,
+        "Insufficient Souls",
         ErrorTypes.VALIDATION,
         `You only have **<:Souls:1547510037621112894> ${userData.wallet.toLocaleString()} Souls**.`,
         { required: amount, available: userData.wallet }
