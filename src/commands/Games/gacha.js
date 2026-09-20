@@ -183,6 +183,12 @@ async function performGacha(interaction, client, spins) {
 
     try {
         const userData = await getEconomyData(client, guildId, userId);
+        if (!userData) {
+            return {
+                success: false,
+                content: '❌ Your economy data is temporarily unavailable. Please try again later.'
+            };
+        }
         const shards = Number(userData.shards || 0);
 
         if (shards < cost) {
@@ -223,7 +229,13 @@ async function performGacha(interaction, client, spins) {
             }
         }
 
-        await setEconomyData(client, guildId, userId, userData);
+        const saved = await setEconomyData(client, guildId, userId, userData);
+        if (!saved) {
+            return {
+                success: false,
+                content: '❌ Your gacha result could not be saved safely. Please try again.'
+            };
+        }
 
         const characters = rewards.filter(reward => reward.type === 'character');
         const mystic = characters.some(reward => reward.character.stars === 5);
