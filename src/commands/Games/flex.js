@@ -8,9 +8,10 @@ import { getEconomyData } from '../../utils/economy.js';
 import { createFlexImage } from '../../services/gacha/flexImage.js';
 import { getOwnedCharacters, CHARACTER_CATALOG } from '../../services/gacha/characters.js';
 
+const INVENTORY_CHANNEL_ID = '1550120893982703616';
+
 function isInventoryChannel(channel) {
-    if (!channel?.name) return false;
-    return channel.name.toLowerCase().replace(/[^a-z0-9]/g, '') === 'inventory';
+    return channel?.id === INVENTORY_CHANNEL_ID;
 }
 
 export default {
