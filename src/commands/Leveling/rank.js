@@ -4,6 +4,7 @@ import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getUserLevelData, getLevelingConfig, getXpForLevel } from '../../services/leveling/leveling.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { isBotOwner } from '../../config/bot.js';
 
 const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
 export default {
@@ -20,7 +21,9 @@ export default {
   category: 'Leveling',
 
   async execute(interaction, config, client) {
-    const isOwner = interaction.guild?.ownerId === interaction.user.id;
+    const isOwner =
+      isBotOwner(interaction.user.id) ||
+      interaction.guild?.ownerId === interaction.user.id;
 
     if (!isOwner && interaction.channelId !== LEVEL_CHECK_CHANNEL_ID) {
       return interaction.reply({
