@@ -440,7 +440,7 @@ export default {
                                 'The robbery could not be completed safely. No additional rewards were processed.'
                             ),
                         });
-                        throw error;
+                        return;
                     }
                     return;
                 }
