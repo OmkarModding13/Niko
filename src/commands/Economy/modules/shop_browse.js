@@ -262,9 +262,7 @@ export default {
                                 { name: 'Balance', value: `${TOTAL_EMOJI} ${balance.toLocaleString()} Souls`, inline: true }
                             );
 
-                        let assignedColorRole = null;
-
-                    if (item.effect?.type === 'temporary_color_role') {
+                        if (item.effect?.type === 'temporary_color_role') {
                             const tierItems = getColorTierItems(item.id);
                             embed.addFields({
                                 name: 'Available Durations',
@@ -309,6 +307,8 @@ export default {
                     const price = getPrice(item, userData);
                     const balance = Number(userData.wallet || 0);
                     if (balance < price) {
+
+                    let assignedColorRole = null;
                         await componentInteraction.reply({
                             content: `❌ You don't have enough Souls. You need **${SOULS_EMOJI} ${price.toLocaleString()} Souls** but only have **${TOTAL_EMOJI} ${balance.toLocaleString()} Souls**.`,
                             flags: MessageFlags.Ephemeral
