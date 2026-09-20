@@ -29,7 +29,7 @@ export default {
     async execute(interaction, config, client) {
         if (!isInventoryChannel(interaction.channel)) {
             return interaction.reply({
-                content: '❌ Please use **/flex** in the **『Inventory』** channel.',
+                content: '❌ Please use **/flex** in the <#1550120893982703616> channel.',
                 ephemeral: true
             });
         }
