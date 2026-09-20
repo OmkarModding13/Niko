@@ -1,6 +1,6 @@
 // messageCreate.js
 
-import { Events } from 'discord.js';
+import { Events, PermissionFlagsBits } from 'discord.js';
 
 import { logger } from '../utils/logger.js';
 
@@ -448,6 +448,36 @@ async function handlePrefixCommand(
       }).catch(() => {});
 
 
+      return;
+    }
+
+
+    /*
+     * ==================================================
+     * DEFAULT COMMAND PERMISSIONS
+     * ==================================================
+     *
+     * Slash commands are gated by Discord automatically.
+     * Prefix commands are not, so mirror the same permission
+     * requirement here.
+     */
+    const requiredPermissions =
+      getCommandDefaultPermissions(command.data);
+
+    if (
+      requiredPermissions != null &&
+      !memberMeetsCommandPermissions(
+        message.member,
+        requiredPermissions,
+        {
+          guildConfig,
+          commandCategory: command.category
+        }
+      )
+    ) {
+      await message.channel.send({
+        content: '❌ You do not have permission to use this command.'
+      }).catch(() => {});
       return;
     }
 
