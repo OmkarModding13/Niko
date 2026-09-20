@@ -207,7 +207,7 @@ async function runRobbery(interaction, client, targetUser, players) {
         },
         {
             name: '⏱️ Next Robbery',
-            value: '**4 hours**`,
+            value: '**4 hours**',
             inline: true,
         },
     );
