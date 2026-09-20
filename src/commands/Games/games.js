@@ -99,18 +99,13 @@ export default {
                     inline: false
                 },
                 {
-                    name: '✨ /flex',
-                    value: 'Show your owned character collection and duplicate counts.',
-                    inline: false
-                },
-                {
                     name: `${SOULS_EMOJI} POSSIBLE SOLO REWARDS`,
                     value: 'Common Souls • Double Souls • Extra Souls • 1 Shard • Better Luck Next Time',
                     inline: false
                 },
                 {
                     name: '🎰 GACHA RARITIES',
-                    value: 'Common → Souls / Double Souls\nRare → XP Booster / Bank Protection\nEpic → Bank Capacity / 1 Shard\nLegendary → 4★ Character\nMystic → 5★ Character\n🔁 Duplicate Character → 100 Souls',
+                    value: 'Common → Souls / Double Souls\nRare → XP Booster / Bank Protection\nEpic → Bank Capacity / 1 Shard\nLegendary → 4★ Character\nMystic → 5★ Character\n🔁 Duplicate Character → 2 Shards',
                     inline: false
                 }
             )
