@@ -26,7 +26,7 @@ export default {
     execute: withErrorHandling(async (interaction, config, client) => {
         if (!isInventoryChannel(interaction.channel)) {
             return interaction.reply({
-                content: '❌ Please use **/balance** in the **『Inventory』** channel.',
+                content: '❌ Please use **/balance** in the <#1550120893982703616> channel.',
                 ephemeral: true
             });
         }
