@@ -10,18 +10,27 @@ const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
+function isInventoryChannel(channel) {
+    if (!channel?.name) return false;
+    return channel.name.toLowerCase().replace(/[^a-z0-9]/g, '') === 'inventory';
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName('balance')
         .setDescription("Check your or someone else's balance")
         .addUserOption(option =>
-            option
-                .setName('user')
-                .setDescription('User to check balance for')
-                .setRequired(false)
+            option.setName('user').setDescription('User to check balance for').setRequired(false)
         ),
 
     execute: withErrorHandling(async (interaction, config, client) => {
+        if (!isInventoryChannel(interaction.channel)) {
+            return interaction.reply({
+                content: '❌ Please use **/balance** in the **『Inventory』** channel.',
+                ephemeral: true
+            });
+        }
+
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
 
@@ -32,21 +41,12 @@ export default {
         logger.info(`[ECONOMY] Balance check - userOption: ${userOption?.id || 'null'}, targetUser: ${targetUser.id}, guildId: ${guildId}`);
 
         if (targetUser.bot) {
-            throw createError(
-                'Bot user queried for balance',
-                ErrorTypes.VALIDATION,
-                "Bots don't have an economy balance."
-            );
+            throw createError('Bot user queried for balance', ErrorTypes.VALIDATION, "Bots don't have an economy balance.");
         }
 
         const userData = await getEconomyData(client, guildId, targetUser.id);
         if (!userData) {
-            throw createError(
-                'Failed to load economy data',
-                ErrorTypes.DATABASE,
-                'Failed to load economy data. Please try again later.',
-                { userId: targetUser.id, guildId }
-            );
+            throw createError('Failed to load economy data', ErrorTypes.DATABASE, 'Failed to load economy data. Please try again later.', { userId: targetUser.id, guildId });
         }
 
         const maxBank = getMaxBankCapacity(userData);
@@ -57,37 +57,16 @@ export default {
         const embed = createEmbed({
             title: `${targetUser.username}'s Balance`,
             description:
-                `Here is the current financial status for ${targetUser.username}.\n\n` +
-                `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\n` +
-                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back into your wallet.\n` +
+                `Here is the current financial status for ${targetUser.username}.\\n\\n` +
+                `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\\n` +
+                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back into your wallet.\\n` +
                 `${SHARD_EMOJI} Use **/gacha** to spend Shards on character and rare rewards.`,
-        })
-            .addFields(
-                {
-                    name: `${SOULS_EMOJI} Souls`,
-                    value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-                    inline: true,
-                },
-                {
-                    name: '🏦 Soul Bank',
-                    value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-                    inline: true,
-                },
-                {
-                    name: `${TOTAL_SOULS_EMOJI} Total Souls`,
-                    value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`,
-                    inline: true,
-                },
-                {
-                    name: `${SHARD_EMOJI} Shards`,
-                    value: `**${shards.toLocaleString()}**`,
-                    inline: true,
-                }
-            )
-            .setFooter({
-                text: `Requested by ${interaction.user.tag}`,
-                iconURL: interaction.user.displayAvatarURL(),
-            });
+        }).addFields(
+            { name: `${SOULS_EMOJI} Souls`, value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`, inline: true },
+            { name: '🏦 Soul Bank', value: `${bank.toLocaleString()} / ${maxBank.toLocaleString()} ${botConfig.economy.currency.namePlural}`, inline: true },
+            { name: `${TOTAL_SOULS_EMOJI} Total Souls`, value: `${(wallet + bank).toLocaleString()} ${botConfig.economy.currency.namePlural}`, inline: true },
+            { name: `${SHARD_EMOJI} Shards`, value: `**${shards.toLocaleString()}**`, inline: true }
+        ).setFooter({ text: `Requested by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() });
 
         logger.info('[ECONOMY] Balance retrieved', { userId: targetUser.id, wallet, bank, shards });
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
