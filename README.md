@@ -228,7 +228,7 @@ Notes:
    createdb niko
    createuser niko
    psql -c "ALTER USER niko PASSWORD 'yourpassword';"
-   psql -c "GRANT ALL PRIVILEGES ON DATABASE niko TO titanbot;"
+   psql -c "GRANT ALL PRIVILEGES ON DATABASE niko TO niko;"
    ```
 
 5. **Verify Database Setup**
