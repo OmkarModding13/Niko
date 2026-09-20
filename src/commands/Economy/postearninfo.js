@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 const EARN_CHANNEL_ID = '1548932541283835904';
 const CHARACTERS_ABILITY_CHANNEL_ID = '1550118678396149910';
-const GAME_SHOP_CHANNEL_ID = '1547531709959118911';
+const GAME_CHANNEL_ID = '1547531709959118911';
+const SHOP_CHANNEL_ID = '1551192004241793084';
 const NIKO_NOTIFICATIONS_CHANNEL_ID = '1550119194811572244';
 const INVENTORY_CHANNEL_ID = '1550120893982703616';
 
@@ -41,7 +42,7 @@ function buildEarnInfoEmbed() {
             '> 🙉 Self-deafened activity does not count.\n\n' +
 
             '**🎮 GAMES**\n' +
-            `Play Niko\'s games from <#${GAME_SHOP_CHANNEL_ID}>. Games use Souls as the entry fee.\n` +
+            `Play Niko\'s games from <#${GAME_CHANNEL_ID}>. Games use Souls as the entry fee.\n` +
             `> ${SOULS_EMOJI} **Common reward** → Souls\n` +
             '> ❌ **Better Luck Next Time** → No reward\n' +
             `> 💰 **Double Souls** → 2× Souls reward\n` +
@@ -57,7 +58,8 @@ function buildEarnInfoEmbed() {
             '**📚 SOULS ECONOMY CHANNELS**\n' +
             `> ☠️ <#${EARN_CHANNEL_ID}> → Learn how to earn Souls and Shards.\n` +
             `> ☠️ <#${CHARACTERS_ABILITY_CHANNEL_ID}> → View Gacha Characters, rarities, abilities and character information.\n` +
-            `> ☠️ <#${GAME_SHOP_CHANNEL_ID}> → Play Niko\'s games and use the Shop to spend Souls and Shards.\n` +
+            `> ☠️ <#${GAME_CHANNEL_ID}> → Play Niko\'s games with Souls.\n` +
+            `> ☠️ <#${SHOP_CHANNEL_ID}> → Use the Shop to spend Souls and buy upgrades.\n` +
             `> ☠️ <#${NIKO_NOTIFICATIONS_CHANNEL_ID}> → Receive important Niko notifications when DMs cannot be delivered.\n` +
             `> ☠️ <#${INVENTORY_CHANNEL_ID}> → View your Characters, Shards, boosts, tickets and other items.\n\n` +
 
