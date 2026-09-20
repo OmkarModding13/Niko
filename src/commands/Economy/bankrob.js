@@ -136,7 +136,7 @@ async function runRobbery(interaction, client, targetUser, players) {
 
         const embed = buildUserErrorEmbed(
             'unknown',
-            `The police caught the entire crew! Every robber was fined **${SOULS} 1,000 Souls** and cannot attempt another Bank Robbery for **10 minutes**.`,
+            `The police caught the entire crew! Every robber was fined **${SOULS} 1,000 Souls**. Non-owner robbers must wait **10 minutes** before another Bank Robbery.`,
             { titleOverride: '🚔 Robbery Failed — Police Caught You' }
         );
 
@@ -207,7 +207,9 @@ async function runRobbery(interaction, client, targetUser, players) {
         },
         {
             name: '⏱️ Next Robbery',
-            value: '**4 hours**',
+            value: players.some(player => isBotOwner(player.id))
+                ? '**No cooldown for Owner**\\n**4 hours for other robbers**'
+                : '**4 hours**',
             inline: true,
         },
     );
@@ -308,6 +310,34 @@ export default {
 
         const players = [initiator, ...selectedPlayers];
         const targetCount = players.length;
+
+        // Validate every explicitly selected robber before starting.
+        const uniquePlayerIds = new Set(players.map(player => player.id));
+        if (uniquePlayerIds.size !== players.length) {
+            throw createError(
+                'Duplicate robber selected',
+                ErrorTypes.VALIDATION,
+                'Each robber must be a different user.'
+            );
+        }
+
+        const invalidPlayer = players.find(player => player.id === targetUser.id);
+        if (invalidPlayer) {
+            throw createError(
+                'Target selected as robber',
+                ErrorTypes.VALIDATION,
+                'The target cannot also be one of the robbers.'
+            );
+        }
+
+        const botPlayer = players.find(player => player.bot);
+        if (botPlayer) {
+            throw createError(
+                'Bot selected as robber',
+                ErrorTypes.VALIDATION,
+                'Bots cannot be part of a Bank Robbery crew.'
+            );
+        }
 
         if (targetUser.id === initiator.id) {
             throw createError(
