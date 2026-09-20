@@ -34,7 +34,10 @@ export default {
 
         userData.wallet += withdrawAmount;
         userData.bank -= withdrawAmount;
-        await setEconomyData(client, guildId, userId, userData);
+        const saved = await setEconomyData(client, guildId, userId, userData);
+        if (!saved) {
+            throw createError('Failed to save withdrawal', ErrorTypes.DATABASE, 'Your withdrawal could not be saved safely. Please try again.', { userId, guildId });
+        }
 
         const embed = successEmbed('Withdrawal Successful', `You successfully withdrew **${withdrawAmount.toLocaleString()} ${SOULS_EMOJI} Souls** from your bank.`).addFields(
             { name: `${SOULS_EMOJI} New Wallet Balance`, value: `${userData.wallet.toLocaleString()} Souls`, inline: true },
