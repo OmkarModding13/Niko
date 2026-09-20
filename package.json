@@ -1,7 +1,7 @@
 {
-  "name": "titanbot",
+  "name": "niko-bot",
   "version": "2.1.0",
-  "description": "Modular Ultimate Community Bot by Touchpoint Support",
+  "description": "Niko — a feature-rich Discord community bot",
   "main": "src/app.js",
   "type": "module",
   "scripts": {
