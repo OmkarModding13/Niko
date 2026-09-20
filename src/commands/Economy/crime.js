@@ -4,7 +4,7 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const CRIME_COOLDOWN = 60 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';\nconst CRIME_COOLDOWN = 60 * 60 * 1000;
 const JAIL_TIME = 2 * 60 * 60 * 1000;
 const FINE_RATE = 0.2;
 
@@ -19,7 +19,7 @@ const CRIME_TYPES = [
 export default {
     data: new SlashCommandBuilder()
         .setName('crime')
-        .setDescription('Commit a crime to earn money (risky)')
+        .setDescription('Commit a crime to earn Souls (risky)')
         .addStringOption(option =>
             option
                 .setName('type')
@@ -94,7 +94,7 @@ export default {
                 
                 const embed = successEmbed(
                     "🕵️ Crime Successful!",
-                    `You successfully committed ${crime.name} and earned **${amountEarned}** coins!`
+                    `You successfully committed ${crime.name} and earned **${SOULS} ${amountEarned.toLocaleString()} Souls**!`
                 );
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
@@ -110,7 +110,7 @@ export default {
                 const embed = warningEmbed(
                     "🚔 Crime Failed!",
                     `You were caught while attempting ${crime.name} and have been sent to jail! ` +
-                    `You were fined ${fine.toLocaleString()} coins and will be in jail for 2 hours.`
+                    `You were fined ${SOULS} ${fine.toLocaleString()} Souls and will be in jail for 2 hours.`
                 );
                 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
