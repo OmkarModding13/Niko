@@ -276,7 +276,14 @@ class EconomyService {
     this.assertSafeBalance(nextWallet, { operation: 'addMoney', userId, source, amount });
     userData.wallet = nextWallet;
 
-    await setEconomyData(client, guildId, userId, userData);
+    const saved = await setEconomyData(client, guildId, userId, userData);
+    if (!saved) {
+      throw createError(
+        "Failed to save economy data",
+        ErrorTypes.DATABASE,
+        "Your economy change could not be saved safely. Please try again."
+      );
+    }
 
     logger.info(`[ECONOMY_TRANSACTION] Money added`, {
       userId,
@@ -318,7 +325,14 @@ class EconomyService {
 
     userData.wallet = balanceBefore - amount;
 
-    await setEconomyData(client, guildId, userId, userData);
+    const saved = await setEconomyData(client, guildId, userId, userData);
+    if (!saved) {
+      throw createError(
+        "Failed to save economy data",
+        ErrorTypes.DATABASE,
+        "Your economy change could not be saved safely. Please try again."
+      );
+    }
 
     logger.info(`[ECONOMY_TRANSACTION] Money removed`, {
       userId,
@@ -368,7 +382,14 @@ class EconomyService {
     userData.wallet = nextWallet;
     userData.bank = nextBank;
 
-    await setEconomyData(client, guildId, userId, userData);
+    const saved = await setEconomyData(client, guildId, userId, userData);
+    if (!saved) {
+      throw createError(
+        "Failed to save economy data",
+        ErrorTypes.DATABASE,
+        "Your economy change could not be saved safely. Please try again."
+      );
+    }
 
     logger.info(`[ECONOMY_TRANSACTION] Money deposited to bank`, {
       userId,
@@ -406,7 +427,14 @@ class EconomyService {
     userData.wallet = nextWallet;
     userData.bank = nextBank;
 
-    await setEconomyData(client, guildId, userId, userData);
+    const saved = await setEconomyData(client, guildId, userId, userData);
+    if (!saved) {
+      throw createError(
+        "Failed to save economy data",
+        ErrorTypes.DATABASE,
+        "Your economy change could not be saved safely. Please try again."
+      );
+    }
 
     logger.info(`[ECONOMY_TRANSACTION] Money withdrawn from bank`, {
       userId,
