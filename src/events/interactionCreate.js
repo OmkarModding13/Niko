@@ -49,36 +49,49 @@ const COMMAND_ERROR_SUBTYPES = {
 
 const GAME_SHOP_CHANNEL_ID = '1547531709959118911';
 const INVENTORY_CHANNEL_ID = '1550120893982703616';
+const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
 
-// Commands allowed in the Game + Shop channel.
+// Public member commands and their dedicated channels.
+// Commands not listed here are hidden from normal members by commandLoader.js.
 const GAME_SHOP_COMMANDS = new Set([
-  'shop',
+  'games',
+  'quickcoin',
+  'abyssdice',
+  'rps',
+  'soulflip',
+  'diceduel',
+  'soulslots',
+  'pvp',
+  'bankrob',
+  'gacha',
+  'shardgamble',
+  'daily',
+  'remindme',
 ]);
 
-// Commands related to the user's bank/balance and character inventory.
 const INVENTORY_COMMANDS = new Set([
   'balance',
-  'bank',
   'deposit',
   'withdraw',
   'flex',
 ]);
 
+const LEVEL_COMMANDS = new Set([
+  'rank',
+]);
+
 function getRequiredCommandChannel(command, interaction) {
-  // These command names are explicit so category metadata can never override
-  // the dedicated channel routing.
   const commandName = interaction?.commandName;
+
+  if (LEVEL_COMMANDS.has(commandName)) {
+    return LEVEL_CHECK_CHANNEL_ID;
+  }
 
   if (INVENTORY_COMMANDS.has(commandName)) {
     return INVENTORY_CHANNEL_ID;
   }
 
   if (GAME_SHOP_COMMANDS.has(commandName)) {
-    return GAME_SHOP_CHANNEL_ID;
-  }
-
-  // Every other Games command belongs in the Game + Shop channel.
-  if (command?.category === 'Games') {
     return GAME_SHOP_CHANNEL_ID;
   }
 
@@ -153,11 +166,8 @@ export default {
                 );
               }
 
-              // Channel routing:
-              // - Game + Shop channel: all Games commands + /shop
-              // - Inventory channel: balance/bank/deposit/withdraw + /flex
-              // - Commands outside these groups are unchanged.
-              // - Server owner and bot owner can use commands anywhere.
+              // Public member commands are locked to their dedicated channels.
+              // Server owner and bot owner can use them anywhere.
               const requiredChannelId =
                 getRequiredCommandChannel(
                   command,
