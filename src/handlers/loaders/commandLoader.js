@@ -36,15 +36,13 @@ const PUBLIC_COMMANDS = new Set([
 
 function applyCommandVisibility(command) {
     if (PUBLIC_COMMANDS.has(command.data?.name)) {
+        // Public player commands: visible to everyone.
+        command.data.setDefaultMemberPermissions(null);
         return;
     }
 
-    // Preserve explicit permissions already defined by the command itself.
-    const currentPermissions = command.data?.toJSON?.()?.default_member_permissions;
-    if (currentPermissions != null && currentPermissions !== '0') {
-        return;
-    }
-
+    // Every other command is admin/owner-only.
+    // Server owners are treated as administrators by Discord.
     if (typeof command.data?.setDefaultMemberPermissions === 'function') {
         command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
     }
