@@ -20,7 +20,9 @@ export default {
   category: 'Leveling',
 
   async execute(interaction, config, client) {
-    if (interaction.channelId !== LEVEL_CHECK_CHANNEL_ID) {
+    const isOwner = interaction.guild?.ownerId === interaction.user.id;
+
+    if (!isOwner && interaction.channelId !== LEVEL_CHECK_CHANNEL_ID) {
       return interaction.reply({
         content: `❌ Please use **/rank** in <#${LEVEL_CHECK_CHANNEL_ID}>.`,
         ephemeral: true
