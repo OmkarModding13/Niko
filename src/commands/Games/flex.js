@@ -8,12 +8,6 @@ import { getEconomyData } from '../../utils/economy.js';
 import { createFlexImage } from '../../services/gacha/flexImage.js';
 import { getOwnedCharacters, CHARACTER_CATALOG } from '../../services/gacha/characters.js';
 
-const INVENTORY_CHANNEL_ID = '1550120893982703616';
-
-function isInventoryChannel(channel) {
-    return channel?.id === INVENTORY_CHANNEL_ID;
-}
-
 export default {
     data: new SlashCommandBuilder()
         .setName('flex')
@@ -28,12 +22,6 @@ export default {
     category: 'Games',
 
     async execute(interaction, config, client) {
-        if (!isInventoryChannel(interaction.channel)) {
-            return interaction.reply({
-                content: '❌ Please use **/flex** in the <#1550120893982703616> channel.',
-                ephemeral: true
-            });
-        }
 
         const target = interaction.options.getUser('user') || interaction.user;
         const userData = await getEconomyData(client, interaction.guildId, target.id);
