@@ -173,6 +173,13 @@ export default {
                 const cost = spins === 10 ? TEN_SPIN_COST : SPIN_COST;
 
                 const latestData = await getEconomyData(client, guildId, userId);
+                if (!latestData) {
+                    await componentInteraction.followUp({
+                        content: '❌ Your economy data is temporarily unavailable. Please try again later.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                    return;
+                }
 
                 if (Number(latestData.wallet || 0) < cost) {
                     await componentInteraction.followUp({
@@ -199,7 +206,14 @@ export default {
 
                 latestData.shards += totalShards;
 
-                await setEconomyData(client, guildId, userId, latestData);
+                const saved = await setEconomyData(client, guildId, userId, latestData);
+                if (!saved) {
+                    await componentInteraction.followUp({
+                        content: '❌ Your gamble result could not be saved safely. Please try again.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                    return;
+                }
 
                 await componentInteraction.followUp({
                     embeds: [createRewardEmbed(results, cost)]
