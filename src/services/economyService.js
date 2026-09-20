@@ -281,7 +281,7 @@ class EconomyService {
 
     if (balanceBefore < amount) {
       throw createError(
-        Insufficient Souls,
+        "Insufficient Souls",
         ErrorTypes.VALIDATION,
         `You only have **<:Souls:1547510037621112894> ${balanceBefore.toLocaleString()} Souls**.`,
         { required: amount, available: balanceBefore, reason }
