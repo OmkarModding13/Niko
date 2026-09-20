@@ -315,6 +315,35 @@ export async function registerCommands(client, options = {}) {
     }
 }
 
+/**
+ * Register commands directly to a guild.
+ * Guild commands update immediately and avoid Discord's global-command
+ * propagation delay/stale-command errors.
+ */
+export async function registerGuildCommands(client, guildId) {
+    if (!guildId) {
+        throw new Error('guildId is required for guild command registration');
+    }
+
+    if (!client.rest) {
+        throw new Error('Discord REST client is not available for guild command registration');
+    }
+
+    const { commands, totalSubcommands } = collectCommandPayloads(client);
+    validateCommands(commands);
+
+    const commandsToRegister = prepareCommandsForRegistration(commands);
+
+    await client.rest.put(
+        `/applications/${client.user.id}/guilds/${guildId}/commands`,
+        { body: commandsToRegister }
+    );
+
+    logger.info(
+        `Registered ${commandsToRegister.length} guild commands for ${guildId} (${totalSubcommands} subcommands)`
+    );
+}
+
 export async function reloadCommand(client, commandName) {
     const command = client.commands.get(commandName);
     
