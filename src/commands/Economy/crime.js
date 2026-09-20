@@ -4,7 +4,8 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const SOULS = '<:Souls:1547510037621112894>';\nconst CRIME_COOLDOWN = 60 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';
+const CRIME_COOLDOWN = 60 * 60 * 1000;
 const JAIL_TIME = 2 * 60 * 60 * 1000;
 const FINE_RATE = 0.2;
 
