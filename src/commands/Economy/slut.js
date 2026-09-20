@@ -30,8 +30,8 @@ const FINE_OUTCOMES = [
 
 const ROBBED_OUTCOMES = [
     "A fake buyer chargeback wiped part of your earnings.",
-    "A scam booking cleaned out a chunk of your cash.",
-    "You got baited by a fraud account and lost money.",
+    "A scam booking cleaned out a chunk of your Souls.",
+    "You got baited by a fraud account and lost Souls.",
 ];
 
 const LOSS_OUTCOMES = [
