@@ -18,9 +18,6 @@ export async function checkVoiceEconomy(client) {
                     member => !member.user.bot
                 );
 
-                // Need at least 2 real users
-                if (members.size < 2) continue;
-
                 for (const [userId, member] of members) {
                     const userData = await getEconomyData(
                         client,
@@ -35,7 +32,11 @@ export async function checkVoiceEconomy(client) {
                     // staying self-muted/deafened for a long period.
                     const eligibleSince = Number(userData.voiceEligibleSince || 0);
 
-                    if (member.voice.selfMute || member.voice.selfDeaf) {
+                    if (
+                        members.size < 2 ||
+                        member.voice.selfMute ||
+                        member.voice.selfDeaf
+                    ) {
                         userData.voiceEligibleSince = now;
                         await setEconomyData(client, guildId, userId, userData);
                         continue;
