@@ -104,7 +104,7 @@ Niko is fully containerized for easy deployment.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/codebymitch/Niko.git
+   git clone https://github.com/OmkarModding13/Niko.git
    cd Niko
    ```
 
@@ -112,7 +112,7 @@ Niko is fully containerized for easy deployment.
    ```bash
    cp .env.example .env
    ```
-   Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`. Docker Compose also reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env` (defaults: `titanbot` / `password` / `titanbot`).
+   Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`. Docker Compose also reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env` (defaults: `niko` / `password` / `niko`).
 
 3. **Build and start the containers:**
    ```bash
@@ -161,7 +161,7 @@ docker pull ghcr.io/omkarmodding13/niko:main
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/codebymitch/Niko.git
+   git clone https://github.com/OmkarModding13/Niko.git
    cd Niko
    ```
 
@@ -182,10 +182,10 @@ docker pull ghcr.io/omkarmodding13/niko:main
    GUILD_ID=your_discord_guild_id_here
 
    # PostgreSQL Configuration (Primary Database)
-   POSTGRES_URL=postgresql://postgres:yourpassword@localhost:5432/titanbot
+   POSTGRES_URL=postgresql://postgres:yourpassword@localhost:5432/niko
    POSTGRES_HOST=localhost
    POSTGRES_PORT=5432
-   POSTGRES_DB=titanbot
+   POSTGRES_DB=niko
    POSTGRES_USER=postgres
    POSTGRES_PASSWORD=yourpassword
    ```
@@ -225,10 +225,10 @@ Notes:
 4. **Setup PostgreSQL Database** (Optional but recommended)
    ```bash
    # Create database and user
-   createdb titanbot
-   createuser titanbot
-   psql -c "ALTER USER titanbot PASSWORD 'yourpassword';"
-   psql -c "GRANT ALL PRIVILEGES ON DATABASE titanbot TO titanbot;"
+   createdb niko
+   createuser niko
+   psql -c "ALTER USER niko PASSWORD 'yourpassword';"
+   psql -c "GRANT ALL PRIVILEGES ON DATABASE niko TO titanbot;"
    ```
 
 5. **Verify Database Setup**
