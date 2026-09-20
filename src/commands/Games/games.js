@@ -41,7 +41,7 @@ export default {
                 },
                 {
                     name: '⚔️ /soulflip',
-                    value: `**Entry:** ${SOULS_EMOJI} **50 Souls**\n${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • **Win up to 150 Souls**.,
+                    value: `**Entry:** ${SOULS_EMOJI} **50 Souls**\n${SOULS_EMOJI} Heads vs ${TAILS_EMOJI} Tails • **Win up to 150 Souls**.`,
                     inline: false
                 },
                 {
