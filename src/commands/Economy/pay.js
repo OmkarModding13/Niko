@@ -9,7 +9,7 @@ import EconomyService from '../../services/economyService.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('pay')
-        .setDescription('Pay another user some of your cash')
+        .setDescription('Send Souls to another user')
         .addUserOption(option =>
             option
                 .setName('user')
@@ -28,7 +28,7 @@ export default {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) return;
             
-            const senderId = interaction.user.id;
+            const SOULS = '<:Souls:1547510037621112894>';\n            const senderId = interaction.user.id;
             const receiver = interaction.options.getUser("user");
             const amount = interaction.options.getInteger("amount");
             const guildId = interaction.guildId;
@@ -103,17 +103,17 @@ export default {
 
             const embed = successEmbed(
                 'Payment Successful',
-                `You successfully paid **${receiver.username}** the amount of **$${amount.toLocaleString()}**!`
+                `You successfully paid **${receiver.username}** the amount of **${SOULS} ${amount.toLocaleString()} Souls**!`
             )
                 .addFields(
                     {
                         name: "Payment Amount",
-                        value: `$${amount.toLocaleString()}`,
+                        value: `${SOULS} ${amount.toLocaleString()} Souls`,
                         inline: true,
                     },
                     {
-                        name: "Your New Balance",
-                        value: `$${updatedSenderData.wallet.toLocaleString()}`,
+                        name: "Your New Souls Balance",
+                        value: `${SOULS} ${updatedSenderData.wallet.toLocaleString()} Souls`,
                         inline: true,
                     },
                 )
@@ -135,10 +135,10 @@ export default {
             try {
                 const receiverEmbed = createEmbed({ 
                     title: "Incoming Payment!", 
-                    description: `${interaction.user.username} paid you **$${amount.toLocaleString()}**.` 
+                    description: `${interaction.user.username} paid you **${SOULS} ${amount.toLocaleString()} Souls**.` 
                 }).addFields({
-                    name: "Your New Cash",
-                    value: `$${updatedReceiverData.wallet.toLocaleString()}`,
+                    name: "Your New Souls",
+                    value: `${SOULS} ${updatedReceiverData.wallet.toLocaleString()} Souls`,
                     inline: true,
                 });
                 await receiver.send({ embeds: [receiverEmbed] });
