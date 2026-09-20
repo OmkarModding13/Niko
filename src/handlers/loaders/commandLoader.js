@@ -10,19 +10,32 @@ const __dirname = path.dirname(__filename);
 const MAX_COMMANDS = 100;
 const COMMAND_COUNT_WARN_THRESHOLD = 90;
 
-// Normal members only get player-facing Games and Economy/Shop commands.
-// Commands in every other category are hidden behind Administrator permission
-// unless the command already declares its own Discord permission requirement.
-const PUBLIC_CATEGORIES = new Set(['Games', 'Economy']);
+// Only these commands are visible to normal members.
+// Everything else is registered as Administrator-only (unless the command
+// explicitly declares a stricter permission). Server owners inherit Admin.
+const PUBLIC_COMMANDS = new Set([
+    'rank',
+    'games',
+    'quickcoin',
+    'abyssdice',
+    'rps',
+    'soulflip',
+    'diceduel',
+    'soulslots',
+    'pvp',
+    'bankrob',
+    'gacha',
+    'shardgamble',
+    'daily',
+    'remindme',
+    'balance',
+    'deposit',
+    'withdraw',
+    'flex',
+]);
 
-function applyCommandVisibility(command, category) {
-    // /rank is a public player command. Its channel restriction is enforced
-    // at execution time, while server owners are allowed to bypass that restriction.
-    if (command.data?.name === 'rank') {
-        return;
-    }
-
-    if (PUBLIC_CATEGORIES.has(category)) {
+function applyCommandVisibility(command) {
+    if (PUBLIC_COMMANDS.has(command.data?.name)) {
         return;
     }
 
