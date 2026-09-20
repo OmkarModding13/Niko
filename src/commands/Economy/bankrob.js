@@ -211,7 +211,7 @@ async function resolveRobbery(interaction, client, targetUser, players) {
         },
         {
             name: '💰 Reward Per Player',
-            value: `The ${fmt(totalReward)} Souls were split equally across the crew.`,
+            value: `${SOULS} **${fmt(baseShare)} Souls each**${remainder > 0 ? ` (+1 Soul to ${remainder} crew member${remainder === 1 ? '' : 's'})` : ''}.`,
             inline: true,
         },
         {
