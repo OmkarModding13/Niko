@@ -290,6 +290,30 @@ async function handlePrefixCommand(
 
     /*
      * ==================================================
+     * DEDICATED PUBLIC COMMAND CHANNELS
+     * ==================================================
+     */
+    const requiredChannelId =
+      PREFIX_COMMAND_CHANNELS.get(resolvedCommandName);
+
+    const isGuildOwner =
+      message.guild.ownerId === message.author.id;
+
+    if (
+      requiredChannelId &&
+      !isBotOwner(message.author.id) &&
+      !isGuildOwner &&
+      message.channel.id !== requiredChannelId
+    ) {
+      await message.channel.send({
+        content: `❌ Please use **/${resolvedCommandName}** in <#${requiredChannelId}>.`
+      }).catch(() => {});
+      return;
+    }
+
+
+    /*
+     * ==================================================
      * MAINTENANCE MODE
      * ==================================================
      */
