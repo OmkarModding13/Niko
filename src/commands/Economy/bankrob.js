@@ -355,14 +355,6 @@ export default {
             );
         }
 
-        if (activeLobbies.has(lobbyKey)) {
-            throw createError(
-                'Bank Robbery lobby already active',
-                ErrorTypes.RATE_LIMIT,
-                'You already have an active Bank Robbery lobby.'
-            );
-        }
-
         const initiatorData = await getEconomyData(client, guildId, initiator.id);
         const now = Date.now();
         const remaining = cooldownRemaining(initiatorData, now, initiator.id);
