@@ -24,8 +24,7 @@ import {
 
 import {
     loadCommands,
-    registerCommands as registerSlashCommands,
-    registerGuildCommands
+    registerCommands as registerSlashCommands
 } from './handlers/loaders/commandLoader.js';
 
 import {
@@ -216,13 +215,19 @@ class TitanBot extends Client {
 
             await this.registerCommands();
 
-            // Also register directly to every current guild so command updates,
-            // visibility permissions, and channel-routing changes are immediate.
+            // Do not register the same commands globally AND per-guild.
+            // Doing both creates duplicate slash-command entries in Discord.
+            // Clear legacy guild-scoped commands; the global registration above
+            // is now the single source of truth.
             for (const guild of this.guilds.cache.values()) {
                 try {
-                    await registerGuildCommands(this, guild.id);
+                    await this.rest.put(
+                        `/applications/${this.config.bot.clientId}/guilds/${guild.id}/commands`,
+                        { body: [] }
+                    );
+                    logger.info(`Cleared legacy guild-scoped commands for ${guild.id}`);
                 } catch (error) {
-                    logger.error(`Failed to register guild commands for ${guild.id}:`, error);
+                    logger.error(`Failed to clear guild commands for ${guild.id}:`, error);
                 }
             }
 
