@@ -16,6 +16,12 @@ const COMMAND_COUNT_WARN_THRESHOLD = 90;
 const PUBLIC_CATEGORIES = new Set(['Games', 'Economy']);
 
 function applyCommandVisibility(command, category) {
+    // /rank is a public player command. Its channel restriction is enforced
+    // at execution time, while server owners are allowed to bypass that restriction.
+    if (command.data?.name === 'rank') {
+        return;
+    }
+
     if (PUBLIC_CATEGORIES.has(category)) {
         return;
     }
