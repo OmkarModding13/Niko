@@ -5,7 +5,8 @@ import { botConfig } from '../../config/bot.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const SOULS = '<:Souls:1547510037621112894>';\nconst COOLDOWN = 30 * 60 * 1000;
+const SOULS = '<:Souls:1547510037621112894>';
+const COOLDOWN = 30 * 60 * 1000;
 const MIN_WIN = Number(botConfig?.economy?.begMin) || 50;
 const MAX_WIN = Number(botConfig?.economy?.begMax) || 200;
 const SUCCESS_CHANCE = 0.7;
