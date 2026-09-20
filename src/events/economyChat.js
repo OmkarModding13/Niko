@@ -1,5 +1,6 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
+import { getCommandPrefix } from '../config/bot.js';
 import {
     getEconomyData,
     setEconomyData
@@ -21,6 +22,13 @@ export default {
             }
 
             if (!message.content || message.content.trim().length === 0) {
+                return;
+            }
+
+            // Prefix commands are not chat activity and should not trigger
+            // the Souls reward.
+            const prefix = getCommandPrefix();
+            if (prefix && message.content.trim().startsWith(prefix)) {
                 return;
             }
 
