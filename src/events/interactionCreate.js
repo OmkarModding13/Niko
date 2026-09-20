@@ -49,6 +49,7 @@ const COMMAND_ERROR_SUBTYPES = {
 
 const GAME_SHOP_CHANNEL_ID = '1547531709959118911';
 const INVENTORY_CHANNEL_ID = '1550120893982703616';
+const SHOP_CHANNEL_ID = '1551192004241793084';
 const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
 
 // Public member commands and their dedicated channels.
@@ -66,6 +67,10 @@ const GAME_SHOP_COMMANDS = new Set([
   'bankrob',
   'gacha',
   'shardgamble',
+]);
+
+const SHOP_COMMANDS = new Set([
+  'shop',
   'daily',
   'remindme',
 ]);
@@ -86,6 +91,10 @@ function getRequiredCommandChannel(command, interaction) {
 
   if (LEVEL_COMMANDS.has(commandName)) {
     return LEVEL_CHECK_CHANNEL_ID;
+  }
+
+  if (SHOP_COMMANDS.has(commandName)) {
+    return SHOP_CHANNEL_ID;
   }
 
   if (INVENTORY_COMMANDS.has(commandName)) {
