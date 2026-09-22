@@ -448,10 +448,14 @@ export async function saveUserLevelData(
                 userId
             );
 
-        await client.db.set(
+        const saved = await client.db.set(
             key,
             sanitizedData
         );
+
+        if (!saved) {
+            throw new Error('Database rejected level data save');
+        }
 
         return sanitizedData;
     } catch (error) {
