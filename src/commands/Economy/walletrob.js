@@ -88,8 +88,13 @@ async function resolveRobbery(interaction, client, targetUser, players) {
         return {
             type: 'blocked',
             embed: warningEmbed(
-                '😈 ALELELE! NICE TRY!',
-                `Hollow Devil ko lootega? 💀\n\nAlele... <@\${targetUser.id}> is the **Server Owner**!\n\n**Wallet Robbery cancelled.** Hollow Devil ki property pe haath daalne ki koshish mat karo. 😈`
+        '😈 OHOHO! KISKI AUKAAT?',
+                `**Hollow Devil ko lootne aaya?** 💀
+
+Plan: **10/10**
+Result: **AUKAAT CHECK FAILED.** 🤡
+
+🚫 **Wallet Robbery cancelled.** Owner ko lootne se pehle permission lena tha, bhai. 😈`
             ),
         };
     }
