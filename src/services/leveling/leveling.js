@@ -493,6 +493,8 @@ function createDefaultLevelData() {
          * Compatibility
          */
         lastMessage: 0,
+        lastChatAt: 0,
+        inactiveReminderAt: 0,
         rank: 0,
 
         /*
@@ -579,6 +581,18 @@ function normalizeLevelData(
             0,
             Number(data.totalXp) || 0
         ),
+
+        lastChatAt:
+            Math.max(
+                0,
+                Number(data.lastChatAt) || 0
+            ),
+
+        inactiveReminderAt:
+            Math.max(
+                0,
+                Number(data.inactiveReminderAt) || 0
+            ),
 
         weeklyChatMinutes:
             Math.max(
@@ -1311,6 +1325,13 @@ export async function addChatActivity(
 
     userData.dailyChatMinutes +=
         minutes;
+
+    // Track real chat activity separately from voice/game activity.
+    // This timestamp drives the 7-day inactive-member reminder.
+    userData.lastChatAt = Date.now();
+
+    // A new message means the previous inactive period has ended.
+    userData.inactiveReminderAt = 0;
 
     await saveUserLevelData(
         client,
