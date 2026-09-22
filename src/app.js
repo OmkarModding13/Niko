@@ -19,6 +19,7 @@ import { checkDailyReminders } from './services/dailyReminderService.js';
 import { checkVoiceEconomy } from './services/voiceEconomyService.js';
 import { checkColorRoleExpiry } from './services/colorRoleExpiryService.js';
 import { checkInactiveMembers } from './services/inactiveMemberService.js';
+import { updateLeaderboards } from './services/leaderboardService.js';
 import {
     processAllGuilds as processAllLevelingPeriods
 } from './services/leveling/weeklyLeveling.js';
@@ -825,6 +826,18 @@ class NikoBot extends Client {
             }
         );
 
+
+        // Leaderboard channel update - runs every hour.
+        cron.schedule(
+            '0 * * * *',
+            runSafeTask(
+                'leaderboard_update',
+                () =>
+                    updateLeaderboards(
+                        this
+                    )
+            )
+        );
 
         // Weekly / monthly leveling period check
         // Runs every hour.
