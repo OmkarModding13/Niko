@@ -1,11 +1,36 @@
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { getEconomyPrefix, getUserLevelPrefix } from '../utils/database.js';
+import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { getMonthStart } from './leveling/leveling.js';
 import { logger } from '../utils/logger.js';
 
 const LEADERBOARD_CHANNEL_ID = '1552041065261957210';
 const LEADERBOARD_MESSAGE_KEY = (guildId) =>
     `guild:${guildId}:leaderboard:message`;
+
+const LEADERBOARD_SNAPSHOT_KEY = (guildId, monthKey) =>
+    `guild:${guildId}:leaderboard:snapshot:${monthKey}`;
+
+const REWARD_SOULS = {
+    1: 100000,
+    2: 50000,
+    3: 10000
+};
+
+const REWARD_SHARDS = {
+    1: 10,
+    2: 5,
+    3: 3
+};
+
+const LEADERBOARD_CATEGORIES = [
+    ['richest', 'Richest'],
+    ['highestLevel', 'Highest Level'],
+    ['mostGames', 'Most Games'],
+    ['luckiest', 'Luckiest'],
+    ['mostShards', 'Most Shards'],
+    ['longestStreak', 'Longest Streak']
+];
 
 const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
@@ -49,6 +74,18 @@ function getCurrentMonthKey(now = new Date()) {
     const month = parts.find(part => part.type === 'month')?.value;
 
     return `${year}-${month}`;
+}
+
+function getPreviousMonthKey(monthKey) {
+    const [year, month] = String(monthKey)
+        .split('-')
+        .map(Number);
+
+    const date = new Date(Date.UTC(year, month - 2, 1));
+
+    return `${date.getUTCFullYear()}-${String(
+        date.getUTCMonth() + 1
+    ).padStart(2, '0')}`;
 }
 
 function isExcludedMember(member, guild) {
@@ -173,6 +210,7 @@ async function buildLeaderboardData(client, guild) {
 
     return {
         monthLabel: getMonthLabel(now),
+        monthKey: currentMonthKey,
         richest: [...entries].sort((a, b) => b.totalSouls - a.totalSouls),
         highestLevel: [...entries].sort(
             (a, b) => b.level - a.level || b.totalSouls - a.totalSouls
@@ -190,6 +228,123 @@ async function buildLeaderboardData(client, guild) {
             (a, b) => b.streak - a.streak || b.level - a.level
         )
     };
+}
+
+function createMonthlySnapshot(data) {
+    const snapshot = {
+        monthKey: data.monthKey
+    };
+
+    for (const [key] of LEADERBOARD_CATEGORIES) {
+        snapshot[key] = data[key]
+            .slice(0, 3)
+            .map(entry => entry.userId);
+    }
+
+    return snapshot;
+}
+
+async function rewardPreviousMonth(client, guild, previousMonthKey) {
+    const snapshot =
+        await client.db.get(
+            LEADERBOARD_SNAPSHOT_KEY(guild.id, previousMonthKey),
+            null
+        );
+
+    if (!snapshot || typeof snapshot !== 'object') {
+        return false;
+    }
+
+    let rewardedCount = 0;
+
+    for (const [categoryKey, categoryName] of LEADERBOARD_CATEGORIES) {
+        const winners = Array.isArray(snapshot[categoryKey])
+            ? snapshot[categoryKey].slice(0, 3)
+            : [];
+
+        for (let index = 0; index < winners.length; index += 1) {
+            const userId = winners[index];
+            const rank = index + 1;
+
+            if (!userId) {
+                continue;
+            }
+
+            const member = guild.members.cache.get(userId);
+
+            if (!member || isExcludedMember(member, guild)) {
+                continue;
+            }
+
+            try {
+                const economy = await getEconomyData(
+                    client,
+                    guild.id,
+                    userId
+                );
+
+                if (!economy) {
+                    continue;
+                }
+
+                const rewards =
+                    economy.leaderboardRewards &&
+                    typeof economy.leaderboardRewards === 'object'
+                        ? economy.leaderboardRewards
+                        : {};
+
+                const monthRewards =
+                    rewards[previousMonthKey] &&
+                    typeof rewards[previousMonthKey] === 'object'
+                        ? rewards[previousMonthKey]
+                        : {};
+
+                if (monthRewards[categoryKey]) {
+                    continue;
+                }
+
+                economy.wallet =
+                    Math.max(0, Number(economy.wallet) || 0) +
+                    REWARD_SOULS[rank];
+
+                economy.shards =
+                    Math.max(0, Number(economy.shards) || 0) +
+                    REWARD_SHARDS[rank];
+
+                economy.leaderboardRewards = {
+                    ...rewards,
+                    [previousMonthKey]: {
+                        ...monthRewards,
+                        [categoryKey]: rank
+                    }
+                };
+
+                const saved = await setEconomyData(
+                    client,
+                    guild.id,
+                    userId,
+                    economy
+                );
+
+                if (!saved) {
+                    continue;
+                }
+
+                rewardedCount += 1;
+
+                logger.info(
+                    `[Leaderboards] ${categoryName} #${rank} reward given to ${userId} for ${previousMonthKey}: ${REWARD_SHARDS[rank]} Shards + ${REWARD_SOULS[rank].toLocaleString()} Souls.`
+                );
+            } catch (error) {
+                logger.error(
+                    `[Leaderboards] Failed to reward ${categoryName} #${rank} winner ${userId}:`,
+                    error
+                );
+            }
+        }
+    }
+
+    return rewardedCount > 0;
 }
 
 function renderEntries(entries, formatter) {
@@ -217,7 +372,11 @@ function buildEmbed(data) {
         .setTitle('🏆 Hollow Devil's Domain — Leaderboards')
         .setDescription(
             `**Monthly Leaderboards — ${data.monthLabel}**\n\n` +
-            'Owner and **Creator** members are excluded from every leaderboard.'
+            'Owner and **Creator** members are excluded from every leaderboard.\n\n' +
+            '**Monthly Rewards — each leaderboard**\n' +
+            `🥇 10 Shards + ${formatNumber(REWARD_SOULS[1])} Souls\n` +
+            `🥈 5 Shards + ${formatNumber(REWARD_SOULS[2])} Souls\n` +
+            `🥉 3 Shards + ${formatNumber(REWARD_SOULS[3])} Souls`
         )
         .addFields(
             {
@@ -367,6 +526,21 @@ export async function updateLeaderboards(client) {
             }
 
             const data = await buildLeaderboardData(client, guild);
+
+            // At the start of a new month, reward the previous month's
+            // saved top-3 snapshot before saving the new month's snapshot.
+            const previousMonthKey = getPreviousMonthKey(data.monthKey);
+            await rewardPreviousMonth(
+                client,
+                guild,
+                previousMonthKey
+            );
+
+            await client.db.set(
+                LEADERBOARD_SNAPSHOT_KEY(guild.id, data.monthKey),
+                createMonthlySnapshot(data)
+            );
+
             const embed = buildEmbed(data);
 
             await upsertLeaderboardMessage(client, guild, embed);
