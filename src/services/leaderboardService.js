@@ -1,6 +1,5 @@
 import { EmbedBuilder, ChannelType } from 'discord.js';
 import { getEconomyPrefix, getUserLevelPrefix } from '../utils/database.js';
-import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { getMonthStart } from './leveling/leveling.js';
 import { logger } from '../utils/logger.js';
 
@@ -277,13 +276,15 @@ async function rewardPreviousMonth(client, guild, previousMonthKey) {
             }
 
             try {
-                const economy = await getEconomyData(
-                    client,
-                    guild.id,
-                    userId
+                const economyKey = getEconomyPrefix(guild.id) + userId;
+                const economyData = await client.db.get(
+                    economyKey,
+                    null
                 );
 
-                if (!economy) {
+                const economy = unwrap(economyData);
+
+                if (!economy || typeof economy !== 'object') {
                     continue;
                 }
 
@@ -319,10 +320,8 @@ async function rewardPreviousMonth(client, guild, previousMonthKey) {
                     }
                 };
 
-                const saved = await setEconomyData(
-                    client,
-                    guild.id,
-                    userId,
+                const saved = await client.db.set(
+                    economyKey,
                     economy
                 );
 
