@@ -696,67 +696,83 @@ function normalizeLevelData(
  * ==================================================
  */
 
+const INDIA_TIME_ZONE = 'Asia/Kolkata';
+const INDIA_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function getIndiaDateParts(timestamp = Date.now()) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: INDIA_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        weekday: 'short'
+    }).formatToParts(new Date(timestamp));
+
+    const get = type =>
+        parts.find(part => part.type === type)?.value;
+
+    return {
+        year: Number(get('year')),
+        month: Number(get('month')),
+        day: Number(get('day')),
+        weekday: get('weekday')
+    };
+}
+
 export function getDateKey(
     timestamp = Date.now()
 ) {
-    const date =
-        new Date(timestamp);
+    const { year, month, day } =
+        getIndiaDateParts(timestamp);
 
     return [
-        date.getFullYear(),
-        String(
-            date.getMonth() + 1
-        ).padStart(2, '0'),
-        String(
-            date.getDate()
-        ).padStart(2, '0')
+        year,
+        String(month).padStart(2, '0'),
+        String(day).padStart(2, '0')
     ].join('-');
 }
 
 export function getWeekStart(
     timestamp = Date.now()
 ) {
-    const date =
-        new Date(timestamp);
+    const { year, month, day, weekday } =
+        getIndiaDateParts(timestamp);
 
-    const day =
-        date.getDay();
+    const weekdayIndex = {
+        Mon: 1,
+        Tue: 2,
+        Wed: 3,
+        Thu: 4,
+        Fri: 5,
+        Sat: 6,
+        Sun: 0
+    }[weekday];
 
-    const diff =
-        day === 0
+    const daysFromMonday =
+        weekdayIndex === 0
             ? 6
-            : day - 1;
+            : weekdayIndex - 1;
 
-    date.setHours(
-        0,
-        0,
-        0,
-        0
+    const indiaMidnightUtc =
+        Date.UTC(year, month - 1, day) -
+        INDIA_OFFSET_MS;
+
+    return (
+        indiaMidnightUtc -
+        daysFromMonday * 24 * 60 * 60 * 1000
     );
-
-    date.setDate(
-        date.getDate() - diff
-    );
-
-    return date.getTime();
 }
 
 export function getMonthStart(
     timestamp = Date.now()
 ) {
-    const date =
-        new Date(timestamp);
+    const { year, month } =
+        getIndiaDateParts(timestamp);
 
-    date.setDate(1);
-
-    date.setHours(
-        0,
-        0,
-        0,
-        0
+    return (
+        Date.UTC(year, month - 1, 1) -
+        INDIA_OFFSET_MS
     );
-
-    return date.getTime();
 }
 
 /*
@@ -875,15 +891,13 @@ export function getActivityRequirements(
     if (
         period === 'monthly'
     ) {
-        const now =
-            new Date();
+        const { year, month } =
+            getIndiaDateParts();
 
         const daysInMonth =
             new Date(
-                now.getFullYear(),
-                now.getMonth() + 1,
-                0
-            ).getDate();
+                Date.UTC(year, month, 0)
+            ).getUTCDate();
 
         return {
             period: 'monthly',
