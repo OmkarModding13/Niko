@@ -46,9 +46,9 @@ export default {
         const embed = createEmbed({
             title: `${targetUser.username}'s Balance`,
             description:
-                `Here is the current financial status for ${targetUser.username}.\\n\\n` +
-                `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\\n` +
-                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back into your wallet.\\n` +
+                `Here is the current financial status for ${targetUser.username}.\n\n` +
+                `${SOULS_EMOJI} Use **/deposit** to move Souls from your wallet into your bank.\n` +
+                `${SOULS_EMOJI} Use **/withdraw** to move Souls from your bank back into your wallet.\n` +
                 `${SHARD_EMOJI} Use **/gacha** to spend Shards on character and rare rewards.`,
         }).addFields(
             { name: `${SOULS_EMOJI} Souls`, value: `${wallet.toLocaleString()} ${botConfig.economy.currency.namePlural}`, inline: true },
