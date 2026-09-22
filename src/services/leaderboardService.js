@@ -347,7 +347,7 @@ async function rewardPreviousMonth(client, guild, previousMonthKey) {
 }
 
 function renderEntries(entries, formatter) {
-    const top = entries.slice(0, 5);
+    const top = entries.slice(0, 3);
 
     if (top.length === 0 || top.every(entry => formatter(entry) === null)) {
         return 'No leaderboard data yet.';
