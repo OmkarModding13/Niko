@@ -1,5 +1,7 @@
 import { getEconomyData, setEconomyData } from '../../../utils/economy.js';
 import { getCharacterBonuses } from '../../../services/gacha/characters.js';
+import { addGameActivity } from '../../../services/leveling/leveling.js';
+import { logger } from '../../../utils/logger.js';
 
 export const SOULS_EMOJI = '<:Souls:1547510037621112894>';
 export const TOTAL_SOULS_EMOJI = '<:Total:1547545479628333086>';
@@ -116,6 +118,36 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
     userData.shards = Number(userData.shards || 0) + reward.shards;
     userData.wallet += reward.souls;
 
+    const currentMonthKey = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: '2-digit',
+        timeZone: 'Asia/Kolkata'
+    }).formatToParts(new Date());
+
+    const monthKey =
+        `${currentMonthKey.find(part => part.type === 'year')?.value}-${currentMonthKey.find(part => part.type === 'month')?.value}`;
+
+    const leaderboardStats =
+        userData.leaderboardStats &&
+        typeof userData.leaderboardStats === 'object'
+            ? userData.leaderboardStats
+            : {};
+
+    if (leaderboardStats.month !== monthKey) {
+        userData.leaderboardStats = {
+            month: monthKey,
+            luckyDrops: 0
+        };
+    }
+
+    if (['shard', 'double', 'extra'].includes(reward.type)) {
+        userData.leaderboardStats.luckyDrops =
+            Math.max(
+                0,
+                Number(userData.leaderboardStats.luckyDrops) || 0
+            ) + 1;
+    }
+
     const result = {
         ...reward,
         entry: config.entry,
@@ -134,6 +166,22 @@ export async function playGame(client, interaction, gameKey, gameResult = {}) {
     }
 
     lastPlayed.set(cooldownKey, now);
+
+    try {
+        await addGameActivity(
+            client,
+            guildId,
+            userId,
+            1
+        );
+    } catch (error) {
+        // The game result is already safely persisted. Log the activity
+        // tracking failure without changing the confirmed game outcome.
+        logger?.debug?.(
+            `[Games] Failed to record leaderboard game activity for ${userId}: ${error.message}`
+        );
+    }
+
     return { ok: true, result };
 }
 
