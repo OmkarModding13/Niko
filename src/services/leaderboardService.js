@@ -368,7 +368,7 @@ function renderEntries(entries, formatter) {
 function buildEmbed(data) {
     const embed = new EmbedBuilder()
         .setColor(0x5865F2)
-        .setTitle('🏆 Hollow Devil's Domain — Leaderboards')
+        .setTitle("🏆 Hollow Devil's Domain — Leaderboards")
         .setDescription(
             `**Monthly Leaderboards — ${data.monthLabel}**\n\n` +
             'Owner and **Creator** members are excluded from every leaderboard.\n\n' +
