@@ -82,10 +82,9 @@ export default {
             .setFooter({ text: "Hollow Devil's Domain • Niko" });
 
         const message = await channel.send({
-            content: '@everyone',
             embeds: [embed],
             allowedMentions: {
-                parse: ['everyone'],
+                parse: [],
             },
         });
 
