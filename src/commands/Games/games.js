@@ -85,8 +85,13 @@ export default {
                     inline: false
                 },
                 {
-                    name: '🚨 /bankrob — Bank Robbery',
-                    value: `**Entry:** No Souls fee\n**2–10 players** • **40% success / 60% police catch** • Success steals **exactly 80%** of the target's wallet, split across the crew. Failure = **1,000 Souls fine per robber + 10-minute cooldown**.`,
+                    name: '🏦 /bankrob — Bank Robbery',
+                    value: `**Entry:** No Souls fee\n**2–10 players** • **40% success / 60% police catch** • Success steals **exactly 80%** of the target's **bank**, split across the crew. **Bank Protection blocks this game.** Failure = **1,000 Souls fine per robber + 10-minute cooldown**.`,
+                    inline: false
+                },
+                {
+                    name: '💰 /walletrob — Wallet Robbery',
+                    value: `**Entry:** No Souls fee\n**2–10 players** • **40% success / 60% police catch** • Success steals **exactly 80%** of the target's **wallet**, split across the crew. **Bank Protection does not protect wallets.** Failure = **1,000 Souls fine per robber + 10-minute cooldown**.`,
                     inline: false
                 },
                 {
