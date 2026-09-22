@@ -84,6 +84,16 @@ async function resolveRobbery(interaction, client, targetUser, players) {
         );
     }
 
+    if (targetUser.id === interaction.guild?.ownerId) {
+        return {
+            type: 'blocked',
+            embed: warningEmbed(
+                '😈 ALELELE! NICE TRY!',
+                `Hollow Devil ko lootega? 💀\n\nAlele... <@\${targetUser.id}> is the **Server Owner**!\n\n**Wallet Robbery cancelled.** Hollow Devil ki property pe haath daalne ki koshish mat karo. 😈`
+            ),
+        };
+    }
+
     const playerData = new Map();
     for (const player of players) {
         const data = await getEconomyData(client, guildId, player.id);
