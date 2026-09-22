@@ -1,8 +1,11 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
 
 const NIKO_NOTIFICATIONS_CHANNEL_ID = '1550119194811572244';
+const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 const ANNOUNCEMENT = [
+    '',
+    '',
     '**🏆 NEW — LEADERBOARD SYSTEM**',
     '',
     'You can now compete with other members and track your progress on the server!',
@@ -25,9 +28,9 @@ const ANNOUNCEMENT = [
     '',
     'Niko is continuously being improved to provide a smoother and more reliable experience for everyone.',
     '',
-    '🎮 **Play** • 🏆 **Compete** • 💠 **Collect Souls** • 👑 **Reach the Top 3**',
+    '🎮 **Play** • 🏆 **Compete** • ' + SHARD_EMOJI + ' **Collect Shards** • 👑 **Reach the Top 3**',
     '',
-    '— **Niko** 🤖',
+    '— **Niko** 💙',
 ].join('\n');
 
 export default {
@@ -76,10 +79,16 @@ export default {
             .setTimestamp()
             .setFooter({ text: "Hollow Devil's Domain • Niko" });
 
-        const message = await channel.send({ embeds: [embed] });
+        const message = await channel.send({
+            content: '@everyone',
+            embeds: [embed],
+            allowedMentions: {
+                parse: ['everyone'],
+            },
+        });
 
         return interaction.reply({
-            content: '✅ Niko update announcement posted in <#' + NIKO_NOTIFICATIONS_CHANNEL_ID + '>.\n[Jump to announcement](' + message.url + ')',
+            content: '✅ Niko update announcement posted in <#' + NIKO_NOTIFICATIONS_CHANNEL_ID + '>.' + '\n[Jump to announcement](' + message.url + ')',
             ephemeral: true,
         });
     },
