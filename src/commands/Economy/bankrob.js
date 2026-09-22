@@ -108,7 +108,7 @@ async function resolveRobbery(interaction, client, targetUser, players) {
         };
     }
 
-    const targetSouls = Math.max(0, Number(targetData.wallet || 0));
+    const targetSouls = Math.max(0, Number(targetData.bank || 0));
     if (targetSouls < 500) {
         return {
             type: 'blocked',
@@ -173,7 +173,7 @@ async function resolveRobbery(interaction, client, targetUser, players) {
         };
     }
 
-    targetData.wallet = targetSouls - totalReward;
+    targetData.bank = targetSouls - totalReward;
 
     for (let index = 0; index < players.length; index += 1) {
         const player = players[index];
@@ -200,7 +200,7 @@ async function resolveRobbery(interaction, client, targetUser, players) {
 
     const embed = successEmbed(
         '🏦 Bank Robbery Successful',
-        `The crew successfully robbed **${SOULS} ${fmt(totalReward)} Souls** from <@${targetUser.id}>!`
+        `The crew successfully robbed **${SOULS} ${fmt(totalReward)} Souls** from <@${targetUser.id}>'s bank!`
     );
 
     embed.addFields(
