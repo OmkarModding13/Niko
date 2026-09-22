@@ -4,20 +4,22 @@ const NIKO_NOTIFICATIONS_CHANNEL_ID = '1550119194811572244';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
 
 const ANNOUNCEMENT = [
+    'Hey @everyone! 👋',
     '',
+    'Niko has received a new update with a brand-new **Leaderboard system**, along with several bug fixes and stability improvements.',
     '',
     '**🏆 NEW — LEADERBOARD SYSTEM**',
     '',
     'You can now compete with other members and track your progress on the server!',
     '',
     '• 📊 Track your activity and progress',
-    '• 🎮 Game activity contributes to leaderboard progress',
+    '• 🎮 Game activity contributes to your leaderboard progress',
     '• 🏅 Compete for the top positions',
-    '• 👑 The **Top 3 players** are displayed on the leaderboard',
+    '• 👑 Top 3 players are displayed on the leaderboard',
     '',
     '**🔧 BUG FIXES & IMPROVEMENTS**',
     '',
-    'We have also fixed and improved several systems based on recent testing:',
+    "We've also fixed and improved several systems based on recent testing:",
     '',
     '• Fixed multiple economy-related issues',
     '• Fixed leaderboard tracking issues',
@@ -28,9 +30,9 @@ const ANNOUNCEMENT = [
     '',
     'Niko is continuously being improved to provide a smoother and more reliable experience for everyone.',
     '',
-    '🎮 **Play** • 🏆 **Compete** • ' + SHARD_EMOJI + ' **Collect Shards** • 👑 **Reach the Top 3**',
+    '🎮 Play • 🏆 Compete • ' + SHARD_EMOJI + ' Collect Souls • 👑 Reach the Top 3',
     '',
-    '— **Niko** 💙',
+    '— Niko 💙',
 ].join('\n');
 
 export default {
