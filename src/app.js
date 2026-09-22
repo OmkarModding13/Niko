@@ -255,6 +255,12 @@ class NikoBot extends Client {
 
             this.setupCronJobs();
 
+            // Populate the leaderboard channel immediately on startup.
+            // The hourly cron keeps the message updated afterward.
+            updateLeaderboards(this).catch(error => {
+                logger.error('Initial leaderboard update failed:', error);
+            });
+
 
         } catch (error) {
 
