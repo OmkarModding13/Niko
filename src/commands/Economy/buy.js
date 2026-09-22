@@ -121,7 +121,8 @@ export default {
             if (quantity !== 1) throw createError('Invalid quantity', ErrorTypes.VALIDATION, 'Bank Capacity Upgrade can only be purchased one level at a time.');
 
             const currentBankLevel = Number(userData.bankLevel || 0);
-            const price = 3000 + (currentBankLevel * 1000);
+            // Keep the purchase price identical to the shop listing.
+            const price = Number(item.price || 3000);
 
             if (userData.wallet < price) {
                 throw createError('Insufficient funds', ErrorTypes.VALIDATION, `You need **${CURRENCY_EMOJI} ${price.toLocaleString()}** for your next bank upgrade, but you only have **${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}**.`);
