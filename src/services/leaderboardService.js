@@ -96,9 +96,14 @@ function isExcludedMember(member, guild) {
         return true;
     }
 
-    return member.roles.cache.some(
-        role => role.name.trim().toLowerCase() === 'creator'
-    );
+    return member.roles.cache.some(role => {
+        const roleName = role.name
+            .normalize('NFKC')
+            .replace(/[^a-z0-9]/gi, '')
+            .toLowerCase();
+
+        return roleName.includes('creator');
+    });
 }
 
 async function listKeys(client, prefix) {
