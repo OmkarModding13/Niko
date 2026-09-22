@@ -92,7 +92,7 @@ async function resolveRobbery(interaction, client, targetUser, players) {
                 `**Hollow Devil ko lootne aaya?** 💀
 
 Plan: **10/10**
-Result: **AUKAAT CHECK FAILED.** 🤡
+Result: **GALAT DARWAAZA, BHAI.** 🚪💀
 
 🚫 **Wallet Robbery cancelled.** Owner ko lootne se pehle permission lena tha, bhai. 😈`
             ),
