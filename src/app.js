@@ -819,7 +819,10 @@ class NikoBot extends Client {
                     checkInactiveMembers(
                         this
                     )
-            )
+            ),
+            {
+                timezone: 'Asia/Kolkata'
+            }
         );
 
 
