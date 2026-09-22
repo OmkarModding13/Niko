@@ -88,6 +88,20 @@ export default {
             userData.activeColorRole = { roleId: role.id, roleName, expiresAt: Date.now() + item.duration };
             const saved = await setEconomyData(client, guildId, userId, userData);
             if (!saved) {
+                // Roll back Discord role changes if the persistent purchase save fails.
+                try {
+                    await interaction.member.roles.remove(role, 'Rolling back failed temporary color role purchase');
+                } catch {}
+
+                if (previousRoleId && previousRoleId !== role.id) {
+                    const previousRole = interaction.guild.roles.cache.get(previousRoleId);
+                    if (previousRole) {
+                        try {
+                            await interaction.member.roles.add(previousRole, 'Restoring previous temporary color role after failed purchase');
+                        } catch {}
+                    }
+                }
+
                 throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
             }
 
@@ -181,7 +195,7 @@ export default {
                 throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
             }
 
-            const embed = successEmbed('🛡️ Bank Protection Purchased', `Your wallet is protected from Bank Robbery for **${hours} hours**.`)
+            const embed = successEmbed('🛡️ Bank Protection Purchased', `Your bank is protected from Bank Robbery for **${hours} hours**.`)
                 .addFields(
                     { name: 'Cost', value: `${CURRENCY_EMOJI} ${price.toLocaleString()}`, inline: true },
                     { name: 'Expires', value: `<t:${Math.floor(userData.bankProtectionExpiresAt / 1000)}:R>`, inline: true },
