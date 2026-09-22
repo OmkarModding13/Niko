@@ -28,7 +28,7 @@ const ANNOUNCEMENT = [
     '🎮 **Play** • 🏆 **Compete** • 💠 **Collect Souls** • 👑 **Reach the Top 3**',
     '',
     '— **Niko** 🤖',
-].join('\\n');
+].join('\n');
 
 export default {
     data: new SlashCommandBuilder()
@@ -79,7 +79,7 @@ export default {
         const message = await channel.send({ embeds: [embed] });
 
         return interaction.reply({
-            content: '✅ Niko update announcement posted in <#' + NIKO_NOTIFICATIONS_CHANNEL_ID + '>.\\n[Jump to announcement](' + message.url + ')',
+            content: '✅ Niko update announcement posted in <#' + NIKO_NOTIFICATIONS_CHANNEL_ID + '>.\n[Jump to announcement](' + message.url + ')',
             ephemeral: true,
         });
     },
