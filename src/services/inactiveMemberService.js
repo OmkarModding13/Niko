@@ -72,7 +72,8 @@ export async function checkInactiveMembers(client) {
                 const userData = await getUserLevelData(client, guild.id, member.id);
                 const joinedAt = Number(member.joinedTimestamp || now);
                 const lastChatAt = Number(userData.lastChatAt || 0);
-                const activityBase = Math.max(lastChatAt, joinedAt);
+                const lastActivityAt = Number(userData.lastActivityAt || 0);
+                const activityBase = Math.max(lastChatAt, lastActivityAt, joinedAt);
 
                 if (now - activityBase < INACTIVE_AFTER_MS) continue;
 
