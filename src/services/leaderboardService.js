@@ -384,7 +384,7 @@ function buildEmbed(data) {
         )
         .addFields(
             {
-                name: `💰 Richest`,
+                name: `${TOTAL_SOULS_EMOJI} Richest`,
                 value: renderEntries(
                     data.richest,
                     entry =>
@@ -428,7 +428,7 @@ function buildEmbed(data) {
                 inline: false
             },
             {
-                name: '💎 Most Shards',
+                name: `${SHARD_EMOJI} Most Shards`,
                 value: renderEntries(
                     data.mostShards,
                     entry =>
