@@ -1301,6 +1301,34 @@ export async function addLevelXp(
     };
 }
 
+export async function markUserActivity(
+    client,
+    guildId,
+    userId,
+    timestamp = Date.now()
+) {
+    const userData =
+        await getUserLevelData(
+            client,
+            guildId,
+            userId
+        );
+
+    userData.lastActivityAt =
+        Number(timestamp) || Date.now();
+
+    userData.inactiveReminderAt = 0;
+
+    await saveUserLevelData(
+        client,
+        guildId,
+        userId,
+        userData
+    );
+
+    return userData;
+}
+
 /*
  * ==================================================
  * CHAT ACTIVITY
