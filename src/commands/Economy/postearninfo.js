@@ -45,7 +45,7 @@ function buildEarnInfoEmbed() {
             `Play Niko\'s games from <#${GAME_CHANNEL_ID}>. Games use Souls as the entry fee.\n` +
             `> ${SOULS_EMOJI} **Common reward** → Souls\n` +
             '> ❌ **Better Luck Next Time** → No reward\n' +
-            `> ${TOTAL_SOULS_EMOJI} **Double Souls** → 2× Souls reward\n` +
+            `> <:DoubleSouls:1549009386389766264> **Double Souls** → 2× Souls reward\n` +
             `> ${SHARD_EMOJI} **Rare reward** → Shard\n` +
             `> ${SHARD_EMOJI} Shards are intentionally **very rare**.\n\n` +
 
