@@ -18,6 +18,7 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { botConfig } from '../../config/bot.js';
 import { getCharacterBonuses } from '../../services/gacha/characters.js';
+import { markUserActivity } from '../../services/leveling/leveling.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
 const DAILY_AMOUNT = Number(botConfig?.economy?.dailyAmount ?? 25);
@@ -124,6 +125,9 @@ export default {
                 { userId, guildId }
             );
         }
+
+        // Claiming /daily counts as server activity for the 7-day inactive-member system.
+        await markUserActivity(client, guildId, userId, now);
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
             userId,
