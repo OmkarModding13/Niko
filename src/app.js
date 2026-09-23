@@ -18,7 +18,6 @@ import { checkGiveaways } from './services/giveawayService.js';
 import { checkDailyReminders } from './services/dailyReminderService.js';
 import { checkVoiceEconomy } from './services/voiceEconomyService.js';
 import { checkColorRoleExpiry } from './services/colorRoleExpiryService.js';
-import { checkInactiveMembers } from './services/inactiveMemberService.js';
 import { updateLeaderboards } from './services/leaderboardService.js';
 import {
     processAllGuilds as processAllLevelingPeriods
@@ -808,24 +807,6 @@ class NikoBot extends Client {
                     )
             )
         );
-
-        // Inactive member reminder check - runs once per day.
-        // The service only DMs members who have been silent for 7+ days
-        // and only once per inactive period.
-        cron.schedule(
-            '0 12 * * *',
-            runSafeTask(
-                'inactive_member_check',
-                () =>
-                    checkInactiveMembers(
-                        this
-                    )
-            ),
-            {
-                timezone: 'Asia/Kolkata'
-            }
-        );
-
 
         // Leaderboard channel update - runs every hour.
         cron.schedule(
