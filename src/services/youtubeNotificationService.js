@@ -6,14 +6,24 @@ export const YOUTUBE_WEBHOOK_PATH = '/youtube/webhook';
 
 export async function subscribeToYouTube(logger) {
     const baseUrl = process.env.YOUTUBE_WEBHOOK_URL || process.env.PUBLIC_URL;
-    if (!baseUrl) return false;
+    if (!baseUrl) {
+        logger.warn('YouTube notifications disabled: YOUTUBE_WEBHOOK_URL is not configured.');
+        return false;
+    }
+
     const callback = baseUrl.replace(/\/$/, '') + YOUTUBE_WEBHOOK_PATH;
-    if (!callback.startsWith('https://')) return false;
+
+    if (!callback.startsWith('https://')) {
+        logger.warn('YouTube notifications disabled: webhook URL must use HTTPS.');
+        return false;
+    }
+
+    logger.info('YouTube webhook callback: ' + callback);
     const params = new URLSearchParams({
         'hub.callback': callback,
         'hub.mode': 'subscribe',
         'hub.topic': 'https://www.youtube.com/feeds/videos.xml?channel_id=' + YOUTUBE_CHANNEL_ID,
-        'hub.verify': 'async',
+        'hub.verify': 'sync',
         'hub.lease_seconds': '864000'
     });
     try {
@@ -22,6 +32,7 @@ export async function subscribeToYouTube(logger) {
             timeout: 15000
         });
         logger.info('YouTube push subscription requested: HTTP ' + response.status);
+        logger.info('YouTube channel subscription active for: ' + YOUTUBE_CHANNEL_ID);
         return true;
     } catch (error) {
         logger.error('YouTube subscription failed:', error?.response?.data || error?.message || error);
@@ -31,17 +42,29 @@ export async function subscribeToYouTube(logger) {
 
 export function verifyYouTube(req, res) {
     const challenge = req.query['hub.challenge'];
-    if (challenge) return res.status(200).type('text/plain').send(challenge);
+    const mode = req.query['hub.mode'];
+
+    if (challenge) {
+        console.log('[YouTube] Verification request received: ' + mode);
+        return res.status(200).type('text/plain').send(challenge);
+    }
     return res.status(400).send('Invalid verification request.');
 }
 
 export async function handleYouTubeNotification(req, res, bot) {
     const body = typeof req.body === 'string' ? req.body : '';
+
+    bot.logger?.info?.('[YouTube] Push notification received.');
+
     const channel = body.match(/<yt:channelId>([^<]+)<\/yt:channelId>/i);
     const video = body.match(/<yt:videoId>([^<]+)<\/yt:videoId>/i);
     const title = body.match(/<title>([\s\S]*?)<\/title>/i);
-    if (!channel || channel[1] !== YOUTUBE_CHANNEL_ID || !video) return res.status(204).send();
+    if (!channel || channel[1] !== YOUTUBE_CHANNEL_ID || !video) {
+        bot.logger?.warn?.('[YouTube] Ignored notification: channel/video ID did not match.');
+        return res.status(204).send();
+    }
     const videoId = video[1];
+    bot.logger?.info?.('[YouTube] New video detected: ' + videoId);
     const videoTitle = (title?.[1] || 'New YouTube Video').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
     try {
         const target = await bot.channels.fetch(DISCORD_CHANNEL_ID);
