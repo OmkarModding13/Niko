@@ -37,19 +37,19 @@ export function verifyYouTube(req, res) {
 
 export async function handleYouTubeNotification(req, res, bot) {
     const body = typeof req.body === 'string' ? req.body : '';
-    const channel = body.match(/<yt:channelId>([^<]+)<\\/yt:channelId>/i);
-    const video = body.match(/<yt:videoId>([^<]+)<\\/yt:videoId>/i);
-    const title = body.match(/<title>([\\s\\S]*?)<\\/title>/i);
+    const channel = body.match(/<yt:channelId>([^<]+)<\/yt:channelId>/i);
+    const video = body.match(/<yt:videoId>([^<]+)<\/yt:videoId>/i);
+    const title = body.match(/<title>([\s\S]*?)<\/title>/i);
     if (!channel || channel[1] !== YOUTUBE_CHANNEL_ID || !video) return res.status(204).send();
     const videoId = video[1];
-    const videoTitle = (title?.[1] || 'New YouTube Video').replace(/<!\\[CDATA\\[|\\]\\]>/g, '').trim();
+    const videoTitle = (title?.[1] || 'New YouTube Video').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
     try {
         const target = await bot.channels.fetch(DISCORD_CHANNEL_ID);
         if (!target?.isTextBased()) throw new Error('Notification channel unavailable.');
         const role = target.guild?.roles?.cache?.find(r => r.name.toLowerCase().startsWith('newborn'));
         const url = 'https://www.youtube.com/watch?v=' + videoId;
         await target.send({
-            content: (role ? '<@&' + role.id + '> ' : '') + 'Hollow Devil has released a new video!\\n' + url,
+            content: (role ? '<@&' + role.id + '> ' : '') + 'Hollow Devil has released a new video!\n' + url,
             embeds: [{ author: { name: 'Hollow Devil' }, title: videoTitle, url, color: 0x2f8cff, image: { url: 'https://i.ytimg.com/vi/' + videoId + '/maxresdefault.jpg' } }]
         });
     } catch (error) {
