@@ -20,6 +20,12 @@ import { checkVoiceEconomy } from './services/voiceEconomyService.js';
 import { checkColorRoleExpiry } from './services/colorRoleExpiryService.js';
 import { updateLeaderboards } from './services/leaderboardService.js';
 import {
+    subscribeToYouTube,
+    verifyYouTube,
+    handleYouTubeNotification,
+    YOUTUBE_WEBHOOK_PATH
+} from './services/youtubeNotificationService.js';
+import {
     processAllGuilds as processAllLevelingPeriods
 } from './services/leveling/weeklyLeveling.js';
 
@@ -236,6 +242,10 @@ class NikoBot extends Client {
                 'Slash commands registration complete'
             );
 
+            await subscribeToYouTube(
+                logger
+            );
+
 
             const databaseMode =
                 dbStatus.isDegraded
@@ -299,6 +309,22 @@ class NikoBot extends Client {
             this.config.api?.cors?.origin ||
             '*';
 
+
+        app.get(
+            YOUTUBE_WEBHOOK_PATH,
+            verifyYouTube
+        );
+
+        app.post(
+            YOUTUBE_WEBHOOK_PATH,
+            express.text({ type: ['application/atom+xml', 'application/xml', 'text/xml'] }),
+            (req, res) =>
+                handleYouTubeNotification(
+                    req,
+                    res,
+                    this
+                )
+        );
 
         app.use(
             (req, res, next) => {
