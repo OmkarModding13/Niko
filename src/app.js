@@ -242,9 +242,25 @@ class NikoBot extends Client {
                 'Slash commands registration complete'
             );
 
-            await subscribeToYouTube(
-                logger
-            );
+            // Subscribe after Discord is fully ready. This also renews the
+            // YouTube push subscription on every deployment/restart.
+            try {
+                const youtubeSubscribed = await subscribeToYouTube();
+                if (youtubeSubscribed) {
+                    logger.info(
+                        '[YouTube] Upload notification subscription setup completed.'
+                    );
+                } else {
+                    logger.warn(
+                        '[YouTube] Upload notification subscription setup did not complete.'
+                    );
+                }
+            } catch (error) {
+                logger.error(
+                    '[YouTube] Unexpected subscription setup error:',
+                    error
+                );
+            }
 
 
             const databaseMode =
