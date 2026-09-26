@@ -200,7 +200,7 @@ async function sendYouTubeNotification(bot, video) {
     await loadState(bot);
 
     if (wasNotified(video.videoId)) {
-        return false;
+        return true;
     }
 
     try {
@@ -474,10 +474,16 @@ export async function checkYouTubeFeed(bot) {
             delivered =
                 delivered || sent;
 
-            state.lastKnownVideoId =
-                video.videoId;
+            if (sent) {
+                state.lastKnownVideoId =
+                    video.videoId;
 
-            await saveState(bot);
+                await saveState(bot);
+            } else {
+                // Keep the previous cursor so the failed upload is retried
+                // on the next polling cycle instead of being lost.
+                break;
+            }
         }
 
         return delivered;
@@ -581,6 +587,12 @@ export async function handleYouTubeNotification(
 
         sent =
             sent || delivered;
+
+        if (delivered) {
+            state.lastKnownVideoId =
+                video.videoId;
+            await saveState(bot);
+        }
     }
 
     return res
