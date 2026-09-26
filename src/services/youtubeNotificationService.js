@@ -152,22 +152,22 @@ export async function handleYouTubeNotification(req, res, bot) {
     // feed-level <title> ("YouTube video feed") is not mistaken for
     // the actual video title.
     const entry =
-        body.match(/<entry\b[^>]*>([\\s\\S]*?)<\\/entry>/i)?.[1] ||
+        body.match(/<entry\b[^>]*>([\s\S]*?)<\/entry>/i)?.[1] ||
         body;
 
     const channel =
         entry.match(
-            /<yt:channelId\b[^>]*>([^<]+)<\\/yt:channelId>/i
+            /<yt:channelId\b[^>]*>([^<]+)<\/yt:channelId>/i
         );
 
     const video =
         entry.match(
-            /<yt:videoId\b[^>]*>([^<]+)<\\/yt:videoId>/i
+            /<yt:videoId\b[^>]*>([^<]+)<\/yt:videoId>/i
         );
 
     const title =
         entry.match(
-            /<title\b[^>]*>([\\s\\S]*?)<\\/title>/i
+            /<title\b[^>]*>([\s\S]*?)<\/title>/i
         );
 
     if (
