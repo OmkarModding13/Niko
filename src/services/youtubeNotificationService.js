@@ -1,16 +1,33 @@
 import axios from 'axios';
-import { logger } from '../utils/logger.js';
+import { logger, startupLog } from '../utils/logger.js';
 
-export const YOUTUBE_CHANNEL_ID = 'UCrJzDiZ5DIdwW_swG5_RrEw';
-export const DISCORD_CHANNEL_ID = '1530876980873007175';
+export const YOUTUBE_CHANNEL_ID =
+    process.env.YOUTUBE_CHANNEL_ID ||
+    'UCrJzDiZ5DIdwW_swG5_RrEw';
+
+export const DISCORD_CHANNEL_ID =
+    process.env.YOUTUBE_DISCORD_CHANNEL_ID ||
+    '1530876980873007175';
+
 export const YOUTUBE_WEBHOOK_PATH = '/youtube/webhook';
 
 const YOUTUBE_FEED_URL =
     'https://www.youtube.com/feeds/videos.xml?channel_id=' +
-    YOUTUBE_CHANNEL_ID;
+    encodeURIComponent(YOUTUBE_CHANNEL_ID);
 
-let lastKnownVideoId = null;
-const notifiedVideoIds = new Set();
+const STATE_KEY = 'youtube:notification:state';
+const STATE_VERSION = 1;
+const MAX_REMEMBERED_VIDEO_IDS = 100;
+
+let state = {
+    version: STATE_VERSION,
+    lastKnownVideoId: null,
+    notifiedVideoIds: []
+};
+
+let stateLoaded = false;
+let feedCheckInProgress = false;
+let subscriptionInProgress = false;
 
 function getWebhookBaseUrl() {
     const configuredUrl =
@@ -53,31 +70,122 @@ function decodeXmlText(value = '') {
 }
 
 function parseFeed(body) {
-    const entry =
-        body.match(/<entry\b[^>]*>([\s\S]*?)<\/entry>/i)?.[1];
+    const entries = [
+        ...(body.match(/<entry\b[^>]*>[\s\S]*?<\/entry>/gi) || [])
+    ];
 
-    if (!entry) return null;
+    return entries
+        .map(entry => {
+            const channelId =
+                entry.match(
+                    /<yt:channelId\b[^>]*>([^<]+)<\/yt:channelId>/i
+                )?.[1]?.trim();
 
-    const channelId =
-        entry.match(/<yt:channelId\b[^>]*>([^<]+)<\/yt:channelId>/i)?.[1]?.trim();
+            const videoId =
+                entry.match(
+                    /<yt:videoId\b[^>]*>([^<]+)<\/yt:videoId>/i
+                )?.[1]?.trim();
 
-    const videoId =
-        entry.match(/<yt:videoId\b[^>]*>([^<]+)<\/yt:videoId>/i)?.[1]?.trim();
+            const title =
+                entry.match(
+                    /<title\b[^>]*>([\s\S]*?)<\/title>/i
+                )?.[1];
 
-    const title =
-        entry.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+            const published =
+                entry.match(
+                    /<published\b[^>]*>([^<]+)<\/published>/i
+                )?.[1]?.trim();
 
-    const published =
-        entry.match(/<published\b[^>]*>([^<]+)<\/published>/i)?.[1]?.trim();
+            if (!channelId || !videoId) {
+                return null;
+            }
 
-    if (!channelId || !videoId) return null;
+            return {
+                channelId,
+                videoId,
+                title: decodeXmlText(title || 'New YouTube Video'),
+                published: published || null
+            };
+        })
+        .filter(Boolean)
+        .filter(video => video.channelId === YOUTUBE_CHANNEL_ID)
+        .sort((a, b) => {
+            const aTime = Date.parse(a.published || '') || 0;
+            const bTime = Date.parse(b.published || '') || 0;
+            return aTime - bTime;
+        });
+}
+
+function normalizeState(raw) {
+    if (!raw || typeof raw !== 'object') {
+        return {
+            version: STATE_VERSION,
+            lastKnownVideoId: null,
+            notifiedVideoIds: []
+        };
+    }
 
     return {
-        channelId,
-        videoId,
-        title: decodeXmlText(title || 'New YouTube Video'),
-        published: published || null
+        version: STATE_VERSION,
+        lastKnownVideoId:
+            typeof raw.lastKnownVideoId === 'string'
+                ? raw.lastKnownVideoId
+                : null,
+        notifiedVideoIds:
+            Array.isArray(raw.notifiedVideoIds)
+                ? raw.notifiedVideoIds
+                    .filter(id => typeof id === 'string')
+                    .slice(-MAX_REMEMBERED_VIDEO_IDS)
+                : []
     };
+}
+
+async function loadState(bot) {
+    if (stateLoaded) return state;
+
+    try {
+        const stored = await bot?.db?.get?.(STATE_KEY, null);
+        state = normalizeState(stored);
+    } catch (error) {
+        logger.warn(
+            '[YouTube] Could not load persistent notification state:',
+            error?.message || error
+        );
+    }
+
+    stateLoaded = true;
+    return state;
+}
+
+async function saveState(bot) {
+    try {
+        await bot?.db?.set?.(STATE_KEY, {
+            ...state,
+            version: STATE_VERSION,
+            notifiedVideoIds:
+                state.notifiedVideoIds.slice(-MAX_REMEMBERED_VIDEO_IDS)
+        });
+    } catch (error) {
+        logger.error(
+            '[YouTube] Failed to persist notification state:',
+            error?.message || error
+        );
+    }
+}
+
+function wasNotified(videoId) {
+    return state.notifiedVideoIds.includes(videoId);
+}
+
+async function markNotified(bot, videoId) {
+    if (!wasNotified(videoId)) {
+        state.notifiedVideoIds.push(videoId);
+    }
+
+    state.notifiedVideoIds =
+        state.notifiedVideoIds.slice(-MAX_REMEMBERED_VIDEO_IDS);
+
+    await saveState(bot);
 }
 
 async function sendYouTubeNotification(bot, video) {
@@ -89,14 +197,15 @@ async function sendYouTubeNotification(bot, video) {
         return false;
     }
 
-    if (notifiedVideoIds.has(video.videoId)) {
+    await loadState(bot);
+
+    if (wasNotified(video.videoId)) {
         return false;
     }
 
-    notifiedVideoIds.add(video.videoId);
-
     try {
-        const target = await bot.channels.fetch(DISCORD_CHANNEL_ID);
+        const target =
+            await bot.channels.fetch(DISCORD_CHANNEL_ID);
 
         if (!target?.isTextBased()) {
             throw new Error(
@@ -107,7 +216,9 @@ async function sendYouTubeNotification(bot, video) {
         const role =
             target.guild?.roles?.cache?.find(
                 role =>
-                    role.name.toLowerCase().startsWith('newborn')
+                    role.name
+                        .toLowerCase()
+                        .startsWith('newborn')
             );
 
         const url =
@@ -133,6 +244,8 @@ async function sendYouTubeNotification(bot, video) {
             }]
         });
 
+        await markNotified(bot, video.videoId);
+
         logger.info(
             '[YouTube] Discord notification sent successfully: ' +
             video.videoId
@@ -140,12 +253,9 @@ async function sendYouTubeNotification(bot, video) {
 
         return true;
     } catch (error) {
-        // Do not permanently mark the video as delivered if Discord failed.
-        notifiedVideoIds.delete(video.videoId);
-
         logger.error(
             '[YouTube] Failed to send Discord notification:',
-            error
+            error?.message || error
         );
 
         return false;
@@ -153,38 +263,52 @@ async function sendYouTubeNotification(bot, video) {
 }
 
 export async function subscribeToYouTube() {
-    const baseUrl = getWebhookBaseUrl();
-
-    if (!baseUrl) {
-        logger.warn(
-            '[YouTube] Webhook disabled: no public HTTPS URL. RSS fallback remains active.'
-        );
+    if (subscriptionInProgress) {
         return false;
     }
 
-    const callback = baseUrl + YOUTUBE_WEBHOOK_PATH;
-
-    logger.info('[YouTube] Webhook callback: ' + callback);
-
-    const params = new URLSearchParams({
-        'hub.callback': callback,
-        'hub.mode': 'subscribe',
-        'hub.topic': YOUTUBE_FEED_URL,
-        'hub.verify': 'sync',
-        'hub.lease_seconds': '864000'
-    });
+    subscriptionInProgress = true;
 
     try {
+        const baseUrl = getWebhookBaseUrl();
+
+        if (!baseUrl) {
+            logger.warn(
+                '[YouTube] Webhook disabled: no public HTTPS URL. RSS fallback remains active.'
+            );
+            return false;
+        }
+
+        const callback =
+            baseUrl + YOUTUBE_WEBHOOK_PATH;
+
+        const params = new URLSearchParams({
+            'hub.callback': callback,
+            'hub.mode': 'subscribe',
+            'hub.topic': YOUTUBE_FEED_URL,
+            'hub.verify': 'sync',
+            'hub.lease_seconds': '864000'
+        });
+
         const response = await axios.post(
             'https://pubsubhubbub.appspot.com/subscribe',
             params.toString(),
             {
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type':
+                        'application/x-www-form-urlencoded'
                 },
                 timeout: 15000,
-                validateStatus: status => status >= 200 && status < 300
+                validateStatus:
+                    status =>
+                        status >= 200 &&
+                        status < 300
             }
+        );
+
+        startupLog(
+            '[YouTube] Push subscription active: ' +
+            callback
         );
 
         logger.info(
@@ -196,36 +320,60 @@ export async function subscribeToYouTube() {
     } catch (error) {
         logger.error(
             '[YouTube] Push subscription failed; RSS fallback remains active:',
-            error?.response?.data || error?.message || error
+            error?.response?.data ||
+            error?.message ||
+            error
         );
 
         return false;
+    } finally {
+        subscriptionInProgress = false;
     }
 }
 
 export async function initializeYouTubeFeed(bot) {
+    await loadState(bot);
+
     try {
-        const response = await axios.get(YOUTUBE_FEED_URL, {
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'NikoBot/2.1 YouTube notifier'
-            }
-        });
+        const response =
+            await axios.get(
+                YOUTUBE_FEED_URL,
+                {
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent':
+                            'NikoBot/2.1 YouTube notifier'
+                    }
+                }
+            );
 
-        const latest = parseFeed(response.data);
+        const videos =
+            parseFeed(response.data);
 
-        if (!latest) {
-            throw new Error('Could not parse YouTube channel feed.');
+        if (videos.length === 0) {
+            throw new Error(
+                'Could not parse any YouTube feed entries.'
+            );
         }
 
-        if (latest.channelId !== YOUTUBE_CHANNEL_ID) {
-            throw new Error('YouTube feed channel ID mismatch.');
+        const latest =
+            videos[videos.length - 1];
+
+        if (!state.lastKnownVideoId) {
+            state.lastKnownVideoId =
+                latest.videoId;
+            await saveState(bot);
+
+            startupLog(
+                '[YouTube] RSS baseline initialized: ' +
+                latest.videoId
+            );
+
+            return true;
         }
 
-        lastKnownVideoId = latest.videoId;
-
-        logger.info(
-            '[YouTube] RSS fallback initialized. Latest video: ' +
+        startupLog(
+            '[YouTube] RSS fallback ready. Latest video: ' +
             latest.videoId
         );
 
@@ -240,55 +388,127 @@ export async function initializeYouTubeFeed(bot) {
 }
 
 export async function checkYouTubeFeed(bot) {
+    if (feedCheckInProgress) {
+        return false;
+    }
+
+    feedCheckInProgress = true;
+
     try {
-        const response = await axios.get(YOUTUBE_FEED_URL, {
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'NikoBot/2.1 YouTube notifier'
+        await loadState(bot);
+
+        const response =
+            await axios.get(
+                YOUTUBE_FEED_URL,
+                {
+                    timeout: 15000,
+                    headers: {
+                        'User-Agent':
+                            'NikoBot/2.1 YouTube notifier'
+                    }
+                }
+            );
+
+        const videos =
+            parseFeed(response.data);
+
+        if (videos.length === 0) {
+            logger.warn(
+                '[YouTube] RSS fallback received an invalid/empty feed.'
+            );
+            return false;
+        }
+
+        const latest =
+            videos[videos.length - 1];
+
+        if (!state.lastKnownVideoId) {
+            state.lastKnownVideoId =
+                latest.videoId;
+            await saveState(bot);
+            return false;
+        }
+
+        const previousIndex =
+            videos.findIndex(
+                video =>
+                    video.videoId ===
+                    state.lastKnownVideoId
+            );
+
+        const newVideos =
+            previousIndex >= 0
+                ? videos.slice(previousIndex + 1)
+                : videos.filter(
+                    video =>
+                        !wasNotified(video.videoId)
+                );
+
+        if (newVideos.length === 0) {
+            if (
+                latest.videoId !==
+                state.lastKnownVideoId
+            ) {
+                state.lastKnownVideoId =
+                    latest.videoId;
+                await saveState(bot);
             }
-        });
 
-        const latest = parseFeed(response.data);
-
-        if (!latest || latest.channelId !== YOUTUBE_CHANNEL_ID) {
-            logger.warn('[YouTube] RSS fallback received an invalid feed.');
             return false;
         }
 
-        if (!lastKnownVideoId) {
-            lastKnownVideoId = latest.videoId;
-            return false;
+        let delivered = false;
+
+        for (const video of newVideos) {
+            logger.warn(
+                '[YouTube] New upload detected: ' +
+                video.videoId
+            );
+
+            const sent =
+                await sendYouTubeNotification(
+                    bot,
+                    video
+                );
+
+            delivered =
+                delivered || sent;
+
+            state.lastKnownVideoId =
+                video.videoId;
+
+            await saveState(bot);
         }
 
-        if (latest.videoId === lastKnownVideoId) {
-            return false;
-        }
-
-        lastKnownVideoId = latest.videoId;
-
-        logger.info(
-            '[YouTube] RSS fallback detected new video: ' +
-            latest.videoId
-        );
-
-        await sendYouTubeNotification(bot, latest);
-        return true;
+        return delivered;
     } catch (error) {
         logger.error(
             '[YouTube] RSS fallback check failed:',
             error?.message || error
         );
         return false;
+    } finally {
+        feedCheckInProgress = false;
     }
 }
 
 export function verifyYouTube(req, res) {
-    const challenge = req.query['hub.challenge'];
-    const mode = req.query['hub.mode'];
+    const challenge =
+        req.query['hub.challenge'];
 
-    if (challenge) {
-        logger.info(
-            '[YouTube] Verification request received: ' +
+    const mode =
+        req.query['hub.mode'];
+
+    const topic =
+        req.query['hub.topic'];
+
+    if (
+        challenge &&
+        (!topic ||
+            topic === YOUTUBE_FEED_URL)
+    ) {
+        startupLog(
+            '[YouTube] WebSub verification received: ' +
             (mode || 'unknown')
         );
 
@@ -298,43 +518,76 @@ export function verifyYouTube(req, res) {
             .send(challenge);
     }
 
-    logger.warn('[YouTube] Invalid verification request received.');
+    logger.warn(
+        '[YouTube] Invalid WebSub verification request.'
+    );
 
     return res
         .status(400)
-        .send('Invalid verification request.');
+        .send(
+            'Invalid verification request.'
+        );
 }
 
-export async function handleYouTubeNotification(req, res, bot) {
+export async function handleYouTubeNotification(
+    req,
+    res,
+    bot
+) {
     const body =
         typeof req.body === 'string'
             ? req.body
             : '';
 
-    logger.info(
-        '[YouTube] Push notification received. bodyLength=' +
-        body.length
-    );
-
-    const video = parseFeed(body);
-
-    if (
-        !video ||
-        video.channelId !== YOUTUBE_CHANNEL_ID
-    ) {
-        logger.warn(
-            '[YouTube] Ignored push notification: invalid channel/video.'
-        );
-
-        return res.status(204).send();
+    if (!body) {
+        return res
+            .status(204)
+            .send();
     }
 
-    logger.info(
-        '[YouTube] Push detected video: ' +
-        video.videoId
-    );
+    const videos =
+        parseFeed(body);
 
-    await sendYouTubeNotification(bot, video);
+    if (videos.length === 0) {
+        logger.warn(
+            '[YouTube] Push notification contained no valid video entry.'
+        );
 
-    return res.status(204).send();
+        return res
+            .status(204)
+            .send();
+    }
+
+    let sent = false;
+
+    for (const video of videos) {
+        if (
+            video.channelId !==
+            YOUTUBE_CHANNEL_ID
+        ) {
+            continue;
+        }
+
+        logger.warn(
+            '[YouTube] Push detected video: ' +
+            video.videoId
+        );
+
+        const delivered =
+            await sendYouTubeNotification(
+                bot,
+                video
+            );
+
+        sent =
+            sent || delivered;
+    }
+
+    return res
+        .status(204)
+        .send();
+}
+
+export async function renewYouTubeSubscription() {
+    return subscribeToYouTube();
 }
