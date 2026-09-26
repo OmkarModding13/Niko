@@ -69,31 +69,57 @@ export async function checkDailyReminders(client) {
 
                     if (!user) continue;
 
-                    await user.send({
-                        embeds: [{
-                            title: '🔔 Daily Reward Ready!',
-                            description:
-                                `Your daily reward is ready to claim!\n\n` +
-                                `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
-                            color: 0x5865F2
-                        }]
-                    });
+                    try {
+                        await user.send({
+                            embeds: [{
+                                title: '🔔 Daily Reward Ready!',
+                                description:
+                                    `Your daily reward is ready to claim!\n\n` +
+                                    `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
+                                color: 0x5865F2
+                            }]
+                        });
 
-                    // Schedule the next reminder for the next
-                    // 24-hour cycle so it cannot DM every minute.
-                    userData.reminderNextAt =
-                        nextReminderAt + DAILY_COOLDOWN;
+                        // Schedule the next reminder for the next
+                        // 24-hour cycle so it cannot DM every minute.
+                        userData.reminderNextAt =
+                            nextReminderAt + DAILY_COOLDOWN;
 
-                    await setEconomyData(
-                        client,
-                        guildId,
-                        userId,
-                        userData
-                    );
+                        await setEconomyData(
+                            client,
+                            guildId,
+                            userId,
+                            userData
+                        );
 
-                    logger.info(
-                        `[DAILY_REMINDER] Sent reminder to ${userId} in guild ${guildId}`
-                    );
+                        logger.info(
+                            `[DAILY_REMINDER] Sent reminder to ${userId} in guild ${guildId}`
+                        );
+                    } catch (error) {
+                        const discordCode = error?.code;
+
+                        // The user is no longer reachable by DM from this
+                        // bot, commonly because there are no mutual guilds.
+                        // Do not retry this every minute or spam the logs.
+                        if (discordCode === 50278) {
+                            userData.reminderNextAt =
+                                nextReminderAt + DAILY_COOLDOWN;
+
+                            await setEconomyData(
+                                client,
+                                guildId,
+                                userId,
+                                userData
+                            );
+
+                            logger.warn(
+                                `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (no mutual guilds)`
+                            );
+                            continue;
+                        }
+
+                        throw error;
+                    }
 
                 } catch (error) {
                     logger.error(
