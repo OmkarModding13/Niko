@@ -25,6 +25,7 @@ import {
     handleYouTubeNotification,
     initializeYouTubeFeed,
     checkYouTubeFeed,
+    renewYouTubeSubscription,
     YOUTUBE_WEBHOOK_PATH
 } from './services/youtubeNotificationService.js';
 import {
@@ -865,6 +866,17 @@ class NikoBot extends Client {
                 'youtube_feed_check',
                 () =>
                     checkYouTubeFeed(this)
+            )
+        );
+
+        // YouTube WebSub subscriptions have a lease. Renew periodically so
+        // a long-running Niko instance keeps push notifications active.
+        cron.schedule(
+            '0 */12 * * *',
+            runSafeTask(
+                'youtube_subscription_renewal',
+                () =>
+                    renewYouTubeSubscription()
             )
         );
 
