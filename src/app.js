@@ -23,6 +23,8 @@ import {
     subscribeToYouTube,
     verifyYouTube,
     handleYouTubeNotification,
+    initializeYouTubeFeed,
+    checkYouTubeFeed,
     YOUTUBE_WEBHOOK_PATH
 } from './services/youtubeNotificationService.js';
 import {
@@ -246,18 +248,22 @@ class NikoBot extends Client {
             // YouTube push subscription on every deployment/restart.
             try {
                 const youtubeSubscribed = await subscribeToYouTube();
+
                 if (youtubeSubscribed) {
                     logger.info(
-                        '[YouTube] Upload notification subscription setup completed.'
+                        '[YouTube] Push subscription setup completed.'
                     );
                 } else {
                     logger.warn(
-                        '[YouTube] Upload notification subscription setup did not complete.'
+                        '[YouTube] Push subscription unavailable; RSS fallback will handle uploads.'
                     );
                 }
+
+                await initializeYouTubeFeed(this);
+
             } catch (error) {
                 logger.error(
-                    '[YouTube] Unexpected subscription setup error:',
+                    '[YouTube] Notification startup setup failed:',
                     error
                 );
             }
@@ -847,6 +853,18 @@ class NikoBot extends Client {
                     checkColorRoleExpiry(
                         this
                     )
+            )
+        );
+
+        // YouTube upload fallback check - runs every minute.
+        // Push notifications remain the primary path; RSS fallback ensures
+        // uploads are still detected if the webhook subscription fails.
+        cron.schedule(
+            '* * * * *',
+            runSafeTask(
+                'youtube_feed_check',
+                () =>
+                    checkYouTubeFeed(this)
             )
         );
 
