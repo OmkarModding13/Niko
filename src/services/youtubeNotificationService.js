@@ -15,13 +15,20 @@ const YOUTUBE_FEED_URL =
     'https://www.youtube.com/feeds/videos.xml?channel_id=' +
     encodeURIComponent(YOUTUBE_CHANNEL_ID);
 
+// YouTube exposes a separate Shorts feed through the UUSH playlist prefix.
+// This gives the RSS fallback a dedicated source for Shorts as well.
+const YOUTUBE_SHORTS_FEED_URL =
+    'https://www.youtube.com/feeds/videos.xml?playlist_id=UUSH' +
+    encodeURIComponent(YOUTUBE_CHANNEL_ID.slice(2));
+
 const STATE_KEY = 'youtube:notification:state';
-const STATE_VERSION = 1;
+const STATE_VERSION = 2;
 const MAX_REMEMBERED_VIDEO_IDS = 100;
 
 let state = {
     version: STATE_VERSION,
     lastKnownVideoId: null,
+    lastKnownShortId: null,
     notifiedVideoIds: []
 };
 
@@ -121,6 +128,7 @@ function normalizeState(raw) {
         return {
             version: STATE_VERSION,
             lastKnownVideoId: null,
+            lastKnownShortId: null,
             notifiedVideoIds: []
         };
     }
@@ -130,6 +138,10 @@ function normalizeState(raw) {
         lastKnownVideoId:
             typeof raw.lastKnownVideoId === 'string'
                 ? raw.lastKnownVideoId
+                : null,
+        lastKnownShortId:
+            typeof raw.lastKnownShortId === 'string'
+                ? raw.lastKnownShortId
                 : null,
         notifiedVideoIds:
             Array.isArray(raw.notifiedVideoIds)
@@ -331,50 +343,55 @@ export async function subscribeToYouTube() {
     }
 }
 
+async function fetchYouTubeFeed(url) {
+    const response =
+        await axios.get(
+            url,
+            {
+                timeout: 15000,
+                headers: {
+                    'User-Agent':
+                        'NikoBot/2.1 YouTube notifier'
+                }
+            }
+        );
+
+    return parseFeed(response.data);
+}
+
 export async function initializeYouTubeFeed(bot) {
     await loadState(bot);
 
     try {
-        const response =
-            await axios.get(
-                YOUTUBE_FEED_URL,
-                {
-                    timeout: 15000,
-                    headers: {
-                        'User-Agent':
-                            'NikoBot/2.1 YouTube notifier'
-                    }
-                }
-            );
+        const [videos, shorts] =
+            await Promise.all([
+                fetchYouTubeFeed(YOUTUBE_FEED_URL),
+                fetchYouTubeFeed(YOUTUBE_SHORTS_FEED_URL)
+            ]);
 
-        const videos =
-            parseFeed(response.data);
-
-        if (videos.length === 0) {
+        if (videos.length === 0 && shorts.length === 0) {
             throw new Error(
                 'Could not parse any YouTube feed entries.'
             );
         }
 
-        const latest =
-            videos[videos.length - 1];
-
-        if (!state.lastKnownVideoId) {
+        if (!state.lastKnownVideoId && videos.length > 0) {
             state.lastKnownVideoId =
-                latest.videoId;
-            await saveState(bot);
-
-            startupLog(
-                '[YouTube] RSS baseline initialized: ' +
-                latest.videoId
-            );
-
-            return true;
+                videos[videos.length - 1].videoId;
         }
+
+        if (!state.lastKnownShortId && shorts.length > 0) {
+            state.lastKnownShortId =
+                shorts[shorts.length - 1].videoId;
+        }
+
+        await saveState(bot);
 
         startupLog(
             '[YouTube] RSS fallback ready. Latest video: ' +
-            latest.videoId
+            (state.lastKnownVideoId || 'none') +
+            ' | Latest short: ' +
+            (state.lastKnownShortId || 'none')
         );
 
         return true;
@@ -387,6 +404,75 @@ export async function initializeYouTubeFeed(bot) {
     }
 }
 
+async function processFeed(bot, videos, cursorKey) {
+    if (videos.length === 0) {
+        return false;
+    }
+
+    const latest = videos[videos.length - 1];
+    const previousCursor = state[cursorKey];
+
+    if (!previousCursor) {
+        state[cursorKey] = latest.videoId;
+        await saveState(bot);
+        return false;
+    }
+
+    const previousIndex =
+        videos.findIndex(
+            video =>
+                video.videoId === previousCursor
+        );
+
+    const newVideos =
+        previousIndex >= 0
+            ? videos.slice(previousIndex + 1)
+            : videos.filter(
+                video =>
+                    !wasNotified(video.videoId)
+            );
+
+    if (newVideos.length === 0) {
+        if (latest.videoId !== previousCursor) {
+            state[cursorKey] = latest.videoId;
+            await saveState(bot);
+        }
+
+        return false;
+    }
+
+    let delivered = false;
+
+    for (const video of newVideos) {
+        logger.warn(
+            '[YouTube] New upload detected: ' +
+            video.videoId
+        );
+
+        const sent =
+            await sendYouTubeNotification(
+                bot,
+                video
+            );
+
+        delivered =
+            delivered || sent;
+
+        if (sent) {
+            state[cursorKey] =
+                video.videoId;
+
+            await saveState(bot);
+        } else {
+            // Keep the cursor unchanged so a failed notification is retried
+            // on the next polling cycle.
+            break;
+        }
+    }
+
+    return delivered;
+}
+
 export async function checkYouTubeFeed(bot) {
     if (feedCheckInProgress) {
         return false;
@@ -397,96 +483,27 @@ export async function checkYouTubeFeed(bot) {
     try {
         await loadState(bot);
 
-        const response =
-            await axios.get(
-                YOUTUBE_FEED_URL,
-                {
-                    timeout: 15000,
-                    headers: {
-                        'User-Agent':
-                            'NikoBot/2.1 YouTube notifier'
-                    }
-                }
+        const [videos, shorts] =
+            await Promise.all([
+                fetchYouTubeFeed(YOUTUBE_FEED_URL),
+                fetchYouTubeFeed(YOUTUBE_SHORTS_FEED_URL)
+            ]);
+
+        const videoResult =
+            await processFeed(
+                bot,
+                videos,
+                'lastKnownVideoId'
             );
 
-        const videos =
-            parseFeed(response.data);
-
-        if (videos.length === 0) {
-            logger.warn(
-                '[YouTube] RSS fallback received an invalid/empty feed.'
-            );
-            return false;
-        }
-
-        const latest =
-            videos[videos.length - 1];
-
-        if (!state.lastKnownVideoId) {
-            state.lastKnownVideoId =
-                latest.videoId;
-            await saveState(bot);
-            return false;
-        }
-
-        const previousIndex =
-            videos.findIndex(
-                video =>
-                    video.videoId ===
-                    state.lastKnownVideoId
+        const shortResult =
+            await processFeed(
+                bot,
+                shorts,
+                'lastKnownShortId'
             );
 
-        const newVideos =
-            previousIndex >= 0
-                ? videos.slice(previousIndex + 1)
-                : videos.filter(
-                    video =>
-                        !wasNotified(video.videoId)
-                );
-
-        if (newVideos.length === 0) {
-            if (
-                latest.videoId !==
-                state.lastKnownVideoId
-            ) {
-                state.lastKnownVideoId =
-                    latest.videoId;
-                await saveState(bot);
-            }
-
-            return false;
-        }
-
-        let delivered = false;
-
-        for (const video of newVideos) {
-            logger.warn(
-                '[YouTube] New upload detected: ' +
-                video.videoId
-            );
-
-            const sent =
-                await sendYouTubeNotification(
-                    bot,
-                    video
-                );
-
-            delivered =
-                delivered || sent;
-
-            if (sent) {
-                state.lastKnownVideoId =
-                    video.videoId;
-
-                await saveState(bot);
-            } else {
-                // Keep the previous cursor so the failed upload is retried
-                // on the next polling cycle instead of being lost.
-                break;
-            }
-        }
-
-        return delivered;
+        return videoResult || shortResult;
     } catch (error) {
         logger.error(
             '[YouTube] RSS fallback check failed:',
