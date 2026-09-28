@@ -648,7 +648,10 @@ export async function handleYouTubeNotification(
             .send();
     }
 
-    let sent = false;
+    // Acknowledge WebSub immediately. The specification recommends that
+    // the 2xx response only acknowledge receipt, while processing can continue
+    // asynchronously. RSS remains the recovery path if processing fails.
+    res.status(204).send();
 
     for (const video of videos) {
         if (
@@ -658,30 +661,30 @@ export async function handleYouTubeNotification(
             continue;
         }
 
-        logger.warn(
-            '[YouTube] Push detected video: ' +
-            video.videoId
-        );
-
-        const delivered =
-            await sendYouTubeNotification(
-                bot,
-                video
+        try {
+            logger.warn(
+                '[YouTube] Push detected video: ' +
+                video.videoId
             );
 
-        sent =
-            sent || delivered;
+            const delivered =
+                await sendYouTubeNotification(
+                    bot,
+                    video
+                );
 
-        if (delivered) {
-            state.lastKnownVideoId =
-                video.videoId;
-            await saveState(bot);
+            if (delivered) {
+                state.lastKnownVideoId =
+                    video.videoId;
+                await saveState(bot);
+            }
+        } catch (error) {
+            logger.error(
+                '[YouTube] Async push processing failed:',
+                error?.message || error
+            );
         }
     }
-
-    return res
-        .status(204)
-        .send();
 }
 
 export async function renewYouTubeSubscription() {
