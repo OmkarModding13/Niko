@@ -169,10 +169,23 @@ export default {
             try {
                 await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
             } catch (error) {
+                // The economy payment already committed. Attempt an immediate
+                // refund so a failed level-system write cannot consume Souls.
+                userData.wallet += price;
+                const refunded = await setEconomyData(client, guildId, userId, userData);
+                if (!refunded) {
+                    throw createError(
+                        'XP booster activation and refund failed',
+                        ErrorTypes.DATABASE,
+                        'The XP Booster could not be activated and the automatic refund also failed. Please contact the owner immediately.',
+                        { originalError: error.message }
+                    );
+                }
+
                 throw createError(
                     'XP booster activation failed',
                     ErrorTypes.DATABASE,
-                    'Your Souls payment was saved, but the XP Booster could not be activated. Please contact the owner.',
+                    'The XP Booster could not be activated, so your Souls were refunded. Please try again later.',
                     { originalError: error.message }
                 );
             }
