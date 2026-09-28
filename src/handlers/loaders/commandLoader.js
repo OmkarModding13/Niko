@@ -199,8 +199,11 @@ function validateCommands(commands) {
         if (cmd.name && cmd.name.length > 32) {
             validationErrors.push(`Command ${cmd.name} has name longer than 32 chars: "${cmd.name}" (${cmd.name.length} chars)`);
         }
-        if (cmd.description && cmd.description.length > 110) {
-            validationErrors.push(`Command ${cmd.name} has description longer than 110 chars: "${cmd.description}" (${cmd.description.length} chars)`);
+        if (cmd.description && cmd.description.length > 100) {
+            validationErrors.push(`Command ${cmd.name} has description longer than Discord's 100-char limit: "${cmd.description}" (${cmd.description.length} chars)`);
+        }
+        if (cmd.options && cmd.options.length > 25) {
+            validationErrors.push(`Command ${cmd.name} has more than Discord's 25-option limit: ${cmd.options.length}`);
         }
 
         if (!cmd.options) {
@@ -211,13 +214,13 @@ function validateCommands(commands) {
             if (option.name && option.name.length > 32) {
                 validationErrors.push(`Command ${cmd.name} option ${option.name} has name longer than 32 chars: "${option.name}" (${option.name.length} chars)`);
             }
-            if (option.description && option.description.length > 110) {
-                validationErrors.push(`Command ${cmd.name} option ${option.name} has description longer than 110 chars: "${option.description}" (${option.description.length} chars)`);
+            if (option.description && option.description.length > 100) {
+                validationErrors.push(`Command ${cmd.name} option ${option.name} has description longer than 100 chars: "${option.description}" (${option.description.length} chars)`);
             }
 
             if (option.choices) {
                 for (const choice of option.choices) {
-                    if (choice.name && choice.name.length > 110) {
+                    if (choice.name && choice.name.length > 100) {
                         validationErrors.push(`Command ${cmd.name} option ${option.name} choice ${choice.name} has name longer than 110 chars: "${choice.name}" (${choice.name.length} chars)`);
                     }
                     if (choice.value && choice.value.length > 100) {
@@ -234,7 +237,7 @@ function validateCommands(commands) {
                 if (subOption.name && subOption.name.length > 32) {
                     validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has name longer than 32 chars: "${subOption.name}" (${subOption.name.length} chars)`);
                 }
-                if (subOption.description && subOption.description.length > 110) {
+                if (subOption.description && subOption.description.length > 100) {
                     validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has description longer than 110 chars: "${subOption.description}" (${subOption.description.length} chars)`);
                 }
 
@@ -266,14 +269,15 @@ function prepareCommandsForRegistration(commands) {
         logger.warn(`Command count (${commands.length}) is near Discord's ${MAX_COMMANDS} global command limit`);
     }
 
-    if (commands.length <= MAX_COMMANDS) {
-        return commands;
+    if (commands.length > MAX_COMMANDS) {
+        const overflow = commands.slice(MAX_COMMANDS).map(command => command.name).join(', ');
+        logger.warn(
+            `Command count (${commands.length}) exceeds Discord's ${MAX_COMMANDS} global command limit. ` +
+            `Only the first ${MAX_COMMANDS} commands will be registered globally. Unregistered commands: ${overflow}`
+        );
     }
 
-    logger.warn(`Command count (${commands.length}) exceeds Discord limit (${MAX_COMMANDS}), truncating...`);
-    const truncated = commands.slice(0, MAX_COMMANDS);
-    logger.info(`Truncated to ${truncated.length} commands for registration`);
-    return truncated;
+    return commands.slice(0, MAX_COMMANDS);
 }
 
 async function registerGlobalCommands(client, clientId, commands, totalSubcommands) {
