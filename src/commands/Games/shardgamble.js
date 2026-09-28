@@ -9,6 +9,7 @@ import {
 } from 'discord.js';
 import { join } from 'node:path';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { Mutex } from '../../utils/mutex.js';
 import { getColor } from '../../config/bot.js';
 
 const SPIN_COST = 1000;
@@ -71,6 +72,8 @@ function createButtons(disabled = false) {
             .setDisabled(disabled)
     );
 }
+
+const activeShardGambles = new Set();
 
 function createGameEmbed(userData) {
     return new EmbedBuilder()
@@ -167,9 +170,21 @@ export default {
                     return;
                 }
 
-                await componentInteraction.deferUpdate();
+                const lockKey = `shardgamble:${guildId}:${userId}`;
+                if (activeShardGambles.has(lockKey)) {
+                    await componentInteraction.reply({
+                        content: '⏳ Your previous Shard Gamble is still processing. Please wait a moment.',
+                        flags: MessageFlags.Ephemeral
+                    });
+                    return;
+                }
 
-                const spins = componentInteraction.customId === 'shardgamble_10' ? 10 : 1;
+                activeShardGambles.add(lockKey);
+
+                try {
+                    await componentInteraction.deferUpdate();
+
+                    const spins = componentInteraction.customId === 'shardgamble_10' ? 10 : 1;
                 const cost = spins === 10 ? TEN_SPIN_COST : SPIN_COST;
 
                 const latestData = await getEconomyData(client, guildId, userId);
@@ -218,6 +233,9 @@ export default {
                 await componentInteraction.followUp({
                     embeds: [createRewardEmbed(results, cost)]
                 });
+                } finally {
+                    activeShardGambles.delete(lockKey);
+                }
             } catch (error) {
                 console.error('[SHARD_GAMBLE] Component error:', error);
 
