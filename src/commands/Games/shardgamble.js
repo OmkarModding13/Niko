@@ -182,9 +182,12 @@ export default {
                 activeShardGambles.add(lockKey);
 
                 try {
-                    await componentInteraction.deferUpdate();
+                    return await Mutex.runExclusive(
+                        `economy-guild:${guildId}`,
+                        async () => {
+                            await componentInteraction.deferUpdate();
 
-                    const spins = componentInteraction.customId === 'shardgamble_10' ? 10 : 1;
+                            const spins = componentInteraction.customId === 'shardgamble_10' ? 10 : 1;
                 const cost = spins === 10 ? TEN_SPIN_COST : SPIN_COST;
 
                 const latestData = await getEconomyData(client, guildId, userId);
@@ -232,7 +235,9 @@ export default {
 
                 await componentInteraction.followUp({
                     embeds: [createRewardEmbed(results, cost)]
-                });
+                            });
+                        }
+                    );
                 } finally {
                     activeShardGambles.delete(lockKey);
                 }
