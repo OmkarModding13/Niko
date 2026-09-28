@@ -101,7 +101,7 @@ export async function checkDailyReminders(client) {
                         // The user is no longer reachable by DM from this
                         // bot, commonly because there are no mutual guilds.
                         // Do not retry this every minute or spam the logs.
-                        if (discordCode === 50278) {
+                        if (discordCode === 50007 || discordCode === 50278) {
                             userData.reminderNextAt =
                                 nextReminderAt + DAILY_COOLDOWN;
 
@@ -113,7 +113,7 @@ export async function checkDailyReminders(client) {
                             );
 
                             logger.warn(
-                                `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (no mutual guilds)`
+                                `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (Discord rejected the DM: ${discordCode})`
                             );
                             continue;
                         }
