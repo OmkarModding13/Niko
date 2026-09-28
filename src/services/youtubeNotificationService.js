@@ -15,14 +15,12 @@ const YOUTUBE_FEED_URL =
     'https://www.youtube.com/feeds/videos.xml?channel_id=' +
     encodeURIComponent(YOUTUBE_CHANNEL_ID);
 
-// YouTube exposes a separate Shorts feed through the UUSH playlist prefix.
-// This gives the RSS fallback a dedicated source for Shorts as well.
 const YOUTUBE_SHORTS_FEED_URL =
     'https://www.youtube.com/feeds/videos.xml?playlist_id=UUSH' +
     encodeURIComponent(YOUTUBE_CHANNEL_ID.slice(2));
 
 const STATE_KEY = 'youtube:notification:state';
-const STATE_VERSION = 2;
+const STATE_VERSION = 3;
 const MAX_REMEMBERED_VIDEO_IDS = 100;
 
 let state = {
@@ -424,20 +422,26 @@ async function processFeed(bot, videos, cursorKey) {
                 video.videoId === previousCursor
         );
 
+    // If the cursor disappeared from the feed, it means the feed rotated
+    // past the previously-seen item (the feed is limited to recent entries).
+    // Do NOT treat every unnotified item as new, because that can replay a
+    // batch of old uploads after a restart or feed rotation.
+    if (previousIndex < 0) {
+        state[cursorKey] = latest.videoId;
+        await saveState(bot);
+
+        logger.warn(
+            '[YouTube] Feed cursor no longer present; re-baselined without replaying old entries: ' +
+            latest.videoId
+        );
+
+        return false;
+    }
+
     const newVideos =
-        previousIndex >= 0
-            ? videos.slice(previousIndex + 1)
-            : videos.filter(
-                video =>
-                    !wasNotified(video.videoId)
-            );
+        videos.slice(previousIndex + 1);
 
     if (newVideos.length === 0) {
-        if (latest.videoId !== previousCursor) {
-            state[cursorKey] = latest.videoId;
-            await saveState(bot);
-        }
-
         return false;
     }
 
