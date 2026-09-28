@@ -333,22 +333,6 @@ class NikoBot extends Client {
             '*';
 
 
-        app.get(
-            YOUTUBE_WEBHOOK_PATH,
-            verifyYouTube
-        );
-
-        app.post(
-            YOUTUBE_WEBHOOK_PATH,
-            express.text({ type: ['application/atom+xml', 'application/xml', 'text/xml'] }),
-            (req, res) =>
-                handleYouTubeNotification(
-                    req,
-                    res,
-                    this
-                )
-        );
-
         app.use(
             (req, res, next) => {
 
@@ -402,6 +386,19 @@ class NikoBot extends Client {
 
             }
         );
+
+
+        this.apiRateLimitCleanup = setInterval(() => {
+            const cutoff = Date.now() - windowMs;
+            for (const [ip, times] of requestCounts.entries()) {
+                const fresh = times.filter(time => time > cutoff);
+                if (fresh.length === 0) {
+                    requestCounts.delete(ip);
+                } else {
+                    requestCounts.set(ip, fresh);
+                }
+            }
+        }, Math.max(windowMs, 60000));
 
 
         const requestCounts =
@@ -486,6 +483,22 @@ class NikoBot extends Client {
 
 
         app.get(
+            YOUTUBE_WEBHOOK_PATH,
+            verifyYouTube
+        );
+
+        app.post(
+            YOUTUBE_WEBHOOK_PATH,
+            express.text({ type: ['application/atom+xml', 'application/xml', 'text/xml'] }),
+            (req, res) =>
+                handleYouTubeNotification(
+                    req,
+                    res,
+                    this
+                )
+        );
+
+        app.get(
             '/health',
             (req, res) => {
 
@@ -500,7 +513,9 @@ class NikoBot extends Client {
                 const status = {
 
                     status:
-                        'healthy',
+                        dbStatus.isDegraded
+                            ? 'degraded'
+                            : 'healthy',
 
                     timestamp:
                         new Date()
@@ -1151,26 +1166,13 @@ class NikoBot extends Client {
 
 
     async registerCommands() {
-
-        try {
-
-            await registerSlashCommands(
-                this,
-                {
-                    clientId:
-                        this.config.bot.clientId
-                }
-            );
-
-        } catch (error) {
-
-            logger.error(
-                'Error registering commands:',
-                error
-            );
-
-        }
-
+        await registerSlashCommands(
+            this,
+            {
+                clientId:
+                    this.config.bot.clientId
+            }
+        );
     }
 
 
@@ -1199,6 +1201,11 @@ class NikoBot extends Client {
 
 
         try {
+
+            if (this.apiRateLimitCleanup) {
+                clearInterval(this.apiRateLimitCleanup);
+                this.apiRateLimitCleanup = null;
+            }
 
             logger.info(
                 'Stopping cron jobs...'
