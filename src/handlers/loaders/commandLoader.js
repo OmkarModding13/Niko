@@ -221,7 +221,7 @@ function validateCommands(commands) {
             if (option.choices) {
                 for (const choice of option.choices) {
                     if (choice.name && choice.name.length > 100) {
-                        validationErrors.push(`Command ${cmd.name} option ${option.name} choice ${choice.name} has name longer than 110 chars: "${choice.name}" (${choice.name.length} chars)`);
+                        validationErrors.push(`Command ${cmd.name} option ${option.name} choice ${choice.name} has name longer than 100 chars: "${choice.name}" (${choice.name.length} chars)`);
                     }
                     if (choice.value && choice.value.length > 100) {
                         validationErrors.push(`Command ${cmd.name} option ${option.name} choice ${choice.name} has value longer than 100 chars: "${choice.value}" (${choice.value.length} chars)`);
@@ -238,7 +238,11 @@ function validateCommands(commands) {
                     validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has name longer than 32 chars: "${subOption.name}" (${subOption.name.length} chars)`);
                 }
                 if (subOption.description && subOption.description.length > 100) {
-                    validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has description longer than 110 chars: "${subOption.description}" (${subOption.description.length} chars)`);
+                    validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has description longer than 100 chars: "${subOption.description}" (${subOption.description.length} chars)`);
+                }
+
+                if (subOption.options && subOption.options.length > 25) {
+                    validationErrors.push(`Command ${cmd.name} subcommand ${option.name} option ${subOption.name} has more than Discord's 25-option limit: ${subOption.options.length}`);
                 }
 
                 if (!subOption.choices) {
