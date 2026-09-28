@@ -489,7 +489,10 @@ class NikoBot extends Client {
 
         app.post(
             YOUTUBE_WEBHOOK_PATH,
-            express.text({ type: ['application/atom+xml', 'application/xml', 'text/xml'] }),
+            express.text({
+                type: ['application/atom+xml', 'application/xml', 'text/xml'],
+                limit: '256kb'
+            }),
             (req, res) =>
                 handleYouTubeNotification(
                     req,
