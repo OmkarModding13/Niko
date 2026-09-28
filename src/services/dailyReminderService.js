@@ -39,7 +39,7 @@ export async function checkDailyReminders(client) {
                         userId
                     );
 
-                    if (!userData?.reminderEnabled) continue;
+                    if (!userData?.reminderEnabled) return;
 
                     const lastDaily = userData.lastDaily || 0;
                     const readyAt = lastDaily + DAILY_COOLDOWN;
@@ -59,19 +59,19 @@ export async function checkDailyReminders(client) {
                             userData
                         );
 
-                        continue;
+                        return;
                     }
 
                     const nextReminderAt = userData.reminderNextAt;
 
                     // Daily reward is not ready for reminder yet.
-                    if (now < nextReminderAt) continue;
+                    if (now < nextReminderAt) return;
 
                     const user = await client.users
                         .fetch(userId)
                         .catch(() => null);
 
-                    if (!user) continue;
+                    if (!user) return;
 
                     try {
                         await user.send({
@@ -119,7 +119,7 @@ export async function checkDailyReminders(client) {
                             logger.warn(
                                 `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (Discord rejected the DM: ${discordCode})`
                             );
-                            continue;
+                            return;
                         }
 
                         throw error;
