@@ -388,19 +388,6 @@ class NikoBot extends Client {
         );
 
 
-        this.apiRateLimitCleanup = setInterval(() => {
-            const cutoff = Date.now() - windowMs;
-            for (const [ip, times] of requestCounts.entries()) {
-                const fresh = times.filter(time => time > cutoff);
-                if (fresh.length === 0) {
-                    requestCounts.delete(ip);
-                } else {
-                    requestCounts.set(ip, fresh);
-                }
-            }
-        }, Math.max(windowMs, 60000));
-
-
         const requestCounts =
             new Map();
 
@@ -413,6 +400,19 @@ class NikoBot extends Client {
         const maxRequests =
             this.config.api?.rateLimit?.max ||
             100;
+
+
+        this.apiRateLimitCleanup = setInterval(() => {
+            const cutoff = Date.now() - windowMs;
+            for (const [ip, times] of requestCounts.entries()) {
+                const fresh = times.filter(time => time > cutoff);
+                if (fresh.length === 0) {
+                    requestCounts.delete(ip);
+                } else {
+                    requestCounts.set(ip, fresh);
+                }
+            }
+        }, Math.max(windowMs, 60000));
 
 
         app.use(
