@@ -160,11 +160,21 @@ export default {
                 throw createError('Insufficient funds', ErrorTypes.VALIDATION, `You need **${CURRENCY_EMOJI} ${price.toLocaleString()}** for the XP Booster, but you only have **${CURRENCY_EMOJI} ${userData.wallet.toLocaleString()}**.`);
             }
 
-            await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
             userData.wallet -= price;
             const saved = await setEconomyData(client, guildId, userId, userData);
             if (!saved) {
                 throw createError('Economy save failed', ErrorTypes.DATABASE, 'Your purchase could not be saved safely. Please try again.');
+            }
+
+            try {
+                await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
+            } catch (error) {
+                throw createError(
+                    'XP booster activation failed',
+                    ErrorTypes.DATABASE,
+                    'Your Souls payment was saved, but the XP Booster could not be activated. Please contact the owner.',
+                    { originalError: error.message }
+                );
             }
 
             const embed = successEmbed('⚡ XP Booster Purchased', `You activated **2× XP** for **24 hours** for **${CURRENCY_EMOJI} ${price.toLocaleString()}**.`)
