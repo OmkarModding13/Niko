@@ -212,11 +212,6 @@ async function performGacha(interaction, client, spins) {
             if (reward.type === 'character') attachments.push(createCharacterAttachment(reward.character));
         }
 
-        // 1 Spin = 0 XP. 10 Spins = 5 XP total.
-        if (spins === 10) {
-            await addLevelXp(client, guildId, userId, 5);
-        }
-
         if (rewards.some(reward => reward.type === 'bank_protection')) {
             const bonuses = getCharacterBonuses(userData);
             const hours = 1 + Number(bonuses.bankProtectionHours || 0);
@@ -235,6 +230,20 @@ async function performGacha(interaction, client, spins) {
                 success: false,
                 content: '❌ Your gacha result could not be saved safely. Please try again.'
             };
+        }
+
+        // Economy is committed first so a failed economy write cannot grant
+        // XP or an XP booster for free.
+        if (spins === 10) {
+            try {
+                await addLevelXp(client, guildId, userId, 5);
+            } catch (error) {
+                console.error('[GACHA XP ERROR]', error);
+                return {
+                    success: false,
+                    content: '⚠️ Your gacha result was saved, but the XP reward could not be applied. Please contact the owner.'
+                };
+            }
         }
 
         if (rewards.some(reward => reward.type === 'xp_boost')) {
