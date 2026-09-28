@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
+import { Mutex } from '../../utils/mutex.js';
 import {
     GACHA_REWARD_WEIGHTS,
     FOUR_STAR_CHARACTERS,
@@ -182,7 +183,10 @@ async function performGacha(interaction, client, spins) {
     activeGachaSpins.add(lockKey);
 
     try {
-        const userData = await getEconomyData(client, guildId, userId);
+        return await Mutex.runExclusive(
+            `economy-guild:${guildId}`,
+            async () => {
+                const userData = await getEconomyData(client, guildId, userId);
         if (!userData) {
             return {
                 success: false,
@@ -213,10 +217,6 @@ async function performGacha(interaction, client, spins) {
             await addLevelXp(client, guildId, userId, 5);
         }
 
-        if (rewards.some(reward => reward.type === 'xp_boost')) {
-            await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
-        }
-
         if (rewards.some(reward => reward.type === 'bank_protection')) {
             const bonuses = getCharacterBonuses(userData);
             const hours = 1 + Number(bonuses.bankProtectionHours || 0);
@@ -235,6 +235,18 @@ async function performGacha(interaction, client, spins) {
                 success: false,
                 content: '❌ Your gacha result could not be saved safely. Please try again.'
             };
+        }
+
+        if (rewards.some(reward => reward.type === 'xp_boost')) {
+            try {
+                await setXpMultiplier(client, guildId, userId, 2, 24 * 60 * 60 * 1000);
+            } catch (error) {
+                console.error('[GACHA XP BOOST ERROR]', error);
+                return {
+                    success: false,
+                    content: '⚠️ Your gacha result was saved, but the XP Booster could not be activated. Please contact the owner.'
+                };
+            }
         }
 
         const characters = rewards.filter(reward => reward.type === 'character');
@@ -265,7 +277,9 @@ async function performGacha(interaction, client, spins) {
             )
             .setFooter({ text: 'Duplicate characters are automatically converted into 2 Shards.' });
 
-        return { success: true, embed, attachments };
+                return { success: true, embed, attachments };
+            }
+        );
     } finally {
         activeGachaSpins.delete(lockKey);
     }
