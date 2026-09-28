@@ -31,6 +31,7 @@ import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 import { markUserActivity } from '../services/leveling/leveling.js';
+import { Mutex } from '../utils/mutex.js';
 
 const COMMAND_ERROR_SUBTYPES = {
   warn: 'warn_failed',
@@ -376,14 +377,26 @@ export default {
                 );
               }
 
-              if (
-                command.execute
-              ) {
-                await command.execute(
-                  interaction,
-                  guildConfig,
-                  client
-                );
+              if (command.execute) {
+                const isEconomyCommand =
+                  interaction.guildId &&
+                  ['Economy', 'Games'].includes(command.category);
+
+                const executeCommand = () =>
+                  command.execute(
+                    interaction,
+                    guildConfig,
+                    client
+                  );
+
+                if (isEconomyCommand) {
+                  await Mutex.runExclusive(
+                    `economy-guild:${interaction.guildId}`,
+                    executeCommand
+                  );
+                } else {
+                  await executeCommand();
+                }
               }
 
               return;
