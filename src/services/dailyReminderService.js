@@ -1,5 +1,6 @@
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
+import { Mutex } from '../utils/mutex.js';
 
 const DAILY_COOLDOWN = 24 * 60 * 60 * 1000;
 const COMMAND_CHANNEL_ID = '1551192004241793084';
@@ -27,6 +28,9 @@ export async function checkDailyReminders(client) {
 
             for (const key of keys) {
                 try {
+                    await Mutex.runExclusive(
+                        `economy-guild:${guildId}`,
+                        async () => {
                     const userId = key.replace(prefix, '');
 
                     const userData = await getEconomyData(
@@ -121,6 +125,8 @@ export async function checkDailyReminders(client) {
                         throw error;
                     }
 
+                        }
+                    );
                 } catch (error) {
                     logger.error(
                         `[DAILY_REMINDER] Failed for key ${key}:`,
