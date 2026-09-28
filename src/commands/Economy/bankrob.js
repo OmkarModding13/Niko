@@ -8,6 +8,7 @@ import { successEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/emb
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { Mutex } from '../../utils/mutex.js';
 import { BotConfig, isBotOwner } from '../../config/bot.js';
 
 const SOULS = '<:Souls:1547510037621112894>';
@@ -73,6 +74,8 @@ async function saveEconomyDataOrThrow(client, guildId, userId, data) {
 
 async function resolveRobbery(interaction, client, targetUser, players) {
     const guildId = interaction.guildId;
+
+    return Mutex.runExclusive(`economy-guild:${guildId}`, async () => {
     const now = Date.now();
 
     const targetData = await getEconomyData(client, guildId, targetUser.id);
@@ -256,6 +259,7 @@ Result: **GALAT DARWAAZA, BHAI.** 🚪💀
     });
 
     return { type: 'success', embed };
+    });
 }
 
 export default {
