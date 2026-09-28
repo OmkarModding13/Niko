@@ -1,4 +1,5 @@
 import axios from 'axios';
+import crypto from 'node:crypto';
 import { logger, startupLog } from '../utils/logger.js';
 
 export const YOUTUBE_CHANNEL_ID =
@@ -20,6 +21,10 @@ const YOUTUBE_SHORTS_FEED_URL =
     encodeURIComponent(YOUTUBE_CHANNEL_ID.slice(2));
 
 const STATE_KEY = 'youtube:notification:state';
+
+const YOUTUBE_WEBHOOK_SECRET =
+    process.env.YOUTUBE_WEBHOOK_SECRET ||
+    crypto.randomBytes(32).toString('hex');
 const STATE_VERSION = 3;
 const MAX_REMEMBERED_VIDEO_IDS = 100;
 
@@ -297,7 +302,8 @@ export async function subscribeToYouTube() {
             'hub.mode': 'subscribe',
             'hub.topic': YOUTUBE_FEED_URL,
             'hub.verify': 'sync',
-            'hub.lease_seconds': '864000'
+            'hub.lease_seconds': '864000',
+            'hub.secret': YOUTUBE_WEBHOOK_SECRET
         });
 
         const response = await axios.post(
@@ -570,6 +576,51 @@ export async function handleYouTubeNotification(
         return res
             .status(204)
             .send();
+    }
+
+    const signatureHeader =
+        req.headers['x-hub-signature'];
+
+    if (!signatureHeader) {
+        logger.warn('[YouTube] Rejected unsigned WebSub notification.');
+        return res.status(204).send();
+    }
+
+    const [algorithm, receivedSignature] =
+        String(signatureHeader).split('=', 2);
+
+    const supportedAlgorithms =
+        new Set(['sha1', 'sha256', 'sha384', 'sha512']);
+
+    if (
+        !supportedAlgorithms.has(algorithm) ||
+        !receivedSignature
+    ) {
+        logger.warn('[YouTube] Rejected WebSub notification with invalid signature format.');
+        return res.status(204).send();
+    }
+
+    const expectedSignature =
+        crypto
+            .createHmac(algorithm, YOUTUBE_WEBHOOK_SECRET)
+            .update(body, 'utf8')
+            .digest('hex');
+
+    const receivedBuffer =
+        Buffer.from(receivedSignature, 'hex');
+
+    const expectedBuffer =
+        Buffer.from(expectedSignature, 'hex');
+
+    if (
+        receivedBuffer.length !== expectedBuffer.length ||
+        !crypto.timingSafeEqual(
+            receivedBuffer,
+            expectedBuffer
+        )
+    ) {
+        logger.warn('[YouTube] Rejected WebSub notification with invalid HMAC signature.');
+        return res.status(204).send();
     }
 
     const videos =
