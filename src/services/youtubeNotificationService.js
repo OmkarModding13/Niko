@@ -1,6 +1,7 @@
 import axios from 'axios';
 import crypto from 'node:crypto';
 import { logger, startupLog } from '../utils/logger.js';
+import { Mutex } from '../utils/mutex.js';
 
 export const YOUTUBE_CHANNEL_ID =
     process.env.YOUTUBE_CHANNEL_ID ||
@@ -214,12 +215,15 @@ async function sendYouTubeNotification(bot, video) {
 
     await loadState(bot);
 
-    if (wasNotified(video.videoId)) {
-        return true;
-    }
+    return Mutex.runExclusive(
+        `youtube-notify:${video.videoId}`,
+        async () => {
+            if (wasNotified(video.videoId)) {
+                return true;
+            }
 
-    try {
-        const target =
+            try {
+                const target =
             await bot.channels.fetch(DISCORD_CHANNEL_ID);
 
         if (!target?.isTextBased()) {
@@ -273,8 +277,10 @@ async function sendYouTubeNotification(bot, video) {
             error?.message || error
         );
 
-        return false;
-    }
+                return false;
+            }
+        }
+    );
 }
 
 export async function subscribeToYouTube() {
