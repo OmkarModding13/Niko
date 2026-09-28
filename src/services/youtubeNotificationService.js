@@ -535,19 +535,31 @@ export function verifyYouTube(req, res) {
     const topic =
         req.query['hub.topic'];
 
+    const validMode =
+        mode === 'subscribe' ||
+        mode === 'unsubscribe';
+
+    const safeChallenge =
+        typeof challenge === 'string' &&
+        challenge.length > 0 &&
+        challenge.length <= 256 &&
+        /^[+\-0-9=A-Za-z_]+$/.test(challenge);
+
     if (
-        challenge &&
-        (!topic ||
-            topic === YOUTUBE_FEED_URL)
+        safeChallenge &&
+        validMode &&
+        topic === YOUTUBE_FEED_URL
     ) {
         startupLog(
             '[YouTube] WebSub verification received: ' +
-            (mode || 'unknown')
+            mode
         );
+
+        res.set('X-Content-Type-Options', 'nosniff');
 
         return res
             .status(200)
-            .type('text/plain')
+            .type('application/octet-stream')
             .send(challenge);
     }
 
