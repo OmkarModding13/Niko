@@ -19,7 +19,7 @@ export default {
     category: 'Admin',
 
     async execute(interaction, config, client) {
-        const deferred = await InteractionHelper.safeDefer(interaction);
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
         const isServerOwner = interaction.guild?.ownerId === interaction.user.id;
@@ -37,7 +37,7 @@ export default {
         const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
         if (!member) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply({
                 content: '❌ That user is not a member of this server.',
                 ephemeral: true
             });
@@ -56,7 +56,7 @@ export default {
         );
 
         if (!saved) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply({
                 content: '❌ Failed to remove the bank protection. Please try again.',
                 ephemeral: true
             });
@@ -67,7 +67,7 @@ export default {
             ? '🛡️ Bank protection has been removed.'
             : 'ℹ️ This user did not have active bank protection.';
 
-        return interaction.reply({
+        return InteractionHelper.safeEditReply({
             content: `✅ **${targetUser.tag}** — ${status}`,
             ephemeral: true
         });
