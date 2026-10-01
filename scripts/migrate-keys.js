@@ -3,8 +3,8 @@
  * Manually migrate legacy database keys to canonical form.
  *
  * NOTE: This also runs automatically on bot startup (see runStartupKeyMigration
- * in src/utils/postgresDatabase.js), which is the recommended path for hosts
- * like Railway where one-off scripts are inconvenient. Use this script only for
+ * in src/utils/postgresDatabase.js), which is the recommended path for managed
+ * hosts where one-off scripts are inconvenient. Use this script only for
  * a dry-run preview or to force a re-run.
  *
  * Usage:
