@@ -84,8 +84,11 @@ export default {
     category: 'Economy',
 
     async execute(interaction) {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply(interaction, {
                 content: '❌ You need the **Manage Server** permission to use this command.',
                 ephemeral: true,
             });
@@ -94,7 +97,7 @@ export default {
         const channel = await interaction.guild.channels.fetch(EARN_CHANNEL_ID).catch(() => null);
 
         if (!channel?.isTextBased()) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply(interaction, {
                 content: '❌ The configured How to Earn channel could not be found.',
                 ephemeral: true,
             });
@@ -106,7 +109,7 @@ export default {
         await channel.send({ files: [banner] });
         await channel.send({ embeds: [embed] });
 
-        return interaction.reply({
+        return InteractionHelper.safeEditReply(interaction, {
             content: `✅ How to Earn guide posted in <#${EARN_CHANNEL_ID}>.`,
             ephemeral: true,
         });
