@@ -94,9 +94,7 @@ export default {
       .setFooter({ text: 'Niko' });
 
     await channel.send({
-      content: '@everyone',
       embeds: [embed],
-      allowedMentions: { parse: ['everyone'] },
     });
 
     await InteractionHelper.safeReply(interaction, {
