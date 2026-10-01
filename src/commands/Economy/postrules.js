@@ -12,7 +12,7 @@ export default {
         .setDescription('Post the server rules in the Rules channel.'),
 
     async execute(interaction) {
-        const deferred = await InteractionHelper.safeDefer(interaction);
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
         // Server owner only
@@ -34,7 +34,7 @@ export default {
             );
 
         if (!channel) {
-            await interaction.reply({
+            await InteractionHelper.safeEditReply({
                 content: '❌ Rules channel was not found.',
                 flags: MessageFlags.Ephemeral
             });
@@ -121,7 +121,7 @@ and most importantly...
                 content: rulesMessage
             });
 
-            await interaction.reply({
+            await InteractionHelper.safeEditReply({
                 content:
                     `✅ Rules successfully posted in <#${RULES_CHANNEL_ID}>.`,
                 flags: MessageFlags.Ephemeral
@@ -133,7 +133,7 @@ and most importantly...
                 error
             );
 
-            await interaction.reply({
+            await InteractionHelper.safeEditReply({
                 content:
                     '❌ I could not post the rules. Check that I have permission to send messages in the Rules channel.',
                 flags: MessageFlags.Ephemeral
