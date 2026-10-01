@@ -44,9 +44,7 @@ function getWebhookBaseUrl() {
     const configuredUrl =
         process.env.YOUTUBE_WEBHOOK_URL ||
         process.env.PUBLIC_URL ||
-        (process.env.RAILWAY_PUBLIC_DOMAIN
-            ? 'https://' + process.env.RAILWAY_PUBLIC_DOMAIN
-            : '');
+        '';
 
     if (!configuredUrl) return null;
 
@@ -499,11 +497,32 @@ export async function checkYouTubeFeed(bot) {
     try {
         await loadState(bot);
 
-        const [videos, shorts] =
-            await Promise.all([
-                fetchYouTubeFeed(YOUTUBE_FEED_URL),
-                fetchYouTubeFeed(YOUTUBE_SHORTS_FEED_URL)
-            ]);
+        const feedResults = await Promise.allSettled([
+            fetchYouTubeFeed(YOUTUBE_FEED_URL),
+            fetchYouTubeFeed(YOUTUBE_SHORTS_FEED_URL)
+        ]);
+
+        const videos = feedResults[0].status === 'fulfilled'
+            ? feedResults[0].value
+            : [];
+
+        const shorts = feedResults[1].status === 'fulfilled'
+            ? feedResults[1].value
+            : [];
+
+        for (const [index, result] of feedResults.entries()) {
+            if (result.status === 'rejected') {
+                const feedName = index === 0 ? 'video' : 'shorts';
+                logger.warn(
+                    `[YouTube] RSS ${feedName} feed check failed: ` +
+                    (result.reason?.message || result.reason || 'Unknown error')
+                );
+            }
+        }
+
+        if (feedResults.every(result => result.status === 'rejected')) {
+            return false;
+        }
 
         const videoResult =
             await processFeed(
