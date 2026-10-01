@@ -23,6 +23,9 @@ export default {
 
     async execute(interaction, config, client) {
 
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         const target = interaction.options.getUser('user') || interaction.user;
         const userData = await getEconomyData(client, interaction.guildId, target.id);
         const owned = getOwnedCharacters(userData);
@@ -37,7 +40,7 @@ export default {
             .setDescription(`**${count}/${Object.keys(CHARACTER_CATALOG).length} characters owned**`)
             .setImage('attachment://character-flex.png');
 
-        return interaction.reply({
+        return InteractionHelper.safeEditReply(interaction, {
             embeds: [embed],
             files: [attachment]
         });
