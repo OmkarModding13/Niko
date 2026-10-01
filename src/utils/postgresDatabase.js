@@ -274,12 +274,21 @@ class PostgreSQLDatabase {
     }
 
     async createTables() {
+        const failures = [];
+
         for (const table of tableStatements) {
             try {
                 await this.pool.query(table);
             } catch (error) {
+                failures.push(error);
                 logger.error('Error creating table:', error);
             }
+        }
+
+        if (failures.length > 0) {
+            throw new Error(
+                `Database schema initialization failed: ${failures.length} table statement(s) could not be applied.`
+            );
         }
         
         logger.info('Database tables created/verified');
