@@ -38,10 +38,24 @@ class DatabaseWrapper {
                 schemaError.code = 'SCHEMA_VERSION_MISMATCH';
                 throw schemaError;
             }
+
+            if (process.env.NODE_ENV === 'production') {
+                const failureMessage =
+                    pgFailure?.message ||
+                    'PostgreSQL could not be initialized.';
+                const productionError = new Error(
+                    `PostgreSQL is required in production: ${failureMessage}`,
+                );
+                productionError.code = pgFailure?.reason || 'POSTGRES_UNAVAILABLE';
+                throw productionError;
+            }
         } catch (error) {
             logger.warn('PostgreSQL connection failed:', error.message);
 
-            if (error.code === 'SCHEMA_VERSION_MISMATCH') {
+            if (
+                error.code === 'SCHEMA_VERSION_MISMATCH' ||
+                process.env.NODE_ENV === 'production'
+            ) {
                 throw error;
             }
         }
@@ -155,7 +169,10 @@ export async function initializeDatabase() {
     } catch (error) {
         logger.error('❌ Database Initialization Error:', error);
 
-        if (error.code === 'SCHEMA_VERSION_MISMATCH') {
+        if (
+            error.code === 'SCHEMA_VERSION_MISMATCH' ||
+            process.env.NODE_ENV === 'production'
+        ) {
             throw error;
         }
 
