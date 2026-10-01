@@ -10,7 +10,6 @@ import {
 
 import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
-import { handleMusicVoiceState } from '../services/music/musicVoiceState.js';
 
 import {
     getLevelingConfig
@@ -132,23 +131,6 @@ export default {
                 !config.enabled ||
                 config.triggerChannels.length === 0
             ) {
-                /*
-                 * Music still needs to receive
-                 * voice state changes.
-                 */
-                if (client.config?.features?.music) {
-                    handleMusicVoiceState(
-                        client,
-                        oldState,
-                        newState
-                    ).catch(error => {
-                        logger.error(
-                            'Music voice state handler error:',
-                            error
-                        );
-                    });
-                }
-
                 return;
             }
 
@@ -206,24 +188,7 @@ export default {
             );
         }
 
-        /*
-         * Music handler should always receive
-         * the voice state update.
-         */
-        if (
-            client.config?.features?.music
-        ) {
-            handleMusicVoiceState(
-                client,
-                oldState,
-                newState
-            ).catch(error => {
-                logger.error(
-                    'Music voice state handler error:',
-                    error
-                );
-            });
-        }
+
     }
 };
 
