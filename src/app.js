@@ -43,8 +43,6 @@ import {
     ErrorCodes
 } from './utils/errorHandler.js';
 
-import { initializeMusic } from './services/music/riffySetup.js';
-import { shutdownMusic } from './services/music/playerHandler.js';
 
 import pkg from '../package.json' with { type: 'json' };
 
@@ -201,9 +199,6 @@ class NikoBot extends Client {
             startupLog(
                 'Handlers loaded'
             );
-
-
-            initializeMusic(this);
 
 
             startupLog(
@@ -1228,19 +1223,7 @@ class NikoBot extends Client {
             );
 
 
-            logger.info(
-                'Stopping music players...'
-            );
 
-
-            await shutdownMusic(
-                this
-            );
-
-
-            logger.info(
-                '✅ Music players stopped'
-            );
 
 
             if (
