@@ -7,7 +7,7 @@ import { isBotOwner } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 
-const CHANNEL_ID = '1536029867143856302';
+const CHANNEL_ID = '1550119194811572244';
 
 const ANNOUNCEMENT = {
   title: '📢 Niko — Economy Update is Live!',
