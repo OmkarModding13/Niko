@@ -241,42 +241,6 @@ async function handlePrefixCommand(
     } = parsed;
 
 
-    /*
-     * ==================================================
-     * MUSIC PREFIX SHORTCUTS
-     * ==================================================
-     */
-
-    const musicPrefixShortcut =
-      commandName.toLowerCase();
-
-
-    const MUSIC_PREFIX_SHORTCUTS =
-      new Set([
-        'leave',
-        'pause',
-        'resume',
-        'skip',
-        'stop',
-        'volume'
-      ]);
-
-
-    if (
-      MUSIC_PREFIX_SHORTCUTS.has(
-        musicPrefixShortcut
-      )
-    ) {
-
-      commandName = 'music';
-
-      args = [
-        musicPrefixShortcut,
-        ...args
-      ];
-    }
-
-
     logger.info(
       `Prefix command detected: ${commandName}, args: ${args.join(', ')}`
     );
