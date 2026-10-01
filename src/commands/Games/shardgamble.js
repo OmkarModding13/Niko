@@ -10,6 +10,7 @@ import {
 import { join } from 'node:path';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { Mutex } from '../../utils/mutex.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getColor } from '../../config/bot.js';
 
 const SPIN_COST = 1000;
@@ -141,6 +142,9 @@ export default {
         .setDescription('Gamble Souls for a chance to find rare Shards.'),
 
     async execute(interaction, config, client) {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         const userId = interaction.user.id;
         const guildId = interaction.guildId;
         const userData = await getEconomyData(client, guildId, userId);
@@ -148,7 +152,7 @@ export default {
         const assetPath = join(process.cwd(), 'src', 'assets', 'shardgamble.png');
         const banner = new AttachmentBuilder(assetPath, { name: 'shardgamble.png' });
 
-        await interaction.reply({
+        await InteractionHelper.safeEditReply(interaction, {
             files: [banner],
             embeds: [createGameEmbed(userData)],
             components: [createButtons()]
