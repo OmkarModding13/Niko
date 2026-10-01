@@ -477,7 +477,6 @@ export const botConfig = {
     utility: true,
     community: true,
     fun: true,
-    music: true,
   },
 };
 
@@ -543,7 +542,6 @@ const COMMAND_CATEGORY_FEATURE_MAP = {
   leveling: "leveling",
   logging: "logging",
   moderation: "moderation",
-  music: "music",
   reaction_roles: "reactionRoles",
   search: "search",
   serverstats: "counter",
