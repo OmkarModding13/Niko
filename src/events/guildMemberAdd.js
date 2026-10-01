@@ -229,7 +229,7 @@ function buildWelcomeMessage(guild, user, channels = {}) {
         `🎭 ${rolesMention}`,
         '',
         '୨୧━━━━━━━━━━━━━━━━━━୨୧',
-    ].join('\\n');
+    ].join('\n');
 }
 
 async function handleVerification(member, guild, verificationConfig, client) {
