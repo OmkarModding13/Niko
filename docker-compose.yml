@@ -37,19 +37,6 @@ services:
     networks:
       - niko-network
 
-  lavalink:
-    profiles:
-      - local-lavalink
-    image: ghcr.io/lavalink-devs/lavalink:4
-    container_name: niko-bot-lavalink
-    restart: unless-stopped
-    environment:
-      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
-    volumes:
-      - ./lavalink/application.yml:/opt/Lavalink/application.yml
-    networks:
-      - niko-network
-
   db:
     image: postgres:15-alpine
     container_name: niko-bot-db
