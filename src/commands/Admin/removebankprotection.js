@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { isBotOwner } from '../../config/bot.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -18,12 +19,15 @@ export default {
     category: 'Admin',
 
     async execute(interaction, config, client) {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         const isServerOwner = interaction.guild?.ownerId === interaction.user.id;
         const isAdministrator = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
         const isOwner = isBotOwner(interaction.user.id) || isServerOwner;
 
         if (!isOwner && !isAdministrator) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply(interaction, {
                 content: '❌ You need **Administrator** permission to use this command.',
                 ephemeral: true
             });
