@@ -2,6 +2,7 @@ import {
     SlashCommandBuilder,
     MessageFlags
 } from 'discord.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const RULES_CHANNEL_ID = '1530876980873007174';
 
@@ -11,12 +12,15 @@ export default {
         .setDescription('Post the server rules in the Rules channel.'),
 
     async execute(interaction) {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         // Server owner only
         if (
             !interaction.guild ||
             interaction.guild.ownerId !== interaction.user.id
         ) {
-            await interaction.reply({
+            await InteractionHelper.safeEditReply(interaction, {
                 content: '❌ Only the server owner can use this command.',
                 flags: MessageFlags.Ephemeral
             });
