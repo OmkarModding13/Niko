@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const NIKO_NOTIFICATIONS_CHANNEL_ID = '1550119194811572244';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
@@ -45,11 +46,14 @@ export default {
     category: 'Admin',
 
     async execute(interaction) {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
         const isServerOwner = interaction.guild?.ownerId === interaction.user.id;
         const isAdministrator = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 
         if (!isServerOwner && !isAdministrator) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply(interaction, {
                 content: '❌ You need **Administrator** permission to use this command.',
                 ephemeral: true,
             });
