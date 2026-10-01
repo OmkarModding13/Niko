@@ -242,9 +242,9 @@ Notes:
    ```
 
 > **Note on database migrations:** Schema tables and legacy key migrations run
-> **automatically on startup**, so` managed hosts like **Railway** need no manual
-> migration step — just deploy/restart. To disable auto-migration set
-> `AUTO_MIGRATE=false`. You can still run a manual key migration locally with
+> **automatically on startup**, so managed hosts need no manual migration step —
+> just deploy/restart. To disable auto-migration set `AUTO_MIGRATE=false`. You can
+> still run a manual key migration locally with
 > `node scripts/migrate-keys.js --dry-run` (preview) or `node scripts/migrate-keys.js`.
 <a name="bot-intents"></a>
 
