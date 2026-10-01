@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import path from 'node:path';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { fileURLToPath } from 'node:url';
@@ -43,7 +43,7 @@ export default {
     category: 'Leveling',
 
     async execute(interaction) {
-        const deferred = await InteractionHelper.safeDefer(interaction, { flags: 64 });
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
