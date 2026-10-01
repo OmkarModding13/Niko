@@ -46,7 +46,7 @@ export default {
     category: 'Admin',
 
     async execute(interaction) {
-        const deferred = await InteractionHelper.safeDefer(interaction);
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
         const isServerOwner = interaction.guild?.ownerId === interaction.user.id;
@@ -64,7 +64,7 @@ export default {
             .catch(() => null);
 
         if (!channel?.isTextBased()) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply({
                 content: '❌ The Niko notification channel could not be found.',
                 ephemeral: true,
             });
@@ -72,7 +72,7 @@ export default {
 
         const botPermissions = channel.permissionsFor(interaction.guild.members.me);
         if (!botPermissions?.has(PermissionFlagsBits.SendMessages)) {
-            return interaction.reply({
+            return InteractionHelper.safeEditReply({
                 content: '❌ I do not have permission to send messages in the Niko notification channel.',
                 ephemeral: true,
             });
@@ -92,7 +92,7 @@ export default {
             },
         });
 
-        return interaction.reply({
+        return InteractionHelper.safeEditReply({
             content: '✅ Niko update announcement posted in <#' + NIKO_NOTIFICATIONS_CHANNEL_ID + '>.' + '\n[Jump to announcement](' + message.url + ')',
             ephemeral: true,
         });
