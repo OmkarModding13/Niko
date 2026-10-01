@@ -1,3 +1,4 @@
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, EmbedBuilder } from 'discord.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,7 +85,7 @@ export default {
     category: 'Economy',
 
     async execute(interaction) {
-        const deferred = await InteractionHelper.safeDefer(interaction);
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
