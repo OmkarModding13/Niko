@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { Mutex } from '../../utils/mutex.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 import {
     GACHA_REWARD_WEIGHTS,
     FOUR_STAR_CHARACTERS,
@@ -302,9 +303,16 @@ export default {
     category: 'Games',
 
     async execute(interaction, config, client) {
+        // Defer immediately because activity/database checks can happen before command execution.
+        // This prevents the initial gacha interaction from expiring before the menu is sent.
+        const deferred = await InteractionHelper.safeDefer(interaction, {});
+        if (!deferred) {
+            return;
+        }
+
         const banner = new AttachmentBuilder(GACHA_BANNER, { name: 'Spin and Win.png' });
 
-        await interaction.reply({
+        await InteractionHelper.safeEditReply(interaction, {
             content: `${SHARD_EMOJI} **SPIN AND WIN**\nSpend Shards to summon characters and rare rewards!`,
             files: [banner],
             components: [createGachaButtons(interaction.user.id)]
