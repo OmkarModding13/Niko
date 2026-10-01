@@ -199,7 +199,13 @@ export default {
                 const channelLabel =
                   requiredChannelId === GAME_SHOP_CHANNEL_ID
                     ? 'Game & Shop'
-                    : 'Inventory';
+                    : requiredChannelId === SHOP_CHANNEL_ID
+                      ? 'Shop'
+                      : requiredChannelId === INVENTORY_CHANNEL_ID
+                        ? 'Inventory'
+                        : requiredChannelId === LEVEL_CHECK_CHANNEL_ID
+                          ? 'Level Check'
+                          : 'the required';
 
                 await interaction.reply({
                   content:
