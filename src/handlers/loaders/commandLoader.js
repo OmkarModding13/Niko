@@ -10,6 +10,16 @@ const __dirname = path.dirname(__filename);
 const MAX_COMMANDS = 100;
 const COMMAND_COUNT_WARN_THRESHOLD = 90;
 
+// Commands intentionally removed from the active bot UI/registry.
+const REMOVED_COMMANDS = new Set([
+    'firstmsg',
+    'baseconvert',
+    'hexcolor',
+    'unixtime',
+    'shorten',
+    'generatepassword',
+]);
+
 // Only these commands are visible to normal members.
 // Everything else is registered as Administrator-only (unless the command
 // explicitly declares a stricter permission). Server owners inherit Admin.
@@ -104,6 +114,11 @@ export async function loadCommands(client) {
             const normalizedPath = filePath.replace(/\\/g, '/');
             
             const commandName = path.basename(filePath, '.js');
+
+            if (REMOVED_COMMANDS.has(commandName)) {
+                logger.info(`Skipping removed command: ${commandName}`);
+                continue;
+            }
             const commandDir = path.dirname(filePath);
             const category = path.basename(commandDir);
             
