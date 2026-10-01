@@ -273,15 +273,25 @@ function prepareCommandsForRegistration(commands) {
         logger.warn(`Command count (${commands.length}) is near Discord's ${MAX_COMMANDS} global command limit`);
     }
 
+    // Always reserve a global registration slot for the owner-only
+    // announcement command, even while the project has more than Discord's
+    // 100 global command limit.
+    const priorityCommands = new Set(['postnotify']);
+
+    const prioritizedCommands = [
+        ...commands.filter(command => priorityCommands.has(command.name)),
+        ...commands.filter(command => !priorityCommands.has(command.name)),
+    ];
+
     if (commands.length > MAX_COMMANDS) {
-        const overflow = commands.slice(MAX_COMMANDS).map(command => command.name).join(', ');
+        const overflow = prioritizedCommands.slice(MAX_COMMANDS).map(command => command.name).join(', ');
         logger.warn(
             `Command count (${commands.length}) exceeds Discord's ${MAX_COMMANDS} global command limit. ` +
-            `Only the first ${MAX_COMMANDS} commands will be registered globally. Unregistered commands: ${overflow}`
+            `Only the first ${MAX_COMMANDS} prioritized commands will be registered globally. Unregistered commands: ${overflow}`
         );
     }
 
-    return commands.slice(0, MAX_COMMANDS);
+    return prioritizedCommands.slice(0, MAX_COMMANDS);
 }
 
 async function registerGlobalCommands(client, clientId, commands, totalSubcommands) {
