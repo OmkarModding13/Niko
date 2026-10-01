@@ -3,12 +3,10 @@
  */
 
 export const CATEGORY_ICONS = {
-  Birthday: '🎂',
   Community: '👥',
   Core: 'ℹ️',
   Economy: '💰',
   Fun: '🎮',
-  Giveaway: '🎉',
   JoinToCreate: '🔌',
   Leveling: '📊',
   Logging: '📝',
@@ -16,7 +14,6 @@ export const CATEGORY_ICONS = {
   Reaction_roles: '🎭',
   Search: '🔍',
   ServerStats: '📈',
-  Ticket: '🎫',
   Tools: '🛠️',
   Utility: '🔧',
   Verification: '✅',
