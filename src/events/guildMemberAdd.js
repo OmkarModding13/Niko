@@ -4,7 +4,6 @@ import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'di
 import { getColor, botConfig } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
-import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
@@ -32,27 +31,35 @@ export default {
             // Skip only the welcome message if permissions are missing; the rest of the
             // join pipeline (auto-role, verification, logging, counters) must still run.
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                const formatData = { user, guild, member };
-                const welcomeMessage = formatWelcomeMessage(
-                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
-                    formatData
+                const rulesChannel = findWelcomeChannel(
+                    guild,
+                    ['rule', '𝚛𝚞𝚕𝚎', '𝚛𝚞𝚕𝚎𝚜']
+                );
+                const chatChannel = findWelcomeChannel(
+                    guild,
+                    ['chat', '𝚌𝚑𝚊𝚝']
+                );
+                const videoChannel = findWelcomeChannel(
+                    guild,
+                    ['video-notification', 'video notification']
+                );
+                const rolesChannel = findWelcomeChannel(
+                    guild,
+                    ['roles-info', 'roles info']
                 );
 
-                const messageContent = welcomeConfig.welcomePing ? user.toString() : null;
-
-                const embedTitle = formatWelcomeMessage(
-                    welcomeConfig.welcomeEmbed?.title || '🎉 Welcome!',
-                    formatData
-                );
-                const embedFooter = welcomeConfig.welcomeEmbed?.footer
-                    ? formatWelcomeMessage(welcomeConfig.welcomeEmbed.footer, formatData)
-                    : `Welcome to ${guild.name}!`;
+                const welcomeMessage = buildWelcomeMessage(guild, user, {
+                    rulesChannel,
+                    chatChannel,
+                    videoChannel,
+                    rolesChannel,
+                });
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
                 if (!canEmbed) {
                     await channel.send({
-                        content: messageContent || welcomeMessage
+                        content: welcomeMessage
                     });
                 } else {
                     let welcomeAttachment = null;
@@ -164,6 +171,66 @@ await channel.send({
     }
   }
 };
+
+function normalizeChannelName(name = '') {
+    return String(name)
+        .normalize('NFKD')
+        .toLowerCase()
+        .replace(/[\\u0300-\\u036f]/g, '');
+}
+
+function findWelcomeChannel(guild, patterns = []) {
+    const normalizedPatterns = patterns
+        .map(pattern => normalizeChannelName(pattern))
+        .filter(Boolean);
+
+    return guild.channels.cache.find(channel => {
+        if (!channel?.isTextBased?.()) {
+            return false;
+        }
+
+        const name = normalizeChannelName(channel.name);
+        return normalizedPatterns.some(pattern => name.includes(pattern));
+    }) || null;
+}
+
+function buildWelcomeMessage(guild, user, channels = {}) {
+    const rulesMention = channels.rulesChannel
+        ? `<#${channels.rulesChannel.id}>`
+        : '🎄〣𝚁𝚞𝚕𝚎§';
+
+    const chatMention = channels.chatChannel
+        ? `<#${channels.chatChannel.id}>`
+        : '☃『𝙲𝚑𝚊𝚝』';
+
+    const videoMention = channels.videoChannel
+        ? `<#${channels.videoChannel.id}>`
+        : '🎄〣𝚅𝚒𝚍𝚎𝚘-𝙽𝚘𝚝𝚒𝚏𝚒𝚌𝚊𝚝𝚒𝚘𝚗…';
+
+    const rolesMention = channels.rolesChannel
+        ? `<#${channels.rolesChannel.id}>`
+        : '𒀽〢𝚁𝚘𝚕𝚎𝚜-𝚒𝚗𝚏𝚘';
+
+    return [
+        `Welcome ${user} to ${guild.name}! 🎉`,
+        '',
+        '୨୧━━━━━━━━━━━━━━━━━━୨୧',
+        '',
+        '📜 Read the Rules to avoid Punishment',
+        rulesMention,
+        '',
+        '💬 You can chat here and have fun',
+        chatMention,
+        '',
+        '୨୧━━━━━━━━━━━━━━━━━━୨୧',
+        '',
+        '🔔 Also check out other channels',
+        `🎥 ${videoMention}`,
+        `🎭 ${rolesMention}`,
+        '',
+        '୨୧━━━━━━━━━━━━━━━━━━୨୧',
+    ].join('\\n');
+}
 
 async function handleVerification(member, guild, verificationConfig, client) {
     const { autoVerifyOnJoin } = await import('../services/verificationService.js');
