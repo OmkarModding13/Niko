@@ -1,3 +1,4 @@
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 import {
     SlashCommandBuilder,
     AttachmentBuilder,
