@@ -13,6 +13,8 @@ const ANNOUNCEMENT = {
   title: '📢 Niko — Economy Update is Live!',
   description: [
     '',
+    'Hey @everyone! 👋',
+    '',
     'Niko has received a **major system update**, bringing the bot out of its testing phase and officially starting the **Niko Economy**. 💙',
     '',
     '🏆 **🆕 ECONOMY SYSTEM — OFFICIALLY LIVE**',
