@@ -138,6 +138,18 @@ export default {
           ResponseCoordinator.attach(interaction);
 
           if (interaction.isChatInputCommand()) {
+            // Acknowledge slash commands before any database/config/permission
+            // work so slow I/O cannot make Discord report "The application did not respond".
+            const initialDefer = await InteractionHelper.safeDefer(interaction);
+            if (!initialDefer) {
+              logger.warn('Could not acknowledge slash command interaction early', {
+                commandName: interaction.commandName,
+                guildId: interaction.guildId,
+                userId: interaction.user?.id,
+              });
+              return;
+            }
+
             try {
               logger.info(
                 `Command executed: /${interaction.commandName} by ${interaction.user.tag}`,
@@ -207,10 +219,9 @@ export default {
                           ? 'Level Check'
                           : 'the required';
 
-                await interaction.reply({
+                await InteractionHelper.safeEditReply(interaction, {
                   content:
                     `❌ Please use /${interaction.commandName} in the **${channelLabel}** channel: <#${requiredChannelId}>.`,
-                  flags: MessageFlags.Ephemeral
                 });
 
                 return;
