@@ -276,7 +276,7 @@ function prepareCommandsForRegistration(commands) {
     // Always reserve a global registration slot for the owner-only
     // announcement command, even while the project has more than Discord's
     // 100 global command limit.
-    const priorityCommands = new Set(['postnotify']);
+    const priorityCommands = new Set(['postnotify', 'greet', 'welcome']);
 
     const prioritizedCommands = [
         ...commands.filter(command => priorityCommands.has(command.name)),
