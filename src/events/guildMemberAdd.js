@@ -1,7 +1,7 @@
 // Dynamic welcome banner enabled
 // Railway auto deploy test
-import { Events, EmbedBuilder, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
-import { getColor, botConfig } from '../config/bot.js';
+import { Events, PermissionFlagsBits, AttachmentBuilder } from 'discord.js';
+import { getColor } from '../config/bot.js';
 import { getGuildConfig } from '../services/config/guildConfig.js';
 import { getWelcomeConfig } from '../utils/database.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
