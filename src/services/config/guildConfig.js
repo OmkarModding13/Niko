@@ -7,9 +7,48 @@ import { createError, ErrorTypes, wrapServiceBoundary } from '../../utils/errorH
 
 export { GUILD_CONFIG_DEFAULTS };
 
+const GUILD_CONFIG_CACHE_TTL_MS = 5000;
+const guildConfigCache = new Map();
+const guildConfigReadsInFlight = new Map();
+
+function cloneConfig(config) {
+    try {
+        return structuredClone(config);
+    } catch {
+        return JSON.parse(JSON.stringify(config));
+    }
+}
+
+function invalidateGuildConfigCache(guildId) {
+    guildConfigCache.delete(guildId);
+}
+
 export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(client, guildId, context = {}) {
-    const config = await readGuildConfig(client, guildId, context);
-    return normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS);
+    const cached = guildConfigCache.get(guildId);
+    if (cached && cached.expiresAt > Date.now()) {
+        return cloneConfig(cached.config);
+    }
+
+    const inFlight = guildConfigReadsInFlight.get(guildId);
+    if (inFlight) {
+        return cloneConfig(await inFlight);
+    }
+
+    const readPromise = readGuildConfig(client, guildId, context)
+        .then((config) => normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS))
+        .then((config) => {
+            guildConfigCache.set(guildId, {
+                config: cloneConfig(config),
+                expiresAt: Date.now() + GUILD_CONFIG_CACHE_TTL_MS,
+            });
+            return config;
+        })
+        .finally(() => {
+            guildConfigReadsInFlight.delete(guildId);
+        });
+
+    guildConfigReadsInFlight.set(guildId, readPromise);
+    return cloneConfig(await readPromise);
 }, {
     service: 'guildConfigService',
     operation: 'getGuildConfig',
@@ -19,7 +58,9 @@ export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(
 
 export const setGuildConfig = wrapServiceBoundary(async function setGuildConfig(client, guildId, config, context = {}) {
     const normalized = normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS);
-    return await writeGuildConfig(client, guildId, normalized, context);
+    const saved = await writeGuildConfig(client, guildId, normalized, context);
+    invalidateGuildConfigCache(guildId);
+    return saved;
 }, {
     service: 'guildConfigService',
     operation: 'setGuildConfig',
@@ -31,7 +72,9 @@ export const updateGuildConfig = wrapServiceBoundary(async function updateGuildC
     const currentConfig = await readGuildConfig(client, guildId, context);
     const merged = { ...currentConfig, ...updates };
     const normalized = normalizeGuildConfig(merged, GUILD_CONFIG_DEFAULTS);
-    return await writeGuildConfig(client, guildId, normalized, context);
+    const saved = await writeGuildConfig(client, guildId, normalized, context);
+    invalidateGuildConfigCache(guildId);
+    return saved;
 }, {
     service: 'guildConfigService',
     operation: 'updateGuildConfig',
@@ -75,7 +118,9 @@ export const patchGuildConfig = wrapServiceBoundary(async function patchGuildCon
     const merged = deepMergeGuildConfig(currentConfig, patch);
     const normalized = normalizeGuildConfig(merged, GUILD_CONFIG_DEFAULTS);
     validateGuildConfigOrThrow(normalized, { guildId, ...context });
-    return await writeGuildConfig(client, guildId, normalized, context);
+    const saved = await writeGuildConfig(client, guildId, normalized, context);
+    invalidateGuildConfigCache(guildId);
+    return saved;
 }, {
     service: 'guildConfigService',
     operation: 'patchGuildConfig',
