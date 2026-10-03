@@ -25,7 +25,7 @@ import {
   enforceAbuseProtection,
   formatCooldownDuration
 } from '../utils/abuseProtection.js';
-import { isCommandEnabled } from '../services/commandAccessService.js';
+import { isCommandEnabledInConfig } from '../services/commandAccessService.js';
 import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
@@ -358,10 +358,10 @@ export default {
               const accessKey =
                 resolveSlashAccessKey(interaction);
 
-              if (!isCommandEnabled(
-                client,
-                interaction.guildId,
-                accessKey
+              if (!isCommandEnabledInConfig(
+                guildConfig,
+                accessKey,
+                command.category
               )) {
                 throw createError(
                   `Command disabled: ${accessKey}`,
@@ -381,18 +381,6 @@ export default {
                 interaction,
                 command
               );
-
-              // Any successfully accepted slash-command interaction counts as server activity.
-              // This keeps the 7-day inactive reminder based on actual command usage,
-              // not only chat messages or specific economy commands.
-              if (interaction.guildId && interaction.user && !interaction.user.bot) {
-                await markUserActivity(
-                  client,
-                  interaction.guildId,
-                  interaction.user.id,
-                  Date.now()
-                );
-              }
 
               if (command.execute) {
                 const isEconomyCommand =
@@ -414,6 +402,21 @@ export default {
                 } else {
                   await executeCommand();
                 }
+              }
+
+              // Record accepted command activity after the command has finished.
+              // Do not block the user's response on the leveling DB write.
+              if (interaction.guildId && interaction.user && !interaction.user.bot) {
+                setImmediate(() => {
+                  markUserActivity(
+                    client,
+                    interaction.guildId,
+                    interaction.user.id,
+                    Date.now()
+                  ).catch((activityError) => {
+                    logger.warn('[Leveling] Background activity update failed:', activityError.message);
+                  });
+                });
               }
 
               return;
