@@ -108,50 +108,65 @@ export async function loadCommands(client) {
     logger.info(`Found ${commandFiles.length} command files to load`);
     
     const uniqueCommandNames = new Set();
-    
-    for (const filePath of commandFiles) {
+
+    // Module imports are independent, so load them concurrently. We still
+    // process the results in file order to keep duplicate-command resolution
+    // and startup logs deterministic.
+    const loadedModules = await Promise.all(
+        commandFiles.map(async (filePath) => {
+            try {
+                return {
+                    filePath,
+                    commandModule: await import(`file://${filePath}`),
+                };
+            } catch (error) {
+                logger.error(`Error loading command from ${filePath}:`, error);
+                return { filePath, commandModule: null };
+            }
+        })
+    );
+
+    for (const { filePath, commandModule } of loadedModules) {
+        if (!commandModule) continue;
+
         try {
             const normalizedPath = filePath.replace(/\\/g, '/');
-            
             const commandName = path.basename(filePath, '.js');
 
             if (REMOVED_COMMANDS.has(commandName)) {
                 logger.info(`Skipping removed command: ${commandName}`);
                 continue;
             }
+
             const commandDir = path.dirname(filePath);
             const category = path.basename(commandDir);
-            
-            const commandModule = await import(`file://${filePath}`);
             const command = commandModule.default || commandModule;
-            
+
             if (!command.data || !command.execute) {
                 logger.warn(`Command at ${filePath} is missing required "data" or "execute" property.`);
                 continue;
             }
-            
+
             command.category = category;
             command.filePath = normalizedPath;
             applyCommandVisibility(command, category);
-            
+
             const primaryCommandName = command.data.name;
-            
+
             if (!uniqueCommandNames.has(primaryCommandName)) {
                 uniqueCommandNames.add(primaryCommandName);
-                
                 client.commands.set(primaryCommandName, command);
             }
-            
+
             const subcommands = getSubcommandInfo(command.data.toJSON());
-            
+
             logger.info(`Loaded command: ${primaryCommandName} from ${normalizedPath} (category: ${category})`);
-            
+
             if (subcommands.length > 0) {
                 logger.info(`  - Subcommands: ${subcommands.join(', ')}`);
             }
-            
         } catch (error) {
-            logger.error(`Error loading command from ${filePath}:`, error);
+            logger.error(`Error processing command from ${filePath}:`, error);
         }
     }
     
