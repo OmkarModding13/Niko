@@ -34,7 +34,7 @@ export async function checkDailyReminders(client) {
                 // A claim happened after the reminder was scheduled.
                 if (!scheduledAt || readyAt > scheduledAt) {
                     await Mutex.runExclusive(
-                        \`economy-guild:\${guildId}\`,
+                        `economy-guild:${guildId}`,
                         async () => {
                             const userData = await getEconomyData(client, guildId, userId);
                             if (!userData?.reminderEnabled) return;
@@ -60,7 +60,7 @@ export async function checkDailyReminders(client) {
                 // guild lock used by economy commands prevents a stale write
                 // from overwriting a concurrent /daily transaction.
                 await Mutex.runExclusive(
-                    \`economy-guild:\${guildId}\`,
+                    `economy-guild:${guildId}`,
                     async () => {
                         const userData = await getEconomyData(client, guildId, userId);
                         if (!userData?.reminderEnabled) return;
@@ -88,7 +88,7 @@ export async function checkDailyReminders(client) {
                                     title: '🔔 Daily Reward Ready!',
                                     description:
                                         'Your daily reward is ready to claim!\\n\\n' +
-                                        \`Use **/daily** in <#\${COMMAND_CHANNEL_ID}> to claim your Souls.\`,
+                                        `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
                                     color: 0x5865F2
                                 }]
                             });
@@ -104,7 +104,7 @@ export async function checkDailyReminders(client) {
                             );
 
                             logger.info(
-                                \`[DAILY_REMINDER] Sent reminder to \${userId} in guild \${guildId}\`
+                                `[DAILY_REMINDER] Sent reminder to ${userId} in guild ${guildId}`
                             );
                         } catch (error) {
                             const discordCode = error?.code;
@@ -121,7 +121,7 @@ export async function checkDailyReminders(client) {
                                 );
 
                                 logger.warn(
-                                    \`[DAILY_REMINDER] Skipped unreachable user \${userId} in guild \${guildId} (Discord rejected the DM: \${discordCode})\`
+                                    `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (Discord rejected the DM: ${discordCode})`
                                 );
                                 return;
                             }
@@ -133,7 +133,7 @@ export async function checkDailyReminders(client) {
             }
         } catch (error) {
             logger.error(
-                \`[DAILY_REMINDER] Failed for guild \${guildId}:\`,
+                `[DAILY_REMINDER] Failed for guild ${guildId}:`,
                 error
             );
         }
