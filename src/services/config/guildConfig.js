@@ -88,6 +88,15 @@ export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(
     message: 'Failed to fetch guild configuration',
     userMessage: 'Failed to load server configuration. Please try again.',
 });
+export function peekGuildConfig(guildId) {
+    const cached = guildConfigCache.get(guildId);
+    if (!cached || cached.expiresAt <= Date.now()) {
+        return null;
+    }
+
+    return cloneConfig(cached.config);
+}
+
 export const setGuildConfig = wrapServiceBoundary(async function setGuildConfig(client, guildId, config, context = {}) {
     const normalized = normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS);
     const saved = await writeGuildConfig(client, guildId, normalized, context);
