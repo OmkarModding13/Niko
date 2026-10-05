@@ -1,5 +1,6 @@
 import { getEconomyData, setEconomyData } from '../utils/economy.js';
 import { logger } from '../utils/logger.js';
+import { Mutex } from '../utils/mutex.js';
 
 export async function checkColorRoleExpiry(client) {
     if (!client?.db || !client?.guilds) return;
