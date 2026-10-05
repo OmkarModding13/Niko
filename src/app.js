@@ -813,7 +813,7 @@ class NikoBot extends Client {
         // Daily reward reminder check - runs every minute
 
         cron.schedule(
-            '10 * * * * *',
+            '20 * * * * *',
             runSafeTask(
                 'daily_reminder_check',
                 () =>
@@ -827,7 +827,7 @@ class NikoBot extends Client {
         // Voice economy check - runs every minute
 
         cron.schedule(
-            '10 * * * * *',
+            '30 * * * * *',
             runSafeTask(
                 'voice_economy_check',
                 () =>
@@ -851,7 +851,7 @@ class NikoBot extends Client {
         // Temporary color role expiry check - runs every minute
 
         cron.schedule(
-            '10 * * * * *',
+            '40 * * * * *',
             runSafeTask(
                 'color_role_expiry_check',
                 () =>
@@ -865,7 +865,7 @@ class NikoBot extends Client {
         // Push notifications remain the primary path; RSS fallback ensures
         // uploads are still detected if the webhook subscription fails.
         cron.schedule(
-            '10 * * * * *',
+            '50 * * * * *',
             runSafeTask(
                 'youtube_feed_check',
                 () =>
