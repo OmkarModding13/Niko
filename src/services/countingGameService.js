@@ -2,6 +2,18 @@ import { logger } from '../utils/logger.js';
 
 const COUNTING_GAME_KEY_PREFIX = 'countingGame:';
 
+const COUNTING_GAME_CACHE_TTL_MS = 5 * 60 * 1000;
+const countingGameCache = new Map();
+const countingGameReadsInFlight = new Map();
+
+function cloneCountingGame(config) {
+  return {
+    ...config,
+    leaderboard: { ...(config?.leaderboard || {}) },
+  };
+}
+
+
 const COUNTING_SYSTEMS = {
   decimal: {
     label: 'Decimal',
@@ -199,18 +211,54 @@ function getStorageKey(guildId) {
 }
 
 export async function getCountingGameConfig(client, guildId) {
-  try {
-    const rawState = await client.db.get(getStorageKey(guildId));
-    return normalizeCountingGame(rawState);
-  } catch (error) {
-    logger.error('Failed to load counting game config:', { guildId, error });
-    return normalizeCountingGame();
+  const cached = countingGameCache.get(guildId);
+  const now = Date.now();
+
+  if (cached && cached.expiresAt > now) {
+    return cloneCountingGame(cached.config);
   }
+
+  const inFlight = countingGameReadsInFlight.get(guildId);
+  if (inFlight) {
+    return cloneCountingGame(await inFlight);
+  }
+
+  const readPromise = (async () => {
+    try {
+      const rawState = await client.db.get(getStorageKey(guildId));
+      const config = normalizeCountingGame(rawState);
+
+      countingGameCache.set(guildId, {
+        config: cloneCountingGame(config),
+        expiresAt: Date.now() + COUNTING_GAME_CACHE_TTL_MS,
+      });
+
+      return config;
+    } catch (error) {
+      logger.error('Failed to load counting game config:', { guildId, error });
+      return normalizeCountingGame();
+    } finally {
+      countingGameReadsInFlight.delete(guildId);
+    }
+  })();
+
+  countingGameReadsInFlight.set(guildId, readPromise);
+  return cloneCountingGame(await readPromise);
 }
 
 export async function saveCountingGameConfig(client, guildId, state) {
   const normalized = normalizeCountingGame(state);
-  await client.db.set(getStorageKey(guildId), normalized);
+  const saved = await client.db.set(getStorageKey(guildId), normalized);
+
+  if (saved) {
+    countingGameCache.set(guildId, {
+      config: cloneCountingGame(normalized),
+      expiresAt: Date.now() + COUNTING_GAME_CACHE_TTL_MS,
+    });
+  } else {
+    countingGameCache.delete(guildId);
+  }
+
   return normalized;
 }
 
