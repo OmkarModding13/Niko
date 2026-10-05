@@ -705,34 +705,45 @@ class PostgreSQLDatabase {
                     return levelingConfigResult.rows.length > 0 ? levelingConfigResult.rows[0].config : defaultValue;
                 
                 case 'user_level': {
-                    const userLevelResult = await this.pool.query(
-                        `SELECT xp, level, total_xp, last_message, rank FROM ${pgConfig.tables.user_levels} WHERE guild_id = $1 AND user_id = $2`,
-                        [parsedKey.guildId, parsedKey.userId]
-                    );
-                    if (userLevelResult.rows.length === 0) return defaultValue;
-                    // Map snake_case columns to the camelCase shape consumers expect
-                    const levelRow = userLevelResult.rows[0];
-                    return {
-                        xp: Number(levelRow.xp) || 0,
-                        level: Number(levelRow.level) || 0,
-                        totalXp: Number(levelRow.total_xp) || 0,
-                        lastMessage: Number(levelRow.last_message) || 0,
-                        rank: Number(levelRow.rank) || 0,
-                    };
-                }
-                
-                case 'economy': {
-                    const economyResult = await this.pool.query(
-                        `SELECT balance, bank, data FROM ${pgConfig.tables.economy} WHERE guild_id = $1 AND user_id = $2`,
-                        [parsedKey.guildId, parsedKey.userId]
-                    );
-                    if (economyResult.rows.length === 0) return defaultValue;
-                    const row = economyResult.rows[0];
+                    const prerequisiteQueries = [];
 
-                    if (row.data && typeof row.data === 'object' && Object.keys(row.data).length > 0) {
-                        return row.data;
+                    if (!this.knownGuildIds.has(parsedKey.guildId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                \`INSERT INTO \${pgConfig.tables.guilds} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING\`,
+                                [parsedKey.guildId]
+                            ).then(() => this.knownGuildIds.add(parsedKey.guildId))
+                        );
                     }
-                    return { wallet: row.balance ?? 0, bank: row.bank ?? 0 };
+
+                    if (!this.knownUserIds.has(parsedKey.userId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                \`INSERT INTO \${pgConfig.tables.users} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING\`,
+                                [parsedKey.userId]
+                            ).then(() => this.knownUserIds.add(parsedKey.userId))
+                        );
+                    }
+
+                    if (prerequisiteQueries.length > 0) {
+                        await Promise.all(prerequisiteQueries);
+                    }
+
+                    const lastMessageValue = value?.lastMessage ?? value?.last_message;
+                    const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
+
+                    await this.pool.query(
+                        \`INSERT INTO \${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+                         ON CONFLICT (guild_id, user_id) DO UPDATE SET
+                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP\`,
+                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0]
+                    );
+                    return true;
                 }
                 
                 case 'afk_status': {
@@ -896,30 +907,39 @@ class PostgreSQLDatabase {
                     return true;
                 
                 case 'economy': {
-                    // Guild and user rows are independent prerequisites for the
-                    // economy foreign keys, so create them concurrently. This
-                    // removes one sequential DB round-trip from economy writes
-                    // without changing the persistence semantics.
-                    await Promise.all([
-                        this.pool.query(
-                            `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
-                             VALUES ($1, CURRENT_TIMESTAMP)
-                             ON CONFLICT (id) DO NOTHING`,
-                            [parsedKey.guildId]
-                        ),
-                        this.pool.query(
-                            `INSERT INTO ${pgConfig.tables.users} (id, created_at)
-                             VALUES ($1, CURRENT_TIMESTAMP)
-                             ON CONFLICT (id) DO NOTHING`,
-                            [parsedKey.userId]
-                        )
-                    ]);
+                    const prerequisiteQueries = [];
+
+                    if (!this.knownGuildIds.has(parsedKey.guildId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                \`INSERT INTO \${pgConfig.tables.guilds} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING\`,
+                                [parsedKey.guildId]
+                            ).then(() => this.knownGuildIds.add(parsedKey.guildId))
+                        );
+                    }
+
+                    if (!this.knownUserIds.has(parsedKey.userId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                \`INSERT INTO \${pgConfig.tables.users} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING\`,
+                                [parsedKey.userId]
+                            ).then(() => this.knownUserIds.add(parsedKey.userId))
+                        );
+                    }
+
+                    if (prerequisiteQueries.length > 0) {
+                        await Promise.all(prerequisiteQueries);
+                    }
 
                     await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
+                        \`INSERT INTO \${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
                          VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET
-                         balance = $3, bank = $4, data = $5, updated_at = CURRENT_TIMESTAMP`,
+                         balance = $3, bank = $4, data = $5, updated_at = CURRENT_TIMESTAMP\`,
                         [
                             parsedKey.guildId,
                             parsedKey.userId,
