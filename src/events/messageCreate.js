@@ -36,7 +36,8 @@ import {
 } from '../config/commands/prefixRestrictions.js';
 
 import {
-  getGuildConfig
+  getGuildConfig,
+  peekGuildConfig
 } from '../services/config/guildConfig.js';
 
 import {
@@ -176,14 +177,11 @@ export default {
         client
       );
 
-
       /*
-       * ==================================================
-       * CHAT ACTIVITY LEVELING
-       * ==================================================
+       * Leveling writes are independent of prefix-command execution.
+       * Keep them off the message event's critical path.
        */
-
-      await handleLeveling(
+      void handleLeveling(
         message,
         client
       );
@@ -211,24 +209,41 @@ async function handlePrefixCommand(
 ) {
   try {
 
-    const guildConfig =
-      await getGuildConfig(
-        client,
+    // Most messages are not prefix commands. Use the warm config cache
+    // first and only hit PostgreSQL when we actually need to resolve a
+    // custom prefix after a cold start.
+    let guildConfig =
+      peekGuildConfig(
         message.guild.id
       );
 
-
-    const prefix =
+    let prefix =
       guildConfig?.prefix ||
       getCommandPrefix();
 
-
-    const parsed =
+    let parsed =
       parsePrefixCommand(
         message.content,
         prefix
       );
 
+    if (!parsed && !guildConfig) {
+      guildConfig =
+        await getGuildConfig(
+          client,
+          message.guild.id
+        );
+
+      prefix =
+        guildConfig?.prefix ||
+        getCommandPrefix();
+
+      parsed =
+        parsePrefixCommand(
+          message.content,
+          prefix
+        );
+    }
 
     if (!parsed) {
       return;
@@ -772,13 +787,11 @@ async function handleLeveling(
     ) {
 
       const member =
+        message.member ||
+        message.guild.members.cache.get(message.author.id) ||
         await message.guild.members
-          .fetch(
-            message.author.id
-          )
-          .catch(
-            () => null
-          );
+          .fetch(message.author.id)
+          .catch(() => null);
 
 
       if (
