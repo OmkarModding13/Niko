@@ -787,7 +787,7 @@ class NikoBot extends Client {
     setupCronJobs() {
 
         cron.schedule(
-            ''0 0 6 * * *'* * *',
+            '0 0 6 * * *',
             runSafeTask(
                 'birthday_check',
                 () =>
@@ -799,7 +799,7 @@ class NikoBot extends Client {
 
 
         cron.schedule(
-            ''1'0 0 * * * *' *'',
+            '10 * * * * *',
             runSafeTask(
                 'giveaway_check',
                 () =>
@@ -813,7 +813,7 @@ class NikoBot extends Client {
         // Daily reward reminder check - runs every minute
 
         cron.schedule(
-            ''1'0 0 * * * *' *'',
+            '10 * * * * *',
             runSafeTask(
                 'daily_reminder_check',
                 () =>
@@ -827,7 +827,7 @@ class NikoBot extends Client {
         // Voice economy check - runs every minute
 
         cron.schedule(
-            ''1'0 0 * * * *' *'',
+            '10 * * * * *',
             runSafeTask(
                 'voice_economy_check',
                 () =>
@@ -839,7 +839,7 @@ class NikoBot extends Client {
 
 
         cron.schedule(
-            ''0 */1'0 5 * * * *''',
+            '0 */15 * * * *',
             runSafeTask(
                 'counter_update',
                 () =>
@@ -851,7 +851,7 @@ class NikoBot extends Client {
         // Temporary color role expiry check - runs every minute
 
         cron.schedule(
-            ''1'0 0 * * * *' *'',
+            '10 * * * * *',
             runSafeTask(
                 'color_role_expiry_check',
                 () =>
@@ -865,7 +865,7 @@ class NikoBot extends Client {
         // Push notifications remain the primary path; RSS fallback ensures
         // uploads are still detected if the webhook subscription fails.
         cron.schedule(
-            ''1'0 0 * * * *' *'',
+            '10 * * * * *',
             runSafeTask(
                 'youtube_feed_check',
                 () =>
@@ -876,7 +876,7 @@ class NikoBot extends Client {
         // YouTube WebSub subscriptions have a lease. Renew periodically so
         // a long-running Niko instance keeps push notifications active.
         cron.schedule(
-            ''0 0 */12 * * *'',
+            '0 0 */12 * * *',
             runSafeTask(
                 'youtube_subscription_renewal',
                 () =>
@@ -886,7 +886,7 @@ class NikoBot extends Client {
 
         // Leaderboard channel update - runs every hour.
         cron.schedule(
-            ''0 0 * * * *'',
+            '0 0 * * * *',
             runSafeTask(
                 'leaderboard_update',
                 () =>
@@ -902,7 +902,7 @@ class NikoBot extends Client {
         // user's weekly/monthly period has actually expired.
 
         cron.schedule(
-            ''0 5 * * * *'',
+            '0 5 * * * *',
             runSafeTask(
                 'leveling_period_check',
                 () =>
