@@ -73,6 +73,8 @@ import {
   recordCorrectCount
 } from '../services/countingGameService.js';
 
+import { Mutex } from '../utils/mutex.js';
+
 
 /*
  * ==================================================
@@ -156,9 +158,9 @@ export default {
        */
 
       const countingProcessed =
-        await handleCountingGame(
-          message,
-          client
+        await Mutex.runExclusive(
+          `counting-guild:${message.guild.id}`,
+          () => handleCountingGame(message, client)
         );
 
       if (countingProcessed) {
