@@ -101,6 +101,14 @@ class DatabaseWrapper {
         return this.db.list(prefix);
     }
 
+    async listEconomyEntries(guildId) {
+        if (typeof this.db.listEconomyEntries === 'function') {
+            return this.db.listEconomyEntries(guildId);
+        }
+
+        return [];
+    }
+
     async exists(key) {
         if (this.db.exists) {
             return this.db.exists(key);
