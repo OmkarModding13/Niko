@@ -1,0 +1,23 @@
+name: Deploy Niko to PC
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Deploy latest main to D:\\Niko
+        shell: powershell
+        run: |
+          Set-Location 'D:\\Niko'
+          git fetch origin main
+          git reset --hard origin/main
+          npm ci
+          $env:PM2_HOME = 'C:\\ProgramData\\pm2\\home'
+          pm2 restart niko --update-env
