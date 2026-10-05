@@ -107,6 +107,7 @@ export const tableStatements = [
         total_xp BIGINT DEFAULT 0,
         last_message TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         rank INTEGER DEFAULT 0,
+        data JSONB DEFAULT '{}',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (guild_id, user_id),
