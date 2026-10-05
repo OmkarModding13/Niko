@@ -113,6 +113,24 @@ class PostgreSQLDatabase {
                     } catch (error) {
                         logger.warn('Could not add counters column to guilds table:', error.message);
                     }
+
+                    try {
+                        const levelDataColumnCheck = await this.pool.query(`
+                            SELECT column_name
+                            FROM information_schema.columns
+                            WHERE table_name = 'user_levels' AND column_name = 'data'
+                        `);
+
+                        if (levelDataColumnCheck.rows.length === 0) {
+                            await this.pool.query(`
+                                ALTER TABLE ${pgConfig.tables.user_levels}
+                                ADD COLUMN data JSONB DEFAULT '{}'
+                            `);
+                            logger.info('Added data column to user_levels table');
+                        }
+                    } catch (error) {
+                        logger.warn('Could not add data column to user_levels table:', error.message);
+                    }
                 }
 
                 if (pgConfig.migration.enabled) {
@@ -705,48 +723,30 @@ class PostgreSQLDatabase {
                     return levelingConfigResult.rows.length > 0 ? levelingConfigResult.rows[0].config : defaultValue;
                 
                 case 'user_level': {
-                    const prerequisiteQueries = [];
-
-                    if (!this.knownGuildIds.has(parsedKey.guildId)) {
-                        prerequisiteQueries.push(
-                            this.pool.query(
-                                `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
-                                 VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING`,
-                                [parsedKey.guildId]
-                            ).then(() => this.knownGuildIds.add(parsedKey.guildId))
-                        );
-                    }
-
-                    if (!this.knownUserIds.has(parsedKey.userId)) {
-                        prerequisiteQueries.push(
-                            this.pool.query(
-                                `INSERT INTO ${pgConfig.tables.users} (id, created_at)
-                                 VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING`,
-                                [parsedKey.userId]
-                            ).then(() => this.knownUserIds.add(parsedKey.userId))
-                        );
-                    }
-
-                    if (prerequisiteQueries.length > 0) {
-                        await Promise.all(prerequisiteQueries);
-                    }
-
-                    const lastMessageValue = value?.lastMessage ?? value?.last_message;
-                    const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
-
-                    await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-                         ON CONFLICT (guild_id, user_id) DO UPDATE SET
-                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP`,
-                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0]
+                    const userLevelResult = await this.pool.query(
+                        `SELECT xp, level, total_xp, last_message, rank, data FROM ${pgConfig.tables.user_levels} WHERE guild_id = $1 AND user_id = $2`,
+                        [parsedKey.guildId, parsedKey.userId]
                     );
-                    return true;
+                    if (userLevelResult.rows.length === 0) return defaultValue;
+
+                    const levelRow = userLevelResult.rows[0];
+                    const persistedData =
+                        levelRow.data &&
+                        typeof levelRow.data === 'object' &&
+                        Object.keys(levelRow.data).length > 0
+                            ? levelRow.data
+                            : {};
+
+                    return {
+                        xp: Number(levelRow.xp) || 0,
+                        level: Number(levelRow.level) || 0,
+                        totalXp: Number(levelRow.total_xp) || 0,
+                        lastMessage: Number(levelRow.last_message) || 0,
+                        rank: Number(levelRow.rank) || 0,
+                        ...persistedData,
+                    };
                 }
-                
-                case 'afk_status': {
+                                case 'afk_status': {
                     const afkResult = await this.pool.query(
                         `SELECT reason, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
                         [parsedKey.guildId, parsedKey.userId],
@@ -879,34 +879,7 @@ class PostgreSQLDatabase {
                     );
                     return true;
                 
-                case 'user_level':
-                    await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.guilds} (id, created_at) 
-                         VALUES ($1, CURRENT_TIMESTAMP) 
-                         ON CONFLICT (id) DO NOTHING`,
-                        [parsedKey.guildId]
-                    );
-                    
-                    await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.users} (id, created_at) 
-                         VALUES ($1, CURRENT_TIMESTAMP) 
-                         ON CONFLICT (id) DO NOTHING`,
-                        [parsedKey.userId]
-                    );
-
-                    const lastMessageValue = value?.lastMessage ?? value?.last_message;
-                    const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
-                    
-                    await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at) 
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) 
-                         ON CONFLICT (guild_id, user_id) DO UPDATE SET 
-                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP`,
-                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0]
-                    );
-                    return true;
-                
-                case 'economy': {
+                case 'user_level': {
                     const prerequisiteQueries = [];
 
                     if (!this.knownGuildIds.has(parsedKey.guildId)) {
@@ -935,23 +908,19 @@ class PostgreSQLDatabase {
                         await Promise.all(prerequisiteQueries);
                     }
 
+                    const lastMessageValue = value?.lastMessage ?? value?.last_message;
+                    const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
+
                     await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
-                         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+                        `INSERT INTO ${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, data, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET
-                         balance = $3, bank = $4, data = $5, updated_at = CURRENT_TIMESTAMP`,
-                        [
-                            parsedKey.guildId,
-                            parsedKey.userId,
-                            value.wallet ?? value.balance ?? 0,
-                            value.bank ?? 0,
-                            value
-                        ]
+                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, data = $8, updated_at = CURRENT_TIMESTAMP`,
+                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0, value]
                     );
                     return true;
                 }
-                
-                case 'afk_status':
+                                case 'afk_status':
                     await this.pool.query(
                         `INSERT INTO ${pgConfig.tables.guilds} (id, created_at) 
                          VALUES ($1, CURRENT_TIMESTAMP) 
