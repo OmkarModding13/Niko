@@ -7,7 +7,7 @@ import { createError, ErrorTypes, wrapServiceBoundary } from '../../utils/errorH
 
 export { GUILD_CONFIG_DEFAULTS };
 
-const GUILD_CONFIG_CACHE_TTL_MS = 60000;
+const GUILD_CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const guildConfigCache = new Map();
 const guildConfigReadsInFlight = new Map();
 
