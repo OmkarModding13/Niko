@@ -103,15 +103,6 @@ class NikoBot extends Client {
                 'Starting Niko...'
             );
 
-            await new Promise(
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        1000
-                    )
-            );
-
-
             startupLog(
                 'Initializing database...'
             );
