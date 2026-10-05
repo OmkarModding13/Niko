@@ -8,85 +8,65 @@ export async function checkColorRoleExpiry(client) {
 
     for (const [guildId, guild] of client.guilds.cache) {
         try {
-            const prefix = `guild:${guildId}:economy:`;
+            // Bulk load economy rows so the once-per-minute expiry scan does
+            // not perform one SELECT for every economy key.
+            const entries =
+                typeof client.db.listEconomyEntries === 'function'
+                    ? await client.db.listEconomyEntries(guildId)
+                    : [];
 
-            let keys = await client.db.list(prefix);
+            for (const entry of entries) {
+                const userId = entry?.userId;
+                const snapshot = entry?.data;
+                const colorRole = snapshot?.activeColorRole;
 
-            if (!Array.isArray(keys)) {
-                if (keys && typeof keys === 'object') {
-                    keys = Object.keys(keys).filter(key =>
-                        key.startsWith(prefix)
-                    );
-                } else {
+                if (!userId || !colorRole?.expiresAt || now < colorRole.expiresAt) {
                     continue;
                 }
-            }
 
-            for (const key of keys) {
-                try {
-                    const userId = key.replace(prefix, '');
+                await Mutex.runExclusive(
+                    \`economy-guild:\${guildId}\`,
+                    async () => {
+                        const userData = await getEconomyData(client, guildId, userId);
+                        const freshRole = userData?.activeColorRole;
 
-                    const userData = await getEconomyData(
-                        client,
-                        guildId,
-                        userId
-                    );
-
-                    if (!userData?.activeColorRole) {
-                        continue;
-                    }
-
-                    const colorRole = userData.activeColorRole;
-
-                    if (!colorRole.expiresAt) {
-                        continue;
-                    }
-
-                    if (now < colorRole.expiresAt) {
-                        continue;
-                    }
-
-                    const role = guild.roles.cache.get(
-                        colorRole.roleId
-                    );
-
-                    if (role) {
-                        const member = await guild.members
-                            .fetch(userId)
-                            .catch(() => null);
-
-                        if (member && member.roles.cache.has(role.id)) {
-                            await member.roles.remove(
-                                role,
-                                'Temporary shop color role expired'
-                            );
+                        if (!freshRole?.expiresAt || now < freshRole.expiresAt) {
+                            return;
                         }
+
+                        const role = guild.roles.cache.get(freshRole.roleId);
+
+                        if (role) {
+                            const member =
+                                guild.members.cache.get(userId) ||
+                                await guild.members.fetch(userId).catch(() => null);
+
+                            if (member && member.roles.cache.has(role.id)) {
+                                await member.roles.remove(
+                                    role,
+                                    'Temporary shop color role expired'
+                                );
+                            }
+                        }
+
+                        userData.activeColorRole = null;
+
+                        await setEconomyData(
+                            client,
+                            guildId,
+                            userId,
+                            userData
+                        );
+
+                        logger.info(
+                            \`[COLOR_ROLE_EXPIRY] Removed expired color role from \${userId} in guild \${guildId}\`
+                        );
                     }
-
-                    userData.activeColorRole = null;
-
-                    await setEconomyData(
-                        client,
-                        guildId,
-                        userId,
-                        userData
-                    );
-
-                    logger.info(
-                        `[COLOR_ROLE_EXPIRY] Removed expired color role from ${userId} in guild ${guildId}`
-                    );
-
-                } catch (error) {
-                    logger.error(
-                        `[COLOR_ROLE_EXPIRY] Failed for key ${key}:`,
-                        error
-                    );
-                }
+                );
             }
-
         } catch (error) {
             logger.error(
-                `[COLOR_ROLE_EXPIRY] Failed for guild ${guildId}:`,
+                \`[COLOR_ROLE_EXPIRY] Failed for guild \${guildId}:\`,
                 error
             );
         }
