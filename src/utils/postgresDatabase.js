@@ -710,9 +710,9 @@ class PostgreSQLDatabase {
                     if (!this.knownGuildIds.has(parsedKey.guildId)) {
                         prerequisiteQueries.push(
                             this.pool.query(
-                                \`INSERT INTO \${pgConfig.tables.guilds} (id, created_at)
+                                `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
                                  VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING\`,
+                                 ON CONFLICT (id) DO NOTHING`,
                                 [parsedKey.guildId]
                             ).then(() => this.knownGuildIds.add(parsedKey.guildId))
                         );
@@ -721,9 +721,9 @@ class PostgreSQLDatabase {
                     if (!this.knownUserIds.has(parsedKey.userId)) {
                         prerequisiteQueries.push(
                             this.pool.query(
-                                \`INSERT INTO \${pgConfig.tables.users} (id, created_at)
+                                `INSERT INTO ${pgConfig.tables.users} (id, created_at)
                                  VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING\`,
+                                 ON CONFLICT (id) DO NOTHING`,
                                 [parsedKey.userId]
                             ).then(() => this.knownUserIds.add(parsedKey.userId))
                         );
@@ -737,10 +737,10 @@ class PostgreSQLDatabase {
                     const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
 
                     await this.pool.query(
-                        \`INSERT INTO \${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at)
+                        `INSERT INTO ${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at)
                          VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET
-                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP\`,
+                         xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP`,
                         [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0]
                     );
                     return true;
@@ -912,9 +912,9 @@ class PostgreSQLDatabase {
                     if (!this.knownGuildIds.has(parsedKey.guildId)) {
                         prerequisiteQueries.push(
                             this.pool.query(
-                                \`INSERT INTO \${pgConfig.tables.guilds} (id, created_at)
+                                `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
                                  VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING\`,
+                                 ON CONFLICT (id) DO NOTHING`,
                                 [parsedKey.guildId]
                             ).then(() => this.knownGuildIds.add(parsedKey.guildId))
                         );
@@ -923,9 +923,9 @@ class PostgreSQLDatabase {
                     if (!this.knownUserIds.has(parsedKey.userId)) {
                         prerequisiteQueries.push(
                             this.pool.query(
-                                \`INSERT INTO \${pgConfig.tables.users} (id, created_at)
+                                `INSERT INTO ${pgConfig.tables.users} (id, created_at)
                                  VALUES ($1, CURRENT_TIMESTAMP)
-                                 ON CONFLICT (id) DO NOTHING\`,
+                                 ON CONFLICT (id) DO NOTHING`,
                                 [parsedKey.userId]
                             ).then(() => this.knownUserIds.add(parsedKey.userId))
                         );
@@ -936,10 +936,10 @@ class PostgreSQLDatabase {
                     }
 
                     await this.pool.query(
-                        \`INSERT INTO \${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
+                        `INSERT INTO ${pgConfig.tables.economy} (guild_id, user_id, balance, bank, data, updated_at)
                          VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET
-                         balance = $3, bank = $4, data = $5, updated_at = CURRENT_TIMESTAMP\`,
+                         balance = $3, bank = $4, data = $5, updated_at = CURRENT_TIMESTAMP`,
                         [
                             parsedKey.guildId,
                             parsedKey.userId,
