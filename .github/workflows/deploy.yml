@@ -16,8 +16,10 @@ jobs:
         shell: cmd
         run: |
           cd /d D:\\Niko
+          set PM2_HOME=C:\\ProgramData\\pm2\\home
+          git config --global --add safe.directory D:\\Niko
+          call pm2 stop niko
           git fetch origin main
           git reset --hard origin/main
           call npm ci
-          set PM2_HOME=C:\\ProgramData\\pm2\\home
           call pm2 restart niko --update-env
