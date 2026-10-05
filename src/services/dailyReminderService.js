@@ -10,102 +10,89 @@ export async function checkDailyReminders(client) {
 
     const now = Date.now();
 
-    for (const [guildId, guild] of client.guilds.cache) {
+    for (const [guildId] of client.guilds.cache) {
         try {
-            const prefix = `guild:${guildId}:economy:`;
+            // Read all economy rows in one PostgreSQL query instead of
+            // list-then-get (N+1) queries every minute.
+            const entries =
+                typeof client.db.listEconomyEntries === 'function'
+                    ? await client.db.listEconomyEntries(guildId)
+                    : [];
 
-            let keys = await client.db.list(prefix);
+            for (const entry of entries) {
+                const userId = entry?.userId;
+                const snapshot = entry?.data;
 
-            if (!Array.isArray(keys)) {
-                if (keys && typeof keys === 'object') {
-                    keys = Object.keys(keys).filter(key =>
-                        key.startsWith(prefix)
-                    );
-                } else {
+                if (!userId || !snapshot?.reminderEnabled) {
                     continue;
                 }
-            }
 
-            for (const key of keys) {
-                try {
+                const lastDaily = Number(snapshot.lastDaily) || 0;
+                const readyAt = lastDaily + DAILY_COOLDOWN;
+                const scheduledAt = Number(snapshot.reminderNextAt) || 0;
+
+                // A claim happened after the reminder was scheduled.
+                if (!scheduledAt || readyAt > scheduledAt) {
                     await Mutex.runExclusive(
-                        `economy-guild:${guildId}`,
+                        \`economy-guild:\${guildId}\`,
                         async () => {
-                    const userId = key.replace(prefix, '');
+                            const userData = await getEconomyData(client, guildId, userId);
+                            if (!userData?.reminderEnabled) return;
 
-                    const userData = await getEconomyData(
-                        client,
-                        guildId,
-                        userId
+                            const freshLastDaily = Number(userData.lastDaily) || 0;
+                            const freshReadyAt = freshLastDaily + DAILY_COOLDOWN;
+                            const freshScheduledAt = Number(userData.reminderNextAt) || 0;
+
+                            if (!freshScheduledAt || freshReadyAt > freshScheduledAt) {
+                                userData.reminderNextAt = freshReadyAt;
+                                await setEconomyData(client, guildId, userId, userData);
+                            }
+                        }
                     );
+                    continue;
+                }
 
-                    if (!userData?.reminderEnabled) return;
+                if (now < scheduledAt) {
+                    continue;
+                }
 
-                    const lastDaily = userData.lastDaily || 0;
-                    const readyAt = lastDaily + DAILY_COOLDOWN;
+                // Re-read only users whose reminder is actually due. The same
+                // guild lock used by economy commands prevents a stale write
+                // from overwriting a concurrent /daily transaction.
+                await Mutex.runExclusive(
+                    \`economy-guild:\${guildId}\`,
+                    async () => {
+                        const userData = await getEconomyData(client, guildId, userId);
+                        if (!userData?.reminderEnabled) return;
 
-                    // If the user has claimed /daily since the last
-                    // reminder was scheduled, move the reminder forward.
-                    if (
-                        !userData.reminderNextAt ||
-                        readyAt > userData.reminderNextAt
-                    ) {
-                        userData.reminderNextAt = readyAt;
+                        const freshLastDaily = Number(userData.lastDaily) || 0;
+                        const freshReadyAt = freshLastDaily + DAILY_COOLDOWN;
+                        let nextReminderAt = Number(userData.reminderNextAt) || 0;
 
-                        await setEconomyData(
-                            client,
-                            guildId,
-                            userId,
-                            userData
-                        );
+                        if (!nextReminderAt || freshReadyAt > nextReminderAt) {
+                            userData.reminderNextAt = freshReadyAt;
+                            nextReminderAt = freshReadyAt;
+                            await setEconomyData(client, guildId, userId, userData);
+                        }
 
-                        return;
-                    }
+                        if (now < nextReminderAt) {
+                            return;
+                        }
 
-                    const nextReminderAt = userData.reminderNextAt;
+                        const user = await client.users.fetch(userId).catch(() => null);
+                        if (!user) return;
 
-                    // Daily reward is not ready for reminder yet.
-                    if (now < nextReminderAt) return;
+                        try {
+                            await user.send({
+                                embeds: [{
+                                    title: '🔔 Daily Reward Ready!',
+                                    description:
+                                        'Your daily reward is ready to claim!\\n\\n' +
+                                        \`Use **/daily** in <#\${COMMAND_CHANNEL_ID}> to claim your Souls.\`,
+                                    color: 0x5865F2
+                                }]
+                            });
 
-                    const user = await client.users
-                        .fetch(userId)
-                        .catch(() => null);
-
-                    if (!user) return;
-
-                    try {
-                        await user.send({
-                            embeds: [{
-                                title: '🔔 Daily Reward Ready!',
-                                description:
-                                    `Your daily reward is ready to claim!\n\n` +
-                                    `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
-                                color: 0x5865F2
-                            }]
-                        });
-
-                        // Schedule the next reminder for the next
-                        // 24-hour cycle so it cannot DM every minute.
-                        userData.reminderNextAt =
-                            nextReminderAt + DAILY_COOLDOWN;
-
-                        await setEconomyData(
-                            client,
-                            guildId,
-                            userId,
-                            userData
-                        );
-
-                        logger.info(
-                            `[DAILY_REMINDER] Sent reminder to ${userId} in guild ${guildId}`
-                        );
-                    } catch (error) {
-                        const discordCode = error?.code;
-
-                        // The user is no longer reachable by DM from this
-                        // bot, commonly because there are no mutual guilds.
-                        // Do not retry this every minute or spam the logs.
-                        if (discordCode === 50007 || discordCode === 50278) {
                             userData.reminderNextAt =
                                 nextReminderAt + DAILY_COOLDOWN;
 
@@ -116,28 +103,37 @@ export async function checkDailyReminders(client) {
                                 userData
                             );
 
-                            logger.warn(
-                                `[DAILY_REMINDER] Skipped unreachable user ${userId} in guild ${guildId} (Discord rejected the DM: ${discordCode})`
+                            logger.info(
+                                \`[DAILY_REMINDER] Sent reminder to \${userId} in guild \${guildId}\`
                             );
-                            return;
-                        }
+                        } catch (error) {
+                            const discordCode = error?.code;
 
-                        throw error;
+                            if (discordCode === 50007 || discordCode === 50278) {
+                                userData.reminderNextAt =
+                                    nextReminderAt + DAILY_COOLDOWN;
+
+                                await setEconomyData(
+                                    client,
+                                    guildId,
+                                    userId,
+                                    userData
+                                );
+
+                                logger.warn(
+                                    \`[DAILY_REMINDER] Skipped unreachable user \${userId} in guild \${guildId} (Discord rejected the DM: \${discordCode})\`
+                                );
+                                return;
+                            }
+
+                            throw error;
+                        }
                     }
-
-                        }
-                    );
-                } catch (error) {
-                    logger.error(
-                        `[DAILY_REMINDER] Failed for key ${key}:`,
-                        error
-                    );
-                }
+                );
             }
-
         } catch (error) {
             logger.error(
-                `[DAILY_REMINDER] Failed for guild ${guildId}:`,
+                \`[DAILY_REMINDER] Failed for guild \${guildId}:\`,
                 error
             );
         }
