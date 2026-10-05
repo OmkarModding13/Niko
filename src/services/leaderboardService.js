@@ -248,6 +248,48 @@ function createMonthlySnapshot(data) {
     return snapshot;
 }
 
+async function rewardPreviousMonthOnce(client, guild, previousMonthKey) {
+    const pool = client?.db?.db?.pool;
+    let connection = null;
+
+    try {
+        if (!pool || typeof pool.connect !== 'function') {
+            return await rewardPreviousMonth(client, guild, previousMonthKey);
+        }
+
+        connection = await pool.connect();
+        const lockKey = `niko:leaderboard-reward:${guild.id}:${previousMonthKey}`;
+        const lockResult = await connection.query(
+            'SELECT pg_try_advisory_lock(hashtext($1)::bigint) AS locked',
+            [lockKey]
+        );
+
+        if (!lockResult.rows[0]?.locked) {
+            logger.debug(
+                `[Leaderboards] Reward processing already running elsewhere for guild ${guild.id}, month ${previousMonthKey}.`
+            );
+            return false;
+        }
+
+        try {
+            return await rewardPreviousMonth(client, guild, previousMonthKey);
+        } finally {
+            await connection.query(
+                'SELECT pg_advisory_unlock(hashtext($1)::bigint)',
+                [lockKey]
+            );
+        }
+    } catch (error) {
+        logger.error(
+            `[Leaderboards] Failed to acquire reward lock for guild ${guild.id}:`,
+            error
+        );
+        return false;
+    } finally {
+        connection?.release();
+    }
+}
+
 async function rewardPreviousMonth(client, guild, previousMonthKey) {
     const snapshot =
         await client.db.get(
@@ -531,14 +573,22 @@ export async function updateLeaderboards(client) {
 
             const data = await buildLeaderboardData(client, guild);
 
-            // At the start of a new month, reward the previous month's
-            // saved top-3 snapshot before saving the new month's snapshot.
-            const previousMonthKey = getPreviousMonthKey(data.monthKey);
-            await rewardPreviousMonth(
-                client,
-                guild,
-                previousMonthKey
-            );
+            // Monthly rewards are finalized only on the 1st day of a new
+            // India-calendar month. The database advisory lock also prevents
+            // duplicate rewards if two Niko instances are online at once.
+            const indiaDay = new Intl.DateTimeFormat('en-IN', {
+                day: '2-digit',
+                timeZone: 'Asia/Kolkata'
+            }).format(new Date());
+
+            if (indiaDay === '01') {
+                const previousMonthKey = getPreviousMonthKey(data.monthKey);
+                await rewardPreviousMonthOnce(
+                    client,
+                    guild,
+                    previousMonthKey
+                );
+            }
 
             await client.db.set(
                 LEADERBOARD_SNAPSHOT_KEY(guild.id, data.monthKey),
