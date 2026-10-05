@@ -30,7 +30,6 @@ import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
-import { markUserActivity } from '../services/leveling/leveling.js';
 import { Mutex } from '../utils/mutex.js';
 
 const COMMAND_ERROR_SUBTYPES = {
@@ -53,6 +52,7 @@ const GAME_SHOP_CHANNEL_ID = '1547531709959118911';
 const INVENTORY_CHANNEL_ID = '1550120893982703616';
 const SHOP_CHANNEL_ID = '1551192004241793084';
 const LEVEL_CHECK_CHANNEL_ID = '1551159198425948180';
+const FAST_COMMANDS = new Set(['ping', 'uptime']);
 
 // Public member commands and their dedicated channels.
 // Commands not listed here are hidden from normal members by commandLoader.js.
@@ -138,16 +138,19 @@ export default {
           ResponseCoordinator.attach(interaction);
 
           if (interaction.isChatInputCommand()) {
-            // Acknowledge slash commands before any database/config/permission
-            // work so slow I/O cannot make Discord report "The application did not respond".
-            const initialDefer = await InteractionHelper.safeDefer(interaction);
-            if (!initialDefer) {
-              logger.warn('Could not acknowledge slash command interaction early', {
-                commandName: interaction.commandName,
-                guildId: interaction.guildId,
-                userId: interaction.user?.id,
-              });
-              return;
+            // Most commands are deferred immediately because they may perform
+            // database/API work. Tiny read-only commands reply directly instead,
+            // avoiding the visible "thinking" state and an extra REST request.
+            if (!FAST_COMMANDS.has(interaction.commandName)) {
+              const initialDefer = await InteractionHelper.safeDefer(interaction);
+              if (!initialDefer) {
+                logger.warn('Could not acknowledge slash command interaction early', {
+                  commandName: interaction.commandName,
+                  guildId: interaction.guildId,
+                  userId: interaction.user?.id,
+                });
+                return;
+              }
             }
 
             try {
@@ -402,21 +405,6 @@ export default {
                 } else {
                   await executeCommand();
                 }
-              }
-
-              // Record accepted command activity after the command has finished.
-              // Do not block the user's response on the leveling DB write.
-              if (interaction.guildId && interaction.user && !interaction.user.bot) {
-                setImmediate(() => {
-                  markUserActivity(
-                    client,
-                    interaction.guildId,
-                    interaction.user.id,
-                    Date.now()
-                  ).catch((activityError) => {
-                    logger.warn('[Leveling] Background activity update failed:', activityError.message);
-                  });
-                });
               }
 
               return;
