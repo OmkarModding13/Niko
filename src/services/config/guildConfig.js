@@ -24,11 +24,43 @@ function invalidateGuildConfigCache(guildId) {
 }
 
 export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(client, guildId, context = {}) {
+    const now = Date.now();
     const cached = guildConfigCache.get(guildId);
-    if (cached && cached.expiresAt > Date.now()) {
+
+    if (cached) {
+        // Serve cached config immediately. When the TTL expires, refresh in the
+        // background instead of making the command wait on a DB round-trip.
+        if (cached.expiresAt > now) {
+            return cloneConfig(cached.config);
+        }
+
+        if (!guildConfigReadsInFlight.has(guildId)) {
+            const readPromise = readGuildConfig(client, guildId, context)
+                .then((config) => normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS))
+                .then((config) => {
+                    guildConfigCache.set(guildId, {
+                        config: cloneConfig(config),
+                        expiresAt: Date.now() + GUILD_CONFIG_CACHE_TTL_MS,
+                    });
+                    return config;
+                })
+                .catch((error) => {
+                    // Keep serving the last known-good config if a background
+                    // refresh fails. The next request will retry the refresh.
+                    logger.warn?.('[GuildConfig] Background refresh failed:', error.message);
+                    return cached.config;
+                })
+                .finally(() => {
+                    guildConfigReadsInFlight.delete(guildId);
+                });
+
+            guildConfigReadsInFlight.set(guildId, readPromise);
+        }
+
         return cloneConfig(cached.config);
     }
 
+    // No cached value exists yet, so the first load must wait for PostgreSQL.
     const inFlight = guildConfigReadsInFlight.get(guildId);
     if (inFlight) {
         return cloneConfig(await inFlight);
@@ -55,7 +87,6 @@ export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(
     message: 'Failed to fetch guild configuration',
     userMessage: 'Failed to load server configuration. Please try again.',
 });
-
 export const setGuildConfig = wrapServiceBoundary(async function setGuildConfig(client, guildId, config, context = {}) {
     const normalized = normalizeGuildConfig(config, GUILD_CONFIG_DEFAULTS);
     const saved = await writeGuildConfig(client, guildId, normalized, context);
