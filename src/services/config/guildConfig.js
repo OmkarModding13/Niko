@@ -4,6 +4,7 @@ import { GUILD_CONFIG_DEFAULTS } from '../../config/guild/guildConfigDefaults.js
 import { readGuildConfig, writeGuildConfig } from '../../utils/database/guildConfigStorage.js';
 import { normalizeGuildConfig, validateGuildConfigOrThrow } from '../../utils/schemas.js';
 import { createError, ErrorTypes, wrapServiceBoundary } from '../../utils/errorHandler.js';
+import { logger } from '../../utils/logger.js';
 
 export { GUILD_CONFIG_DEFAULTS };
 
@@ -47,7 +48,7 @@ export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(
                 .catch((error) => {
                     // Keep serving the last known-good config if a background
                     // refresh fails. The next request will retry the refresh.
-                    logger.warn?.('[GuildConfig] Background refresh failed:', error.message);
+                    logger.warn('[GuildConfig] Background refresh failed:', error.message);
                     return cached.config;
                 })
                 .finally(() => {
