@@ -50,6 +50,12 @@ class PostgreSQLDatabase {
         this.allowedMigrationIdentifiers = new Set([pgConfig.migration.table]);
         this.lastFailureReason = null;
         this.lastFailureMessage = null;
+
+        // Parent rows are required by foreign keys. Remember successful
+        // prerequisite inserts so steady-state writes do not repeat the same
+        // ON CONFLICT round trips on every activity/economy update.
+        this.knownGuildIds = new Set();
+        this.knownUserIds = new Set();
     }
 
     async connect() {
@@ -540,6 +546,41 @@ class PostgreSQLDatabase {
             return [...keys];
         } catch (error) {
             logger.error(`Error listing keys with prefix ${prefix}:`, error);
+            return [];
+        }
+    }
+
+    async listEconomyEntries(guildId) {
+        try {
+            if (!this.isAvailable()) {
+                return [];
+            }
+
+            const result = await this.pool.query(
+                `SELECT user_id, balance, bank, data
+                 FROM ${pgConfig.tables.economy}
+                 WHERE guild_id = $1`,
+                [guildId]
+            );
+
+            return result.rows.map((row) => {
+                const data =
+                    row.data &&
+                    typeof row.data === 'object' &&
+                    Object.keys(row.data).length > 0
+                        ? row.data
+                        : {
+                            wallet: row.balance ?? 0,
+                            bank: row.bank ?? 0,
+                        };
+
+                return {
+                    userId: row.user_id,
+                    data,
+                };
+            });
+        } catch (error) {
+            logger.error(`Error listing economy entries for guild ${guildId}:`, error);
             return [];
         }
     }
