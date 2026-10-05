@@ -548,13 +548,27 @@ export function handleTaskError(taskName, error, context = {}) {
  * Wrap a background task so it can never produce an unhandled rejection.
  * Usage: cron.schedule('* * * * *', runSafeTask('giveaways', () => checkGiveaways(client)))
  */
+const runningBackgroundTasks = new Set();
+
 export function runSafeTask(taskName, fn, context = {}) {
     return async (...args) => {
+        // Cron jobs can overlap when a previous run takes longer than the
+        // schedule interval. Skip the next run instead of stacking duplicate
+        // DB/API work and increasing latency.
+        if (runningBackgroundTasks.has(taskName)) {
+            logger.debug(`Skipping overlapping background task: ${taskName}`);
+            return null;
+        }
+
+        runningBackgroundTasks.add(taskName);
+
         try {
             return await fn(...args);
         } catch (error) {
             handleTaskError(taskName, error, context);
             return null;
+        } finally {
+            runningBackgroundTasks.delete(taskName);
         }
     };
 }
