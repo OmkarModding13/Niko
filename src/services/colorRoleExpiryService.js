@@ -26,7 +26,7 @@ export async function checkColorRoleExpiry(client) {
                 }
 
                 await Mutex.runExclusive(
-                    \`economy-guild:\${guildId}\`,
+                    `economy-guild:${guildId}`,
                     async () => {
                         const userData = await getEconomyData(client, guildId, userId);
                         const freshRole = userData?.activeColorRole;
@@ -60,14 +60,14 @@ export async function checkColorRoleExpiry(client) {
                         );
 
                         logger.info(
-                            \`[COLOR_ROLE_EXPIRY] Removed expired color role from \${userId} in guild \${guildId}\`
+                            `[COLOR_ROLE_EXPIRY] Removed expired color role from ${userId} in guild ${guildId}`
                         );
                     }
                 );
             }
         } catch (error) {
             logger.error(
-                \`[COLOR_ROLE_EXPIRY] Failed for guild \${guildId}:\`,
+                `[COLOR_ROLE_EXPIRY] Failed for guild ${guildId}:`,
                 error
             );
         }
