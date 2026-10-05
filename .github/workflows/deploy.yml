@@ -13,11 +13,11 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy latest main to D:\\Niko
-        shell: powershell
+        shell: cmd
         run: |
-          Set-Location 'D:\\Niko'
+          cd /d D:\\Niko
           git fetch origin main
           git reset --hard origin/main
-          npm ci
-          $env:PM2_HOME = 'C:\\ProgramData\\pm2\\home'
-          pm2 restart niko --update-env
+          call npm ci
+          set PM2_HOME=C:\\ProgramData\\pm2\\home
+          call pm2 restart niko --update-env
