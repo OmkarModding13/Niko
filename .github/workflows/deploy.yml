@@ -15,27 +15,58 @@ permissions:
 jobs:
   deploy:
     runs-on: self-hosted
+    timeout-minutes: 15
     steps:
-      - name: Prepare deployment
+      - name: Prepare safe staging deployment
         shell: cmd
         run: |
           cd /d D:\Niko
           set PM2_HOME=C:\ProgramData\pm2\home
           git config --global --add safe.directory D:\Niko
-          for /f "delims=" %%A in ('git rev-parse HEAD') do echo PREVIOUS_SHA=%%A>>"%GITHUB_ENV%"
-          call pm2 stop niko
-
-      - name: Deploy latest main
-        shell: cmd
-        run: |
-          cd /d D:\Niko
-          set PM2_HOME=C:\ProgramData\pm2\home
           git fetch origin main
           if errorlevel 1 exit /b 1
-          git reset --hard origin/main
+
+          if exist D:\Niko-staging rmdir /s /q D:\Niko-staging
+          mkdir D:\Niko-staging
+
+          git archive origin/main -o D:\Niko-staging.zip
           if errorlevel 1 exit /b 1
+
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath 'D:\Niko-staging.zip' -DestinationPath 'D:\Niko-staging' -Force"
+          if errorlevel 1 exit /b 1
+
+          del /q D:\Niko-staging.zip
+
+          copy /y D:\Niko\.env D:\Niko-staging\.env >nul
+          if errorlevel 1 exit /b 1
+
+          cd /d D:\Niko-staging
           call npm ci
           if errorlevel 1 exit /b 1
+
+          call npm run migrate:check
+          if errorlevel 1 exit /b 1
+
+      - name: Switch to staged version
+        shell: cmd
+        run: |
+          set PM2_HOME=C:\ProgramData\pm2\home
+
+          if exist D:\Niko-previous rmdir /s /q D:\Niko-previous
+
+          call pm2 stop niko
+          if errorlevel 1 exit /b 1
+
+          ren D:\Niko Niko-previous
+          if errorlevel 1 exit /b 1
+
+          ren D:\Niko-staging Niko
+          if errorlevel 1 (
+            ren D:\Niko-previous Niko
+            call pm2 restart niko --update-env
+            exit /b 1
+          )
+
           call pm2 restart niko --update-env
           if errorlevel 1 exit /b 1
 
@@ -43,13 +74,13 @@ jobs:
         shell: cmd
         run: |
           setlocal
-          for /L %%I in (1,1,20) do (
+          for /L %%I in (1,1,30) do (
             curl.exe -fsS http://127.0.0.1:3000/ready >nul 2>&1
             if not errorlevel 1 (
               echo Niko readiness check passed.
               exit /b 0
             )
-            timeout /t 3 /nobreak >nul
+            timeout /t 2 /nobreak >nul
           )
           echo Niko did not become ready on port 3000.
           exit /b 1
@@ -61,16 +92,19 @@ jobs:
           if errorlevel 1 exit /b 1
           echo Daily Niko database backup task is configured.
 
-      - name: Roll back failed deployment
+      - name: Roll back failed switch
         if: ${{ failure() }}
         shell: cmd
         run: |
-          cd /d D:\Niko
           set PM2_HOME=C:\ProgramData\pm2\home
-          echo Rolling back to %PREVIOUS_SHA%
-          git reset --hard %PREVIOUS_SHA%
-          if errorlevel 1 exit /b 1
-          call npm ci
-          if errorlevel 1 exit /b 1
-          call pm2 restart niko --update-env
-          if errorlevel 1 exit /b 1
+
+          if exist D:\Niko-previous (
+            call pm2 stop niko >nul 2>&1
+            if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
+            if exist D:\Niko ren D:\Niko Niko-failed
+            ren D:\Niko-previous Niko
+            call pm2 restart niko --update-env
+          )
+
+          if exist D:\Niko-staging rmdir /s /q D:\Niko-staging
+          if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
