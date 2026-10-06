@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: niko-pc-production
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -12,14 +16,61 @@ jobs:
   deploy:
     runs-on: self-hosted
     steps:
-      - name: Deploy latest main to D:\\Niko
+      - name: Prepare deployment
         shell: cmd
         run: |
-          cd /d D:\\Niko
-          set PM2_HOME=C:\\ProgramData\\pm2\\home
-          git config --global --add safe.directory D:\\Niko
+          cd /d D:\Niko
+          set PM2_HOME=C:\ProgramData\pm2\home
+          git config --global --add safe.directory D:\Niko
+          for /f "delims=" %%A in ('git rev-parse HEAD') do echo PREVIOUS_SHA=%%A>>"%GITHUB_ENV%"
           call pm2 stop niko
+
+      - name: Deploy latest main
+        shell: cmd
+        run: |
+          cd /d D:\Niko
+          set PM2_HOME=C:\ProgramData\pm2\home
           git fetch origin main
+          if errorlevel 1 exit /b 1
           git reset --hard origin/main
+          if errorlevel 1 exit /b 1
           call npm ci
+          if errorlevel 1 exit /b 1
           call pm2 restart niko --update-env
+          if errorlevel 1 exit /b 1
+
+      - name: Verify Niko is ready
+        shell: cmd
+        run: |
+          setlocal
+          for /L %%I in (1,1,20) do (
+            curl.exe -fsS http://127.0.0.1:3000/ready >nul 2>&1
+            if not errorlevel 1 (
+              echo Niko readiness check passed.
+              exit /b 0
+            )
+            timeout /t 3 /nobreak >nul
+          )
+          echo Niko did not become ready on port 3000.
+          exit /b 1
+
+      - name: Ensure daily database backup task
+        shell: cmd
+        run: |
+          schtasks /Create /TN "Niko Database Backup" /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\Niko\scripts\backup-db.ps1" /SC DAILY /ST 03:00 /RU SYSTEM /F
+          if errorlevel 1 exit /b 1
+          echo Daily Niko database backup task is configured.
+
+      - name: Roll back failed deployment
+        if: ${{ failure() }}
+        shell: cmd
+        run: |
+          cd /d D:\Niko
+          set PM2_HOME=C:\ProgramData\pm2\home
+          echo Rolling back to %PREVIOUS_SHA%
+          git reset --hard %PREVIOUS_SHA%
+          if errorlevel 1 exit /b 1
+          call npm ci
+          if errorlevel 1 exit /b 1
+          call pm2 restart niko --update-env
+          if errorlevel 1 exit /b 1
