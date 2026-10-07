@@ -46,7 +46,8 @@ jobs:
 
           echo Copying latest code to D:\Niko...
           robocopy "%CHECKOUT%" "D:\Niko" /E /XD node_modules .git /XF .env /NFL /NDL /NJH /NJS /NC /NS /NP
-          if errorlevel 8 exit /b 1
+          set ROBOCOPY_EXIT=%ERRORLEVEL%
+          if %ROBOCOPY_EXIT% GEQ 8 exit /b %ROBOCOPY_EXIT%
 
           if "%LOCK_CHANGED%"=="0" goto DEPENDENCIES_READY
 
@@ -60,6 +61,7 @@ jobs:
 
           :DEPENDENCIES_READY
           echo Code deployment complete.
+          exit /b 0
 
       - name: Initialize PM2
         shell: cmd
