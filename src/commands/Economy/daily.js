@@ -126,8 +126,17 @@ export default {
             );
         }
 
-        // Claiming /daily counts as server activity for the 7-day inactive-member system.
-        await markUserActivity(client, guildId, userId, now);
+        // Activity tracking is secondary to the reward transaction.
+        // Do not make /daily fail or wait on a separate leveling DB write.
+        setImmediate(() => {
+            markUserActivity(client, guildId, userId, now).catch(error => {
+                logger.warn('[ECONOMY] Failed to record daily activity:', {
+                    userId,
+                    guildId,
+                    error: error?.message || String(error)
+                });
+            });
+        });
 
         logger.info('[ECONOMY_TRANSACTION] Daily claimed', {
             userId,
