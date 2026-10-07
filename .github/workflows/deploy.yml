@@ -80,18 +80,28 @@ jobs:
           call pm2 status
 
       - name: Verify Niko is ready
-        shell: cmd
+        shell: powershell
         run: |
-          for /L %%I in (1,1,30) do (
-            curl.exe -fsS http://127.0.0.1:3000/ready >nul 2>&1
-            if not errorlevel 1 (
-              echo Niko readiness check passed.
-              exit /b 0
-            )
-            timeout /t 2 /nobreak >nul
-          )
-          echo Niko did not become ready on port 3000.
-          exit /b 1
+          $ready = $false
+          for ($i = 1; $i -le 45; $i++) {
+            try {
+              $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:3000/ready" -TimeoutSec 2
+              Write-Host "Readiness response: HTTP $($response.StatusCode)"
+              if ($response.StatusCode -eq 200) {
+                Write-Host "Niko readiness check passed."
+                $ready = $true
+                break
+              }
+            } catch {
+              Write-Host "Niko is still starting: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          if (-not $ready) {
+            Write-Host "Niko did not become ready within 90 seconds."
+            exit 1
+          }
 
       - name: Ensure daily database backup task
         shell: cmd
