@@ -122,6 +122,6 @@ export default {
             )
             .setFooter({ text: `${TOTAL_SOULS_EMOJI} Build Souls • Collect Shards • Complete Your Character Collection` });
 
-        return interaction.reply({ embeds: [embed] });
+        return interaction.editReply({ embeds: [embed] });
     }
 };
