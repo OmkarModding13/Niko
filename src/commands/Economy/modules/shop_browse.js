@@ -208,9 +208,11 @@ export default {
             let currentCategory = 'color_roles';
             let selectedItemId = null;
             const getFreshUserData = () => getEconomyData(client, guildId, userId);
-            // A database read can take longer than Discord's 3-second initial interaction window.
-            // Defer immediately so /shop cannot time out while loading economy data.
-            await interaction.deferReply();
+            // The central interaction handler already acknowledges slash commands.
+            // Only defer here when this module is invoked directly.
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferReply();
+            }
 
             let userData = await getFreshUserData();
 
