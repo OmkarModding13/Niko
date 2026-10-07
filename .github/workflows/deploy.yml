@@ -29,21 +29,18 @@ jobs:
             exit /b 1
           )
 
-          for /f "delims=" %%A in ('powershell.exe -NoProfile -Command "(Get-FileHash ''D:\Niko\package-lock.json'' -Algorithm SHA256).Hash"') do set OLD_LOCK=%%A
-
           for /f "delims=" %%A in ('git rev-parse HEAD') do set PREVIOUS_SHA=%%A
 
           git fetch origin main
           if errorlevel 1 exit /b 1
 
+          git diff --quiet %PREVIOUS_SHA% origin/main -- package-lock.json
+          if not errorlevel 1 goto DEPENDENCIES_READY
+
+          echo package-lock.json changed. Updating dependencies...
           git reset --hard origin/main
           if errorlevel 1 exit /b 1
 
-          for /f "delims=" %%A in ('powershell.exe -NoProfile -Command "(Get-FileHash ''D:\Niko\package-lock.json'' -Algorithm SHA256).Hash"') do set NEW_LOCK=%%A
-
-          if /I "%OLD_LOCK%"=="%NEW_LOCK%" goto DEPENDENCIES_READY
-
-          echo package-lock.json changed. Updating dependencies...
           call pm2 stop niko
           if errorlevel 1 exit /b 1
 
@@ -54,8 +51,13 @@ jobs:
             call pm2 restart niko --update-env
             exit /b 1
           )
+          goto RESTART_NIKO
 
           :DEPENDENCIES_READY
+          git reset --hard origin/main
+          if errorlevel 1 exit /b 1
+
+          :RESTART_NIKO
           call pm2 restart niko --update-env
           if errorlevel 1 exit /b 1
 
