@@ -39,9 +39,41 @@ export class InteractionHelper {
         const originalReply = interaction.reply?.bind(interaction);
         const originalEditReply = interaction.editReply?.bind(interaction);
         const originalFollowUp = interaction.followUp?.bind(interaction);
+        const originalDeferReply = interaction.deferReply?.bind(interaction);
 
         if (!originalReply || !originalEditReply || !originalFollowUp) {
             return;
+        }
+
+        // Commands are centrally acknowledged by interactionCreate. Some legacy
+        // commands still call deferReply() themselves, so make that call idempotent
+        // instead of throwing InteractionAlreadyReplied.
+        if (originalDeferReply) {
+            interaction.deferReply = async (options) => {
+                if (interaction.deferred || interaction.replied) {
+                    return null;
+                }
+
+                try {
+                    return await originalDeferReply(options);
+                } catch (error) {
+                    if (isInteractionUnavailableError(error)) {
+                        throw error;
+                    }
+
+                    if (
+                        error?.name === 'InteractionAlreadyReplied' ||
+                        error?.code === 40060
+                    ) {
+                        logger.debug(
+                            `Interaction ${interaction.id} was already acknowledged before deferReply()`
+                        );
+                        return null;
+                    }
+
+                    throw error;
+                }
+            };
         }
 
         interaction.reply = async (options) => {
