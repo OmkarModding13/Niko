@@ -32,33 +32,42 @@ jobs:
 
           for /f "delims=" %%A in ('git rev-parse HEAD') do set PREVIOUS_SHA=%%A
 
-          git fetch origin main
+          git fetch origin main --verbose
           if errorlevel 1 exit /b 1
 
           git diff --quiet %PREVIOUS_SHA% origin/main -- package-lock.json
-          if not errorlevel 1 goto DEPENDENCIES_READY
+          set LOCK_CHANGED=%ERRORLEVEL%
 
-          echo package-lock.json changed. Updating dependencies...
           git reset --hard origin/main
           if errorlevel 1 exit /b 1
 
-          call pm2 stop niko
-          if errorlevel 1 exit /b 1
+          if "%LOCK_CHANGED%"=="0" goto DEPENDENCIES_READY
+
+          echo package-lock.json changed. Updating dependencies...
+          call pm2 resurrect
+          call pm2 stop niko >nul 2>&1
 
           call npm ci --prefer-offline --no-audit --no-fund
           if errorlevel 1 (
             echo Dependency installation failed. Rolling back code...
             git reset --hard %PREVIOUS_SHA%
+            call pm2 resurrect
             call pm2 restart niko --update-env
             exit /b 1
           )
-          goto RESTART_NIKO
 
           :DEPENDENCIES_READY
-          git reset --hard origin/main
+          echo Initializing shared PM2 state...
+          call pm2 resurrect
+          if errorlevel 1 (
+            echo PM2 resurrect failed.
+            exit /b 1
+          )
+
+          call pm2 status
           if errorlevel 1 exit /b 1
 
-          :RESTART_NIKO
+          echo Restarting Niko...
           call pm2 restart niko --update-env
           if errorlevel 1 exit /b 1
 
