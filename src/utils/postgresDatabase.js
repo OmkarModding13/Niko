@@ -746,7 +746,32 @@ class PostgreSQLDatabase {
                         ...persistedData,
                     };
                 }
-                                case 'afk_status': {
+                                case 'economy': {
+                    const economyResult = await this.pool.query(
+                        `SELECT balance, bank, data FROM ${pgConfig.tables.economy}
+                         WHERE guild_id = $1 AND user_id = $2`,
+                        [parsedKey.guildId, parsedKey.userId]
+                    );
+
+                    if (economyResult.rows.length === 0) {
+                        return defaultValue;
+                    }
+
+                    const economyRow = economyResult.rows[0];
+                    const persistedData =
+                        economyRow.data &&
+                        typeof economyRow.data === 'object'
+                            ? economyRow.data
+                            : {};
+
+                    return {
+                        ...persistedData,
+                        wallet: Number(economyRow.balance) || 0,
+                        bank: Number(economyRow.bank) || 0,
+                    };
+                }
+
+                case 'afk_status': {
                     const afkResult = await this.pool.query(
                         `SELECT reason, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
                         [parsedKey.guildId, parsedKey.userId],
@@ -920,7 +945,64 @@ class PostgreSQLDatabase {
                     );
                     return true;
                 }
-                                case 'afk_status':
+                                case 'economy': {
+                    const prerequisiteQueries = [];
+
+                    if (!this.knownGuildIds.has(parsedKey.guildId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                `INSERT INTO ${pgConfig.tables.guilds} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING`,
+                                [parsedKey.guildId]
+                            ).then(() => this.knownGuildIds.add(parsedKey.guildId))
+                        );
+                    }
+
+                    if (!this.knownUserIds.has(parsedKey.userId)) {
+                        prerequisiteQueries.push(
+                            this.pool.query(
+                                `INSERT INTO ${pgConfig.tables.users} (id, created_at)
+                                 VALUES ($1, CURRENT_TIMESTAMP)
+                                 ON CONFLICT (id) DO NOTHING`,
+                                [parsedKey.userId]
+                            ).then(() => this.knownUserIds.add(parsedKey.userId))
+                        );
+                    }
+
+                    if (prerequisiteQueries.length > 0) {
+                        await Promise.all(prerequisiteQueries);
+                    }
+
+                    const wallet = Math.max(0, Math.trunc(Number(value?.wallet) || 0));
+                    const bank = Math.max(0, Math.trunc(Number(value?.bank) || 0));
+                    const persistedData =
+                        value && typeof value === 'object'
+                            ? { ...value, wallet, bank }
+                            : { wallet, bank };
+
+                    await this.pool.query(
+                        `INSERT INTO ${pgConfig.tables.economy}
+                            (guild_id, user_id, balance, bank, data, created_at, updated_at)
+                         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                         ON CONFLICT (guild_id, user_id) DO UPDATE SET
+                            balance = $3,
+                            bank = $4,
+                            data = $5,
+                            updated_at = CURRENT_TIMESTAMP`,
+                        [
+                            parsedKey.guildId,
+                            parsedKey.userId,
+                            wallet,
+                            bank,
+                            persistedData
+                        ]
+                    );
+
+                    return true;
+                }
+
+                case 'afk_status':
                     await this.pool.query(
                         `INSERT INTO ${pgConfig.tables.guilds} (id, created_at) 
                          VALUES ($1, CURRENT_TIMESTAMP) 
