@@ -1,0 +1,166 @@
+name: Deploy Niko to PC
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: niko-pc-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Prepare deployment
+        shell: cmd
+        run: |
+          cd /d D:\Niko
+          set PM2_HOME=C:\ProgramData\pm2\home
+          git config --global --add safe.directory D:\Niko
+
+          if not exist D:\Niko\.git (
+            echo ERROR: D:\Niko is not a Git repository.
+            exit /b 1
+          )
+
+          git fetch origin main
+          if errorlevel 1 exit /b 1
+
+          if exist D:\Niko-staging rmdir /s /q D:\Niko-staging
+          if exist D:\Niko-staging.zip del /q D:\Niko-staging.zip
+
+          mkdir D:\Niko-staging
+          git archive origin/main -o D:\Niko-staging.zip
+          if errorlevel 1 exit /b 1
+
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath 'D:\Niko-staging.zip' -DestinationPath 'D:\Niko-staging' -Force"
+          if errorlevel 1 exit /b 1
+
+          del /q D:\Niko-staging.zip
+
+          copy /y D:\Niko\.env D:\Niko-staging\.env >nul
+          if errorlevel 1 exit /b 1
+
+          fc /b D:\Niko\package-lock.json D:\Niko-staging\package-lock.json >nul 2>&1
+          if not errorlevel 1 goto DEPENDENCIES_READY
+
+          echo package-lock.json changed. Installing dependencies in staging...
+          cd /d D:\Niko-staging
+          call npm ci --prefer-offline --no-audit --no-fund
+          if errorlevel 1 exit /b 1
+          goto DEPENDENCIES_DONE
+
+          :DEPENDENCIES_READY
+          if not exist D:\Niko\node_modules (
+            echo node_modules is missing. Installing dependencies in staging...
+            cd /d D:\Niko-staging
+            call npm ci --prefer-offline --no-audit --no-fund
+            if errorlevel 1 exit /b 1
+            goto DEPENDENCIES_DONE
+          )
+
+          echo package-lock.json unchanged. Reusing existing node_modules.
+          robocopy D:\Niko\node_modules D:\Niko-staging\node_modules /E /NFL /NDL /NJH /NJS /NC /NS /NP
+          if errorlevel 8 exit /b 1
+
+          :DEPENDENCIES_DONE
+          echo Staging deployment prepared successfully.
+
+      - name: Switch to staged version
+        shell: cmd
+        run: |
+          set PM2_HOME=C:\ProgramData\pm2\home
+
+          if exist D:\Niko-previous rmdir /s /q D:\Niko-previous
+          if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
+
+          call pm2 stop niko
+          if errorlevel 1 exit /b 1
+
+          ren D:\Niko Niko-previous
+          if errorlevel 1 (
+            call pm2 restart niko --update-env
+            exit /b 1
+          )
+
+          ren D:\Niko-staging Niko
+          if errorlevel 1 (
+            ren D:\Niko-previous Niko
+            call pm2 restart niko --update-env
+            exit /b 1
+          )
+
+          robocopy D:\Niko-previous\.git D:\Niko\.git /E /NFL /NDL /NJH /NJS /NC /NS /NP
+          if errorlevel 8 (
+            ren D:\Niko Niko-staging
+            ren D:\Niko-previous Niko
+            call pm2 restart niko --update-env
+            exit /b 1
+          )
+
+          cd /d D:\Niko
+          git config --global --add safe.directory D:\Niko
+          git fetch origin main
+          if errorlevel 1 exit /b 1
+          git reset --hard origin/main
+          if errorlevel 1 exit /b 1
+
+          call pm2 restart niko --update-env
+          if errorlevel 1 exit /b 1
+
+      - name: Verify Niko is ready
+        shell: cmd
+        run: |
+          for /L %%I in (1,1,30) do (
+            curl.exe -fsS http://127.0.0.1:3000/ready >nul 2>&1
+            if not errorlevel 1 (
+              echo Niko readiness check passed.
+              exit /b 0
+            )
+            timeout /t 2 /nobreak >nul
+          )
+          echo Niko did not become ready on port 3000.
+          exit /b 1
+
+      - name: Ensure daily database backup task
+        shell: cmd
+        run: |
+          if not exist D:\Niko\scripts\backup-db.ps1 (
+            echo Backup script not found; skipping scheduled task setup.
+            exit /b 0
+          )
+
+          schtasks /Create /TN "Niko Database Backup" /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\Niko\scripts\backup-db.ps1" /SC DAILY /ST 03:00 /RU SYSTEM /F
+          if errorlevel 1 exit /b 1
+          echo Daily Niko database backup task is configured.
+
+      - name: Cleanup previous version
+        if: success()
+        shell: cmd
+        run: |
+          if exist D:\Niko-previous rmdir /s /q D:\Niko-previous
+          if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
+          if exist D:\Niko-staging rmdir /s /q D:\Niko-staging
+
+      - name: Roll back failed switch
+        if: failure()
+        shell: cmd
+        run: |
+          set PM2_HOME=C:\ProgramData\pm2\home
+
+          if exist D:\Niko-previous (
+            call pm2 stop niko >nul 2>&1
+            if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
+            if exist D:\Niko ren D:\Niko Niko-failed
+            ren D:\Niko-previous Niko
+            call pm2 restart niko --update-env
+          )
+
+          if exist D:\Niko-staging rmdir /s /q D:\Niko-staging
+          if exist D:\Niko-failed rmdir /s /q D:\Niko-failed
