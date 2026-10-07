@@ -3,6 +3,7 @@ name: Deploy Niko to PC
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 concurrency:
   group: niko-pc-production
