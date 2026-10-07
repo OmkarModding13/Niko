@@ -18,58 +18,42 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Deploy latest main
+      - name: Check PC Git state
         shell: cmd
         run: |
           cd /d D:\Niko
-          set PM2_HOME=C:\ProgramData\pm2\home
           git config --global --add safe.directory D:\Niko
+          if not exist D:\Niko\.git exit /b 1
+          git status --short
+          git rev-parse HEAD
 
-          if not exist D:\Niko\.git (
-            echo ERROR: D:\Niko is not a Git repository.
-            exit /b 1
-          )
-
-          for /f "delims=" %%A in ('git rev-parse HEAD') do set PREVIOUS_SHA=%%A
-
+      - name: Fetch GitHub main
+        shell: cmd
+        run: |
+          cd /d D:\Niko
           git fetch origin main --verbose
-          if errorlevel 1 exit /b 1
 
-          git diff --quiet %PREVIOUS_SHA% origin/main -- package-lock.json
-          set LOCK_CHANGED=%ERRORLEVEL%
-
+      - name: Update PC code
+        shell: cmd
+        run: |
+          cd /d D:\Niko
           git reset --hard origin/main
-          if errorlevel 1 exit /b 1
 
-          if "%LOCK_CHANGED%"=="0" goto DEPENDENCIES_READY
-
-          echo package-lock.json changed. Updating dependencies...
+      - name: Initialize PM2
+        shell: cmd
+        run: |
+          set PM2_HOME=C:\ProgramData\pm2\home
+          echo PM2_HOME=%PM2_HOME%
+          where pm2
           call pm2 resurrect
-          call pm2 stop niko >nul 2>&1
-
-          call npm ci --prefer-offline --no-audit --no-fund
-          if errorlevel 1 (
-            echo Dependency installation failed. Rolling back code...
-            git reset --hard %PREVIOUS_SHA%
-            call pm2 resurrect
-            call pm2 restart niko --update-env
-            exit /b 1
-          )
-
-          :DEPENDENCIES_READY
-          echo Initializing shared PM2 state...
-          call pm2 resurrect
-          if errorlevel 1 (
-            echo PM2 resurrect failed.
-            exit /b 1
-          )
-
           call pm2 status
-          if errorlevel 1 exit /b 1
 
-          echo Restarting Niko...
+      - name: Restart Niko
+        shell: cmd
+        run: |
+          set PM2_HOME=C:\ProgramData\pm2\home
           call pm2 restart niko --update-env
-          if errorlevel 1 exit /b 1
+          call pm2 status
 
       - name: Verify Niko is ready
         shell: cmd
@@ -88,11 +72,5 @@ jobs:
       - name: Ensure daily database backup task
         shell: cmd
         run: |
-          if not exist D:\Niko\scripts\backup-db.ps1 (
-            echo Backup script not found; skipping scheduled task setup.
-            exit /b 0
-          )
-
+          if not exist D:\Niko\scripts\backup-db.ps1 exit /b 0
           schtasks /Create /TN "Niko Database Backup" /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\Niko\scripts\backup-db.ps1" /SC DAILY /ST 03:00 /RU SYSTEM /F
-          if errorlevel 1 exit /b 1
-          echo Daily Niko database backup task is configured.
