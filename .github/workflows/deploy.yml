@@ -18,34 +18,55 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Check PC Git state
-        shell: cmd
-        run: |
-          cd /d D:\Niko
-          git config --global --add safe.directory D:\Niko
-          if not exist D:\Niko\.git exit /b 1
-          git status --short
-          git rev-parse HEAD
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+          path: niko-checkout
 
-      - name: Fetch GitHub main
+      - name: Deploy code to D drive
         shell: cmd
         run: |
-          cd /d D:\Niko
-          git fetch origin main --verbose
+          set PM2_HOME=C:\ProgramData\pm2\home
+          set CHECKOUT=%GITHUB_WORKSPACE%\niko-checkout
 
-      - name: Update PC code
-        shell: cmd
-        run: |
+          if not exist "%CHECKOUT%\package.json" (
+            echo ERROR: GitHub checkout is missing package.json.
+            exit /b 1
+          )
+
+          if exist D:\Niko\package-lock.json (
+            fc /b D:\Niko\package-lock.json "%CHECKOUT%\package-lock.json" >nul 2>&1
+            set LOCK_CHANGED=%ERRORLEVEL%
+          ) else (
+            set LOCK_CHANGED=1
+          )
+
+          echo Copying latest code to D:\Niko...
+          robocopy "%CHECKOUT%" "D:\Niko" /E /XD node_modules .git /XF .env /NFL /NDL /NJH /NJS /NC /NS /NP
+          if errorlevel 8 exit /b 1
+
+          if "%LOCK_CHANGED%"=="0" goto DEPENDENCIES_READY
+
+          echo package-lock.json changed. Installing dependencies...
+          call pm2 resurrect >nul 2>&1
+          call pm2 stop niko >nul 2>&1
+
           cd /d D:\Niko
-          git reset --hard origin/main
+          call npm ci --prefer-offline --no-audit --no-fund
+          if errorlevel 1 exit /b 1
+
+          :DEPENDENCIES_READY
+          echo Code deployment complete.
 
       - name: Initialize PM2
         shell: cmd
         run: |
           set PM2_HOME=C:\ProgramData\pm2\home
-          echo PM2_HOME=%PM2_HOME%
-          where pm2
           call pm2 resurrect
+          if errorlevel 1 exit /b 1
           call pm2 status
 
       - name: Restart Niko
@@ -53,6 +74,7 @@ jobs:
         run: |
           set PM2_HOME=C:\ProgramData\pm2\home
           call pm2 restart niko --update-env
+          if errorlevel 1 exit /b 1
           call pm2 status
 
       - name: Verify Niko is ready
