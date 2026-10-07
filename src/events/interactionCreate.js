@@ -397,9 +397,16 @@ export default {
                     client
                   );
 
-                if (isEconomyCommand) {
+                // Never serialize an entire guild's economy behind one promise.
+                // Read-only commands such as /games and /shop must stay responsive,
+                // while state-changing economy/game commands are isolated per user.
+                const bypassEconomyMutex =
+                  interaction.commandName === 'games' ||
+                  interaction.commandName === 'shop';
+
+                if (isEconomyCommand && !bypassEconomyMutex) {
                   await Mutex.runExclusive(
-                    `economy-guild:${interaction.guildId}`,
+                    `economy-user:${interaction.guildId}:${interaction.user.id}`,
                     executeCommand
                   );
                 } else {
