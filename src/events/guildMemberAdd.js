@@ -116,8 +116,8 @@ export default {
                     let welcomeAttachment = null;
 
 const backgroundUrl =
-    welcomeConfig.welcomeImage ||
-    welcomeConfig.welcomeEmbed?.image?.url;
+    welcomeConfig?.welcomeImage ||
+    welcomeConfig?.welcomeEmbed?.image?.url;
 
 if (backgroundUrl) {
     try {
