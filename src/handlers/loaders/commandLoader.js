@@ -24,6 +24,20 @@ const REMOVED_COMMANDS = new Set([
 // Everything else is registered as Administrator-only (unless the command
 // explicitly declares a stricter permission). Server owners inherit Admin.
 const PUBLIC_COMMANDS = new Set([
+    // General member-facing commands (safe for the default @everyone role).
+    'help',
+    'ping',
+    'uptime',
+    'avatar',
+    'userinfo',
+    'serverinfo',
+    'weather',
+    'time',
+    'calculate',
+    'poll',
+    'count',
+    'flip',
+    'roll',
     'rank',
     'games',
     'shop',

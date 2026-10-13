@@ -24,9 +24,27 @@ export default {
         const welcomeChannelId = welcomeConfig?.channelId;
 
         if (welcomeConfig?.enabled && welcomeChannelId) {
-            const channel = guild.channels.cache.get(welcomeChannelId);
-            const me = guild.members.me;
+            // Fetch on cache miss so a valid configured channel is not silently skipped.
+            const channel = guild.channels.cache.get(welcomeChannelId)
+                || await guild.channels.fetch(welcomeChannelId).catch((error) => {
+                    logger.warn('Configured welcome channel could not be fetched', {
+                        guildId: guild.id,
+                        channelId: welcomeChannelId,
+                        error: error.message,
+                    });
+                    return null;
+                });
+            const me = guild.members.me || await guild.members.fetchMe().catch(() => null);
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
+            if (!channel || !permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                logger.warn('Welcome message skipped: configured channel is missing or bot lacks View Channel / Send Messages permissions', {
+                    guildId: guild.id,
+                    channelId: welcomeChannelId,
+                    channelFound: Boolean(channel),
+                    botMemberFound: Boolean(me),
+                    welcomeEnabled: welcomeConfig.enabled,
+                });
+            }
             // Skip only the welcome message if permissions are missing; the rest of the
             // join pipeline (auto-role, verification, logging, counters) must still run.
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
