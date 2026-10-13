@@ -98,3 +98,12 @@ jobs:
         run: |
           if not exist D:\Niko\scripts\backup-db.ps1 exit /b 0
           schtasks /Create /TN "Niko Database Backup" /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\Niko\scripts\backup-db.ps1" /SC DAILY /ST 03:00 /RU SYSTEM /F
+
+      
+      - name: Diagnose live Discord commands and member-join logs
+        shell: cmd
+        continue-on-error: true
+        run: |
+          set PM2_HOME=C:\\ProgramData\\pm2\\home
+          cd /d D:\\Niko
+          call node scripts\\diagnose-live.js

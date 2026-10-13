@@ -77,10 +77,11 @@ const PUBLIC_COMMANDS = new Set([
     'next-birthdays',
 ]);
 
+// Configuration/moderation areas should never become public just because a
+// command was missing from the former public allowlist.
 const ADMIN_ONLY_COMMANDS = new Set([
-    // Moderation and server-management commands.
     'announce', 'removebankprotection', 'app-admin', 'commands',
-    'configWizard', 'colorrole-expiry', 'postearninfo', 'postrules',
+    'configwizard', 'colorrole-expiry', 'postearninfo', 'postrules',
     'shop-config', 'resetcharacters', 'leveladd', 'levelremove',
     'levelset', 'postlevelinfo', 'postroleinfo', 'xpgive',
     'logging', 'ban', 'cases', 'dm', 'kick', 'lock', 'massban',
@@ -90,17 +91,28 @@ const ADMIN_ONLY_COMMANDS = new Set([
     'postnotify', 'autorole', 'greet', 'welcome', 'autoverify',
     'verification',
 ]);
+const ADMIN_ONLY_CATEGORIES = new Set([
+    'admin', 'moderation', 'logging', 'serverstats',
+    'jointocreate', 'reaction_roles', 'welcome',
+]);
 
-function applyCommandVisibility(command) {
-    const name = command.data?.name;
-    if (ADMIN_ONLY_COMMANDS.has(name)) {
+function applyCommandVisibility(command, category) {
+    const name = String(command.data?.name || '').toLowerCase();
+
+    // Keep a stricter permission explicitly configured by the command itself.
+    const configuredPermissions = command.data?.toJSON?.().default_member_permissions;
+    if (configuredPermissions !== undefined && configuredPermissions !== null) {
+        return;
+    }
+
+    if (ADMIN_ONLY_COMMANDS.has(name) ||
+        ADMIN_ONLY_CATEGORIES.has(String(category || '').toLowerCase())) {
         command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
         return;
     }
 
-    // Default to visible for regular members. Admin-only commands must be
-    // explicitly listed above; an incomplete allowlist hides commands from
-    // every non-admin member in Discord's slash-command picker.
+    // Member-facing commands are public unless their definition declares
+    // stricter permissions. Do not use an incomplete public allowlist.
     command.data.setDefaultMemberPermissions(null);
 }
 
