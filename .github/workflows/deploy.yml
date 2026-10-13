@@ -105,6 +105,5 @@ jobs:
         continue-on-error: true
         run: |
           set PM2_HOME=C:\\ProgramData\\pm2\\home
-          set NIKO_DIAG_GUILDS=1
           cd /d D:\\Niko
           call node scripts\\diagnose-live.js

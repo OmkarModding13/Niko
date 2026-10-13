@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import appConfig from '../src/config/application.js';
 import { Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 
@@ -64,6 +66,16 @@ if (token) {
             }
             const perms = command.data.toJSON().default_member_permissions;
             console.log(`[DIAG] localSourceCommand ${name}=${perms === undefined ? 'UNSET/PUBLIC' : perms === null ? 'PUBLIC' : perms}`);
+        }
+        const liveForCompare = await new REST({ version: '10' }).setToken(token).get(Routes.applicationCommands(clientId));
+        const liveByName = new Map(liveForCompare.map((command) => [command.name, command]));
+        for (const name of ['games', 'shop', 'quickcoin', 'daily', 'balance', 'fight', 'buy', 'inventory', 'todo', 'count', 'economy', 'level', 'verify']) {
+            const sourceCommand = sourceClient.commands.get(name);
+            const liveCommand = liveByName.get(name);
+            const label = (value) => value === undefined ? 'MISSING/UNSET' : value === null ? 'PUBLIC' : String(value);
+            const sourcePerm = sourceCommand?.data?.toJSON?.().default_member_permissions;
+            const livePerm = liveCommand?.default_member_permissions;
+            console.log(`[DIAG] permissionCompare ${name}: source=${label(sourcePerm)} live=${label(livePerm)} match=${Boolean(sourceCommand && liveCommand) && label(sourcePerm) === label(livePerm)}`);
         }
     } catch (error) {
         console.error(`[DIAG] Local command build failed: ${String(error.message || error).slice(0, 250)}`);
@@ -136,6 +148,34 @@ if (token && clientId && process.env.NIKO_DIAG_GUILDS === '1') {
 }
 
 const pm2Home = process.env.PM2_HOME || 'C:\\ProgramData\\pm2\\home';
+try {
+    const processList = JSON.parse(execFileSync('pm2', ['jlist'], {
+        encoding: 'utf8',
+        windowsHide: true,
+        env: { ...process.env, PM2_HOME: pm2Home },
+    }));
+    const nikoProcess = processList.find((item) => String(item.name || '').toLowerCase() === 'niko');
+    if (!nikoProcess) {
+        console.log('[DIAG] pm2NikoProcess=NOT_FOUND');
+    } else {
+        const pm2Env = nikoProcess.pm2_env || {};
+        const runtimeCwd = pm2Env.pm_cwd || '(unknown)';
+        const runtimeScript = pm2Env.pm_exec_path || '(unknown)';
+        const deployedLoader = path.join(process.cwd(), 'src', 'handlers', 'loaders', 'commandLoader.js');
+        const runtimeLoader = runtimeCwd === '(unknown)' ? '' : path.join(runtimeCwd, 'src', 'handlers', 'loaders', 'commandLoader.js');
+        const hashFile = (filePath) => {
+            try { return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex').slice(0, 16); }
+            catch { return 'UNREADABLE'; }
+        };
+        const deployedHash = hashFile(deployedLoader);
+        const runtimeHash = runtimeLoader ? hashFile(runtimeLoader) : 'UNREADABLE';
+        console.log(`[DIAG] pm2Niko status=${pm2Env.status || 'unknown'} pid=${nikoProcess.pid} restarts=${pm2Env.restart_time} cwd=${runtimeCwd} script=${runtimeScript}`);
+        console.log(`[DIAG] runtimeLoaderSameAsDDrive=${deployedHash !== 'UNREADABLE' && deployedHash === runtimeHash} deployedLoaderHash=${deployedHash} runtimeLoaderHash=${runtimeHash}`);
+    }
+} catch (error) {
+    console.log(`[DIAG] pm2 inspection failed: ${String(error.message || error).slice(0, 250)}`);
+}
+
 const logDir = path.join(pm2Home, 'logs');
 const safePatterns = [
     /Logged in as /i,
