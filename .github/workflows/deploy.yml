@@ -63,6 +63,13 @@ jobs:
           echo Code deployment complete.
           exit /b 0
 
+      - name: Validate personalized welcome banner generation
+        shell: cmd
+        run: |
+          cd /d D:\\Niko
+          call node scripts\\test-welcome-banner.js
+          if errorlevel 1 exit /b 1
+
       - name: Initialize PM2
         shell: cmd
         run: |

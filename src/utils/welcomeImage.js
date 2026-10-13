@@ -74,16 +74,29 @@ export async function generateWelcomeImage({
     memberCount
 }) {
     // Always produce a banner. Use the configured artwork when it works;
-    // otherwise fall back to a built-in dark-blue fantasy design.
-    const backgroundBuffer = await loadBackground(backgroundUrl);
-
-    const background = await sharp(backgroundBuffer)
-        .resize(1200, 500, {
-            fit: 'cover',
-            position: 'centre'
-        })
-        .png()
-        .toBuffer();
+    // otherwise fall back to a built-in dark-blue fantasy design. Also fall
+    // back if a custom URL responds successfully but isn't a valid image.
+    let background;
+    try {
+        const backgroundBuffer = await loadBackground(backgroundUrl);
+        background = await sharp(backgroundBuffer)
+            .resize(1200, 500, {
+                fit: 'cover',
+                position: 'centre'
+            })
+            .png()
+            .toBuffer();
+    } catch (error) {
+        if (!backgroundUrl) throw error;
+        console.warn(`[WelcomeImage] Custom background was invalid; using built-in design: ${error.message}`);
+        background = await sharp(DEFAULT_WELCOME_BACKGROUND)
+            .resize(1200, 500, {
+                fit: 'cover',
+                position: 'centre'
+            })
+            .png()
+            .toBuffer();
+    }
 
     // Avatar
     const avatarSize = 300;
