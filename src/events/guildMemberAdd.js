@@ -124,8 +124,9 @@ export default {
             });
 
             let welcomeAttachment = null;
-            const backgroundUrl = welcomeConfig?.welcomeImage || welcomeConfig?.welcomeEmbed?.image?.url;
-            if (backgroundUrl && permissions.has(PermissionFlagsBits.EmbedLinks)) {
+            const backgroundUrl = welcomeConfig?.welcomeImage || welcomeConfig?.welcomeEmbed?.image?.url || null;
+            const canAttachFiles = permissions.has(PermissionFlagsBits.AttachFiles);
+            if (canAttachFiles) {
                 try {
                     const imageBuffer = await generateWelcomeImage({
                         backgroundUrl,
@@ -134,12 +135,25 @@ export default {
                         memberCount: guild.memberCount,
                     });
                     welcomeAttachment = new AttachmentBuilder(imageBuffer, { name: 'welcome.png' });
-                } catch (error) {
-                    logger.error('[Welcome] Failed to generate dynamic welcome image; sending text only', {
+                    logger.info('[Welcome] Personalized banner generated', {
                         guildId: guild.id,
+                        memberId: user.id,
+                        memberCount: guild.memberCount,
+                        customBackground: Boolean(backgroundUrl),
+                    });
+                } catch (error) {
+                    logger.error('[Welcome] Failed to generate personalized banner', {
+                        guildId: guild.id,
+                        memberId: user.id,
                         error: error.message,
                     });
                 }
+            } else {
+                logger.warn('[Welcome] Banner omitted because Niko lacks Attach Files permission', {
+                    guildId: guild.id,
+                    channelId: channel.id,
+                    channelName: channel.name,
+                });
             }
 
             try {
