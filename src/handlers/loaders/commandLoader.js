@@ -57,6 +57,24 @@ const PUBLIC_COMMANDS = new Set([
     'deposit',
     'withdraw',
     'flex',
+    // Other player-facing game, economy, leveling, fun and utility commands.
+    'fight',
+    'buy',
+    'inventory',
+    'economy',
+    'eleaderboard',
+    'walletrob',
+    'give',
+    'leaderboard',
+    'level',
+    'countdown',
+    'todo',
+    'search',
+    'character-info',
+    'verify',
+    'birthday-info',
+    'birthday-list',
+    'next-birthdays',
 ]);
 
 function applyCommandVisibility(command) {
