@@ -11,7 +11,16 @@ export default {
         try {
             logger.info(`Logged in as ${client.user.tag}`);
 
+            // Explicitly publish an online presence after login. A configured
+            // presence elsewhere is not applied automatically by discord.js.
+            client.user.setPresence({
+                status: 'online',
+                activities: [{ name: 'stalking', type: 3 }],
+            });
+            logger.info('[Presence] Set Niko status to online');
+
             const guilds = [...client.guilds.cache.values()];
+            logger.info(`[Ready] Niko is connected to ${guilds.length} guild(s): ${guilds.map(guild => guild.id).join(', ') || 'none'}`);
 
             // Warm configuration cache and refresh auto-ban panels in parallel.
             // This keeps the first real message/command from paying the initial
