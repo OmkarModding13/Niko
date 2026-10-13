@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import appConfig from '../src/config/application.js';
-import { REST, Routes } from 'discord.js';
+import { Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
 
 const token = appConfig.bot.token;
 const clientId = appConfig.bot.clientId;
@@ -48,6 +48,91 @@ if (token && clientId) {
 } else {
     console.error('[DIAG] Cannot query Discord because CLIENT_ID or DISCORD_TOKEN/TOKEN is missing in D:\\Niko environment.');
     process.exitCode = 1;
+}
+
+// Compare the commands produced by the checked-out source with the live API.
+if (token) {
+    try {
+        const { loadCommands } = await import('../src/handlers/loaders/commandLoader.js');
+        const sourceClient = {};
+        await loadCommands(sourceClient);
+        for (const name of ['games', 'shop', 'quickcoin', 'daily', 'balance', 'fight', 'buy', 'inventory', 'todo', 'count', 'economy', 'level', 'verify']) {
+            const command = sourceClient.commands.get(name);
+            if (!command) {
+                console.log(`[DIAG] localSourceCommand ${name}=MISSING`);
+                continue;
+            }
+            const perms = command.data.toJSON().default_member_permissions;
+            console.log(`[DIAG] localSourceCommand ${name}=${perms === undefined ? 'UNSET/PUBLIC' : perms === null ? 'PUBLIC' : perms}`);
+        }
+    } catch (error) {
+        console.error(`[DIAG] Local command build failed: ${String(error.message || error).slice(0, 250)}`);
+    }
+}
+
+// This one-run probe uses the authorized runner's bot token to inspect actual
+// guilds/channels and try reading per-guild command overrides. It is enabled
+// only by NIKO_DIAG_GUILDS=1 in the deployment workflow.
+if (token && clientId && process.env.NIKO_DIAG_GUILDS === '1') {
+    const gateway = new Client({ intents: [GatewayIntentBits.Guilds] });
+    let readyTimer;
+    try {
+        const ready = new Promise((resolve, reject) => {
+            gateway.once(Events.ClientReady, resolve);
+            gateway.once('error', reject);
+            readyTimer = setTimeout(() => reject(new Error('Gateway ready timeout')), 20000);
+        });
+        await gateway.login(token);
+        await ready;
+        clearTimeout(readyTimer);
+        const targetNames = new Set(['help', 'ping', 'games', 'shop', 'quickcoin', 'daily', 'balance', 'fight', 'buy', 'inventory', 'todo', 'verify']);
+        const commandNamesById = new Map();
+        try {
+            const globalCommands = await new REST({ version: '10' }).setToken(token).get(Routes.applicationCommands(clientId));
+            for (const command of globalCommands) commandNamesById.set(command.id, command.name);
+        } catch {}
+
+        for (const guild of gateway.guilds.cache.values()) {
+            const systemChannel = guild.systemChannel || null;
+            console.log(`[DIAG] guild id=${guild.id} name=${guild.name} memberCount=${guild.memberCount} systemChannel=${systemChannel?.name || '(none)'} systemChannelId=${guild.systemChannelId || '(none)'}`);
+            const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
+            const matchingChannels = [...guild.channels.cache.values()].filter((channel) => {
+                if (!channel?.isTextBased?.()) return false;
+                const name = String(channel.name || '').normalize('NFKD').toLowerCase();
+                return /welcome|new.?member|arrival|greet|general|chat|rules|lobby|start|announc/.test(name);
+            });
+            for (const channel of matchingChannels) {
+                const perms = botMember ? channel.permissionsFor(botMember) : null;
+                console.log(`[DIAG] candidateChannel guild=${guild.id} name=${channel.name} id=${channel.id} canView=${Boolean(perms?.has('ViewChannel'))} canSend=${Boolean(perms?.has('SendMessages'))}`);
+            }
+            const likelyRoles = [...guild.roles.cache.values()].filter((role) => role.id !== guild.id && /member|verified|guest|new user|community/i.test(role.name));
+            console.log(`[DIAG] likelyMemberRoles guild=${guild.id} ${likelyRoles.map((role) => `${role.name}:${role.id}`).join(', ') || '(none found by name)'}`);
+
+            try {
+                const overrides = await new REST({ version: '10' }).setToken(token)
+                    .get(`/applications/${clientId}/guilds/${guild.id}/commands/permissions`);
+                const entries = Array.isArray(overrides) ? overrides : (overrides?.permissions || []);
+                let shown = 0;
+                for (const entry of entries) {
+                    const name = commandNamesById.get(entry.id);
+                    if (!targetNames.has(name)) continue;
+                    const permissions = (entry.permissions || []).map((item) => `${item.type}:${item.id}=${item.permission}`).join(',');
+                    if (permissions) {
+                        console.log(`[DIAG] guildCommandOverride guild=${guild.id} command=${name} ${permissions}`);
+                        shown++;
+                    }
+                }
+                console.log(`[DIAG] guildCommandOverrides guild=${guild.id} targetedOverrides=${shown}`);
+            } catch (error) {
+                console.log(`[DIAG] guildCommandOverrides guild=${guild.id} unavailable status=${error.status || 'unknown'} message=${String(error.message || error).slice(0, 180)}`);
+            }
+        }
+    } catch (error) {
+        console.error(`[DIAG] Guild/channel probe failed: ${String(error.message || error).slice(0, 250)}`);
+    } finally {
+        if (readyTimer) clearTimeout(readyTimer);
+        gateway.destroy();
+    }
 }
 
 const pm2Home = process.env.PM2_HOME || 'C:\\ProgramData\\pm2\\home';

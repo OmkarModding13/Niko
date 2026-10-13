@@ -35,7 +35,6 @@ const PUBLIC_COMMANDS = new Set([
     'time',
     'calculate',
     'poll',
-    'count',
     'flip',
     'roll',
     'rank',
@@ -61,16 +60,13 @@ const PUBLIC_COMMANDS = new Set([
     'fight',
     'buy',
     'inventory',
-    'economy',
     'eleaderboard',
     'walletrob',
     'give',
     'leaderboard',
-    'level',
     'countdown',
     'todo',
     'search',
-    'character-info',
     'verify',
     'birthday-info',
     'birthday-list',
@@ -98,21 +94,31 @@ const ADMIN_ONLY_CATEGORIES = new Set([
 
 function applyCommandVisibility(command, category) {
     const name = String(command.data?.name || '').toLowerCase();
+    const normalizedCategory = String(category || '').toLowerCase();
 
-    // Keep a stricter permission explicitly configured by the command itself.
+    // An explicitly approved member command is public. Management commands
+    // are kept out of PUBLIC_COMMANDS so this does not override their intended
+    // Manage Server/Administrator permissions.
+    if (PUBLIC_COMMANDS.has(name) &&
+        !ADMIN_ONLY_COMMANDS.has(name) &&
+        !ADMIN_ONLY_CATEGORIES.has(normalizedCategory)) {
+        command.data.setDefaultMemberPermissions(null);
+        return;
+    }
+
+    // Preserve any stricter permission declared explicitly by a command.
     const configuredPermissions = command.data?.toJSON?.().default_member_permissions;
     if (configuredPermissions !== undefined && configuredPermissions !== null) {
         return;
     }
 
-    if (ADMIN_ONLY_COMMANDS.has(name) ||
-        ADMIN_ONLY_CATEGORIES.has(String(category || '').toLowerCase())) {
+    if (ADMIN_ONLY_COMMANDS.has(name) || ADMIN_ONLY_CATEGORIES.has(normalizedCategory)) {
         command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
         return;
     }
 
-    // Member-facing commands are public unless their definition declares
-    // stricter permissions. Do not use an incomplete public allowlist.
+    // Unclassified commands are public by default, rather than being hidden
+    // because a manually maintained allowlist missed a new player command.
     command.data.setDefaultMemberPermissions(null);
 }
 

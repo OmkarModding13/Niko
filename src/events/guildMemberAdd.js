@@ -37,113 +37,132 @@ export default {
             });
         }
 
-        // If welcome settings are absent/disabled, use the server's system channel
-        // so new members still receive a welcome when that channel permits it.
-        const welcomeChannelId = welcomeConfig?.channelId || guild.systemChannelId || null;
+        const configuredChannelId = welcomeConfig?.channelId || null;
+        let configuredChannel = null;
+        if (configuredChannelId) {
+            configuredChannel = guild.channels.cache.get(configuredChannelId)
+                || await guild.channels.fetch(configuredChannelId).catch((error) => {
+                    logger.error('[Welcome] Configured channel could not be fetched; trying fallback channels', {
+                        guildId: guild.id,
+                        channelId: configuredChannelId,
+                        error: error.message,
+                    });
+                    return null;
+                });
+        }
+
+        const botMember = guild.members.me || await guild.members.fetchMe().catch((error) => {
+            logger.error('[Welcome] Could not fetch bot member for permission checks', {
+                guildId: guild.id,
+                error: error.message,
+            });
+            return null;
+        });
+
+        const fallbackCandidates = [
+            findWelcomeChannel(guild, ['welcome']),
+            findWelcomeChannel(guild, ['new-member']),
+            findWelcomeChannel(guild, ['arrival']),
+            guild.systemChannel || (guild.systemChannelId ? guild.channels.cache.get(guild.systemChannelId) : null),
+            findWelcomeChannel(guild, ['general']),
+            findWelcomeChannel(guild, ['chat']),
+        ];
+        const candidates = [configuredChannel, ...fallbackCandidates]
+            .filter((channel, index, all) => channel && all.indexOf(channel) === index);
+
+        let channel = null;
+        let permissions = null;
+        const unavailableCandidates = [];
+
+        for (const candidate of candidates) {
+            if (!candidate?.isTextBased?.()) continue;
+            const candidatePermissions = botMember ? candidate.permissionsFor(botMember) : null;
+            const canView = candidatePermissions?.has(PermissionFlagsBits.ViewChannel) ?? false;
+            const canSend = candidatePermissions?.has(PermissionFlagsBits.SendMessages) ?? false;
+            if (canView && canSend) {
+                channel = candidate;
+                permissions = candidatePermissions;
+                break;
+            }
+            unavailableCandidates.push({
+                channelId: candidate.id,
+                channelName: candidate.name,
+                canView,
+                canSend,
+            });
+        }
 
         logger.info('[Welcome] Member join received', {
             guildId: guild.id,
             guildName: guild.name,
             memberId: user.id,
             welcomeEnabled: Boolean(welcomeConfig?.enabled),
-            welcomeChannelId: welcomeChannelId || null,
+            configuredChannelId,
+            selectedChannelId: channel?.id || null,
+            selectedChannelName: channel?.name || null,
         });
 
-        if (!welcomeChannelId) {
-            logger.warn('[Welcome] Message not sent because welcome is disabled or no channel is configured', {
+        if (!channel) {
+            logger.warn('[Welcome] Message not sent: no configured/system/welcome/general/chat channel allows Niko to send', {
                 guildId: guild.id,
                 welcomeEnabled: Boolean(welcomeConfig?.enabled),
-                welcomeChannelId: welcomeChannelId || null,
+                configuredChannelId,
+                systemChannelId: guild.systemChannelId || null,
+                unavailableCandidates,
             });
-        }
+        } else {
+            const usedFallback = !configuredChannel || channel.id !== configuredChannel.id;
+            const rulesChannel = findWelcomeChannel(guild, ['rule', '𝚛𝚞𝚕𝚎', '𝚛𝚞𝚕𝚎𝚜']);
+            const chatChannel = findWelcomeChannel(guild, ['chat', '𝚌𝚑𝚊𝚝']);
+            const videoChannel = findWelcomeChannel(guild, ['video-notification', 'video notification']);
+            const rolesChannel = findWelcomeChannel(guild, ['roles-info', 'roles info']);
+            const welcomeMessage = buildWelcomeMessage(guild, user, {
+                rulesChannel,
+                chatChannel,
+                videoChannel,
+                rolesChannel,
+            });
 
-        if (welcomeChannelId) {
-            const channel = guild.channels.cache.get(welcomeChannelId)
-                || await guild.channels.fetch(welcomeChannelId).catch((error) => {
-                    logger.error('[Welcome] Could not fetch configured welcome channel', {
+            let welcomeAttachment = null;
+            const backgroundUrl = welcomeConfig?.welcomeImage || welcomeConfig?.welcomeEmbed?.image?.url;
+            if (backgroundUrl && permissions.has(PermissionFlagsBits.EmbedLinks)) {
+                try {
+                    const imageBuffer = await generateWelcomeImage({
+                        backgroundUrl,
+                        avatarUrl: user.displayAvatarURL({ extension: 'png', size: 256 }),
+                        username: user.username,
+                        memberCount: guild.memberCount,
+                    });
+                    welcomeAttachment = new AttachmentBuilder(imageBuffer, { name: 'welcome.png' });
+                } catch (error) {
+                    logger.error('[Welcome] Failed to generate dynamic welcome image; sending text only', {
                         guildId: guild.id,
-                        channelId: welcomeChannelId,
                         error: error.message,
                     });
-                    return null;
-                });
-            const me = guild.members.me || await guild.members.fetchMe().catch(() => null);
-            const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
-            if (!channel || !permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                logger.error('[Welcome] Message not sent: channel missing or bot lacks View Channel / Send Messages', {
-                    guildId: guild.id,
-                    channelId: welcomeChannelId,
-                    channelFound: Boolean(channel),
-                    botMemberFound: Boolean(me),
-                    canView: permissions?.has(PermissionFlagsBits.ViewChannel) ?? false,
-                    canSend: permissions?.has(PermissionFlagsBits.SendMessages) ?? false,
-                });
-            }
-            // Skip only the welcome message if permissions are missing; the rest of the
-            // join pipeline (auto-role, verification, logging, counters) must still run.
-            if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                const rulesChannel = findWelcomeChannel(
-                    guild,
-                    ['rule', '𝚛𝚞𝚕𝚎', '𝚛𝚞𝚕𝚎𝚜']
-                );
-                const chatChannel = findWelcomeChannel(
-                    guild,
-                    ['chat', '𝚌𝚑𝚊𝚝']
-                );
-                const videoChannel = findWelcomeChannel(
-                    guild,
-                    ['video-notification', 'video notification']
-                );
-                const rolesChannel = findWelcomeChannel(
-                    guild,
-                    ['roles-info', 'roles info']
-                );
-
-                const welcomeMessage = buildWelcomeMessage(guild, user, {
-                    rulesChannel,
-                    chatChannel,
-                    videoChannel,
-                    rolesChannel,
-                });
-
-                const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
-
-                if (!canEmbed) {
-                    await channel.send({
-                        content: welcomeMessage
-                    });
-                } else {
-                    let welcomeAttachment = null;
-
-const backgroundUrl =
-    welcomeConfig?.welcomeImage ||
-    welcomeConfig?.welcomeEmbed?.image?.url;
-
-if (backgroundUrl) {
-    try {
-        const imageBuffer = await generateWelcomeImage({
-            backgroundUrl,
-            avatarUrl: user.displayAvatarURL({ extension: 'png', size: 256 }),
-            username: user.username,
-            memberCount: guild.memberCount
-        });
-
-        welcomeAttachment = new AttachmentBuilder(imageBuffer, {
-            name: 'welcome.png'
-        });
-    } catch (error) {
-        logger.error('Failed to generate dynamic welcome image:', error);
-    }
-}
-
-await channel.send({
-    content: welcomeMessage,
-    files: welcomeAttachment ? [welcomeAttachment] : []
-});
                 }
             }
+
+            try {
+                await channel.send({
+                    content: welcomeMessage,
+                    files: welcomeAttachment ? [welcomeAttachment] : [],
+                });
+                logger.info('[Welcome] Message sent', {
+                    guildId: guild.id,
+                    channelId: channel.id,
+                    channelName: channel.name,
+                    usedFallback,
+                });
+            } catch (error) {
+                logger.error('[Welcome] Failed to send message', {
+                    guildId: guild.id,
+                    channelId: channel.id,
+                    channelName: channel.name,
+                    error: error.message,
+                });
+            }
         }
-        
+
         if (welcomeConfig?.roleIds && welcomeConfig.roleIds.length > 0) {
             const delay = welcomeConfig.autoRoleDelay || 0;
             const singleRoleId = welcomeConfig.roleIds[0];
