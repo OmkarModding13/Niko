@@ -4,7 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import appConfig from '../src/config/application.js';
-import { Client, Events, GatewayIntentBits, REST, Routes } from 'discord.js';
+import { Client, Events, GatewayIntentBits, PermissionFlagsBits, REST, Routes } from 'discord.js';
 
 const token = appConfig.bot.token;
 const clientId = appConfig.bot.clientId;
@@ -104,21 +104,27 @@ if (token && clientId && process.env.NIKO_DIAG_GUILDS === '1') {
             for (const command of globalCommands) commandNamesById.set(command.id, command.name);
         } catch {}
 
+        const requiredChannelIds = new Set([
+            '1547531709959118911', '1550120893982703616',
+            '1551192004241793084', '1551159198425948180',
+        ]);
         for (const guild of gateway.guilds.cache.values()) {
             const systemChannel = guild.systemChannel || null;
             console.log(`[DIAG] guild id=${guild.id} name=${guild.name} memberCount=${guild.memberCount} systemChannel=${systemChannel?.name || '(none)'} systemChannelId=${guild.systemChannelId || '(none)'}`);
             const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
+            console.log(`[DIAG] roles guild=${guild.id}: ${[...guild.roles.cache.values()].map((role) => `${role.name}:${role.id}`).join(' | ')}`);
             const matchingChannels = [...guild.channels.cache.values()].filter((channel) => {
                 if (!channel?.isTextBased?.()) return false;
                 const name = String(channel.name || '').normalize('NFKD').toLowerCase();
-                return /welcome|new.?member|arrival|greet|general|chat|rules|lobby|start|announc/.test(name);
+                return requiredChannelIds.has(channel.id) ||
+                    /welcome|new.?member|arrival|greet|general|chat|rules|lobby|start|announc/.test(name);
             });
             for (const channel of matchingChannels) {
-                const perms = botMember ? channel.permissionsFor(botMember) : null;
-                console.log(`[DIAG] candidateChannel guild=${guild.id} name=${channel.name} id=${channel.id} canView=${Boolean(perms?.has('ViewChannel'))} canSend=${Boolean(perms?.has('SendMessages'))}`);
+                const botPerms = botMember ? channel.permissionsFor(botMember) : null;
+                const everyonePerms = guild.roles.everyone ? channel.permissionsFor(guild.roles.everyone) : null;
+                const everyoneOverwrite = channel.permissionOverwrites?.cache?.get(guild.id);
+                console.log(`[DIAG] candidateChannel guild=${guild.id} name=${channel.name} id=${channel.id} botView=${Boolean(botPerms?.has(PermissionFlagsBits.ViewChannel))} botSend=${Boolean(botPerms?.has(PermissionFlagsBits.SendMessages))} everyoneView=${Boolean(everyonePerms?.has(PermissionFlagsBits.ViewChannel))} everyoneSend=${Boolean(everyonePerms?.has(PermissionFlagsBits.SendMessages))} everyoneUseAppCommands=${Boolean(everyonePerms?.has(PermissionFlagsBits.UseApplicationCommands))} everyoneOverwriteAllow=${everyoneOverwrite?.allow?.bitfield?.toString?.() || '0'} everyoneOverwriteDeny=${everyoneOverwrite?.deny?.bitfield?.toString?.() || '0'}`);
             }
-            const likelyRoles = [...guild.roles.cache.values()].filter((role) => role.id !== guild.id && /member|verified|guest|new user|community/i.test(role.name));
-            console.log(`[DIAG] likelyMemberRoles guild=${guild.id} ${likelyRoles.map((role) => `${role.name}:${role.id}`).join(', ') || '(none found by name)'}`);
 
             try {
                 const overrides = await new REST({ version: '10' }).setToken(token)
@@ -149,7 +155,7 @@ if (token && clientId && process.env.NIKO_DIAG_GUILDS === '1') {
 
 const pm2Home = process.env.PM2_HOME || 'C:\\ProgramData\\pm2\\home';
 try {
-    const processList = JSON.parse(execFileSync('pm2', ['jlist'], {
+    const processList = JSON.parse(execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'pm2 jlist'], {
         encoding: 'utf8',
         windowsHide: true,
         env: { ...process.env, PM2_HOME: pm2Home },
