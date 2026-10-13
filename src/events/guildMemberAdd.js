@@ -20,13 +20,46 @@ export default {
         const config = await getGuildConfig(member.client, guild.id);
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
-        
         const welcomeChannelId = welcomeConfig?.channelId;
 
+        logger.info('[Welcome] Member join received', {
+            guildId: guild.id,
+            guildName: guild.name,
+            memberId: user.id,
+            welcomeEnabled: Boolean(welcomeConfig?.enabled),
+            welcomeChannelId: welcomeChannelId || null,
+        });
+
+        if (!welcomeConfig?.enabled || !welcomeChannelId) {
+            logger.warn('[Welcome] Message not sent because welcome is disabled or no channel is configured', {
+                guildId: guild.id,
+                welcomeEnabled: Boolean(welcomeConfig?.enabled),
+                welcomeChannelId: welcomeChannelId || null,
+            });
+        }
+
         if (welcomeConfig?.enabled && welcomeChannelId) {
-            const channel = guild.channels.cache.get(welcomeChannelId);
-            const me = guild.members.me;
+            const channel = guild.channels.cache.get(welcomeChannelId)
+                || await guild.channels.fetch(welcomeChannelId).catch((error) => {
+                    logger.error('[Welcome] Could not fetch configured welcome channel', {
+                        guildId: guild.id,
+                        channelId: welcomeChannelId,
+                        error: error.message,
+                    });
+                    return null;
+                });
+            const me = guild.members.me || await guild.members.fetchMe().catch(() => null);
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
+            if (!channel || !permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                logger.error('[Welcome] Message not sent: channel missing or bot lacks View Channel / Send Messages', {
+                    guildId: guild.id,
+                    channelId: welcomeChannelId,
+                    channelFound: Boolean(channel),
+                    botMemberFound: Boolean(me),
+                    canView: permissions?.has(PermissionFlagsBits.ViewChannel) ?? false,
+                    canSend: permissions?.has(PermissionFlagsBits.SendMessages) ?? false,
+                });
+            }
             // Skip only the welcome message if permissions are missing; the rest of the
             // join pipeline (auto-role, verification, logging, counters) must still run.
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
