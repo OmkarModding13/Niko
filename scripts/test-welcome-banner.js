@@ -5,7 +5,11 @@ const avatarSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="2
 const avatarUrl = `data:image/svg+xml,${encodeURIComponent(avatarSvg)}`;
 
 // Prove the owner's exact linked background is reachable from the production PC.
-const response = await fetch(DEFAULT_WELCOME_BACKGROUND_URL);
+const response = await fetch(DEFAULT_WELCOME_BACKGROUND_URL, { headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Referer': 'https://phototourl.com/'
+    } });
 if (!response.ok) {
     throw new Error(`Owner background URL failed with HTTP ${response.status}`);
 }
