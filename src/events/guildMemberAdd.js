@@ -17,10 +17,29 @@ export default {
     try {
         const { guild, user } = member;
         
-        const config = await getGuildConfig(member.client, guild.id);
-        
-        const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
-        const welcomeChannelId = welcomeConfig?.channelId;
+        // Welcome delivery must not be blocked by unrelated guild-config failures.
+        let config = null;
+        let welcomeConfig = null;
+        try {
+            welcomeConfig = await getWelcomeConfig(member.client, guild.id);
+        } catch (error) {
+            logger.error('[Welcome] Could not load welcome settings', {
+                guildId: guild.id,
+                error: error.message,
+            });
+        }
+        try {
+            config = await getGuildConfig(member.client, guild.id);
+        } catch (error) {
+            logger.error('[Welcome] Could not load guild settings; continuing join pipeline', {
+                guildId: guild.id,
+                error: error.message,
+            });
+        }
+
+        // If welcome settings are absent/disabled, use the server's system channel
+        // so new members still receive a welcome when that channel permits it.
+        const welcomeChannelId = welcomeConfig?.channelId || guild.systemChannelId || null;
 
         logger.info('[Welcome] Member join received', {
             guildId: guild.id,
@@ -30,7 +49,7 @@ export default {
             welcomeChannelId: welcomeChannelId || null,
         });
 
-        if (!welcomeConfig?.enabled || !welcomeChannelId) {
+        if (!welcomeChannelId) {
             logger.warn('[Welcome] Message not sent because welcome is disabled or no channel is configured', {
                 guildId: guild.id,
                 welcomeEnabled: Boolean(welcomeConfig?.enabled),
@@ -38,7 +57,7 @@ export default {
             });
         }
 
-        if (welcomeConfig?.enabled && welcomeChannelId) {
+        if (welcomeChannelId) {
             const channel = guild.channels.cache.get(welcomeChannelId)
                 || await guild.channels.fetch(welcomeChannelId).catch((error) => {
                     logger.error('[Welcome] Could not fetch configured welcome channel', {
