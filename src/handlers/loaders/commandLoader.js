@@ -77,18 +77,31 @@ const PUBLIC_COMMANDS = new Set([
     'next-birthdays',
 ]);
 
+const ADMIN_ONLY_COMMANDS = new Set([
+    // Moderation and server-management commands.
+    'announce', 'removebankprotection', 'app-admin', 'commands',
+    'configWizard', 'colorrole-expiry', 'postearninfo', 'postrules',
+    'shop-config', 'resetcharacters', 'leveladd', 'levelremove',
+    'levelset', 'postlevelinfo', 'postroleinfo', 'xpgive',
+    'logging', 'ban', 'cases', 'dm', 'kick', 'lock', 'massban',
+    'masskick', 'purge', 'say', 'timeout', 'unban', 'unlock',
+    'untimeout', 'usernotes', 'warn', 'warnings', 'jointocreate',
+    'reactroles', 'serverstats', 'embedbuilder', 'wipedata',
+    'postnotify', 'autorole', 'greet', 'welcome', 'autoverify',
+    'verification',
+]);
+
 function applyCommandVisibility(command) {
-    if (PUBLIC_COMMANDS.has(command.data?.name)) {
-        // Public player commands: visible to everyone.
-        command.data.setDefaultMemberPermissions(null);
+    const name = command.data?.name;
+    if (ADMIN_ONLY_COMMANDS.has(name)) {
+        command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
         return;
     }
 
-    // Every other command is admin/owner-only.
-    // Server owners are treated as administrators by Discord.
-    if (typeof command.data?.setDefaultMemberPermissions === 'function') {
-        command.data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
-    }
+    // Default to visible for regular members. Admin-only commands must be
+    // explicitly listed above; an incomplete allowlist hides commands from
+    // every non-admin member in Discord's slash-command picker.
+    command.data.setDefaultMemberPermissions(null);
 }
 
 function getSubcommandInfo(commandData) {
