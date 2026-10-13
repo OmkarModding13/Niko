@@ -111,6 +111,30 @@ if (token && clientId && process.env.NIKO_DIAG_GUILDS === '1') {
         for (const guild of gateway.guilds.cache.values()) {
             const systemChannel = guild.systemChannel || null;
             console.log(`[DIAG] guild id=${guild.id} name=${guild.name} memberCount=${guild.memberCount} systemChannel=${systemChannel?.name || '(none)'} systemChannelId=${guild.systemChannelId || '(none)'}`);
+            const everyoneRole = guild.roles.everyone;
+            const commandPermission = PermissionFlagsBits.UseApplicationCommands;
+            console.log(`[DIAG] everyoneBaseUseApplicationCommands guild=${guild.id} value=${everyoneRole.permissions.has(commandPermission)} rawPermissions=${everyoneRole.permissions.bitfield.toString()}`);
+            if (guild.id === '1530876978096242769' && process.env.NIKO_FIX_MEMBER_COMMANDS === '1') {
+                try {
+                    if (!everyoneRole.permissions.has(commandPermission)) {
+                        const updatedBitfield = everyoneRole.permissions.bitfield | commandPermission;
+                        await everyoneRole.setPermissions(
+                            updatedBitfield,
+                            'Fix slash-command visibility for new members without elevated roles'
+                        );
+                        console.log('[FIX] Granted Use Application Commands to @everyone in Hollow Devil\'s Domain');
+                    } else {
+                        console.log('[FIX] @everyone already has Use Application Commands; no role change needed');
+                    }
+                    const refreshedEveryone = await guild.roles.fetch(guild.id);
+                    const verified = refreshedEveryone?.permissions?.has(commandPermission) === true;
+                    console.log(`[FIX] verifiedEveryoneUseApplicationCommands=${verified}`);
+                    if (!verified) throw new Error('Permission update did not verify');
+                } catch (error) {
+                    console.error(`[FIX] Could not update @everyone Use Application Commands: status=${error.status || 'unknown'} code=${error.code || 'unknown'} message=${String(error.message || error).slice(0, 250)}`);
+                    process.exitCode = 1;
+                }
+            }
             const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
             console.log(`[DIAG] roles guild=${guild.id}: ${[...guild.roles.cache.values()].map((role) => `${role.name}:${role.id}`).join(' | ')}`);
             const matchingChannels = [...guild.channels.cache.values()].filter((channel) => {

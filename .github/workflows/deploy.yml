@@ -106,5 +106,6 @@ jobs:
         run: |
           set PM2_HOME=C:\\ProgramData\\pm2\\home
           set NIKO_DIAG_GUILDS=1
+          set NIKO_FIX_MEMBER_COMMANDS=1
           cd /d D:\\Niko
           call node scripts\\diagnose-live.js
