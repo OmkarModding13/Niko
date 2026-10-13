@@ -12,6 +12,14 @@ const __dirname = path.dirname(__filename);
 const fontPath = path.join(__dirname, '../../fonts/Anton-Regular.ttf');
 const textToSVG = TextToSVG.loadSync(fontPath);
 
+async function downloadImage(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status}`);
+    }
+    return Buffer.from(await response.arrayBuffer());
+}
+
 const DEFAULT_WELCOME_BACKGROUND = Buffer.from(`<svg width="1200" height="500" viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
 <defs>
  <linearGradient id="night" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020611"/><stop offset=".48" stop-color="#061947"/><stop offset="1" stop-color="#020817"/></linearGradient>
