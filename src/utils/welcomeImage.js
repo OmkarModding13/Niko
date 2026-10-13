@@ -20,6 +20,8 @@ async function downloadImage(url) {
     return Buffer.from(await response.arrayBuffer());
 }
 
+export const DEFAULT_WELCOME_BACKGROUND_URL = 'https://cdn.phototourl.com/free/2026-07-26-7208305c-e1d8-470c-8ff7-f1ea578696a1.png';
+
 const DEFAULT_WELCOME_BACKGROUND = Buffer.from(`<svg width="1200" height="500" viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
 <defs>
  <linearGradient id="night" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#020611"/><stop offset=".48" stop-color="#061947"/><stop offset="1" stop-color="#020817"/></linearGradient>
@@ -58,21 +60,27 @@ const DEFAULT_WELCOME_BACKGROUND = Buffer.from(`<svg width="1200" height="500" v
 </svg>`);
 
 async function loadBackground(backgroundUrl) {
-    if (!backgroundUrl) {
-        return DEFAULT_WELCOME_BACKGROUND;
+    // Use the owner's original artwork by default, not the generated placeholder.
+    // If a separately configured custom background is set, try it first.
+    const candidates = [...new Set([backgroundUrl, DEFAULT_WELCOME_BACKGROUND_URL].filter(Boolean))];
+
+    for (const sourceUrl of candidates) {
+        try {
+            const buffer = await downloadImage(sourceUrl);
+            const metadata = await sharp(buffer).metadata();
+            if (!metadata.width || !metadata.height || !metadata.format) {
+                throw new Error('Downloaded background is not a supported image');
+            }
+            console.info(`[WelcomeImage] Loaded background: ${sourceUrl === DEFAULT_WELCOME_BACKGROUND_URL ? 'owner artwork' : 'configured custom image'} (${metadata.width}x${metadata.height})`);
+            return buffer;
+        } catch (error) {
+            console.warn(`[WelcomeImage] Background failed (${sourceUrl === DEFAULT_WELCOME_BACKGROUND_URL ? 'owner artwork' : 'configured custom image'}): ${error.message}`);
+        }
     }
 
-    try {
-        const response = await fetch(backgroundUrl);
-        if (!response.ok) {
-            throw new Error(`Background request returned ${response.status}`);
-        }
-        return Buffer.from(await response.arrayBuffer());
-    } catch (error) {
-        // A broken/expired custom background must not remove the whole banner.
-        console.warn(`[WelcomeImage] Using built-in blue fantasy background: ${error.message}`);
-        return DEFAULT_WELCOME_BACKGROUND;
-    }
+    // Last-resort safety net only; the user's actual PNG is always attempted first.
+    console.warn('[WelcomeImage] Owner artwork unavailable; using built-in emergency background.');
+    return DEFAULT_WELCOME_BACKGROUND;
 }
 
 export async function generateWelcomeImage({
