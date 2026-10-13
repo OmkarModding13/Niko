@@ -1,5 +1,11 @@
 import sharp from 'sharp';
-import { generateWelcomeImage } from '../src/utils/welcomeImage.js';
+import { DEFAULT_WELCOME_BACKGROUND, generateWelcomeImage } from '../src/utils/welcomeImage.js';
+
+const ownerBackground = await sharp(DEFAULT_WELCOME_BACKGROUND).metadata();
+if (ownerBackground.format !== 'webp' || ownerBackground.width !== 1024 || ownerBackground.height !== 500) {
+    throw new Error(`Bundled owner artwork failed validation: ${JSON.stringify(ownerBackground)}`);
+}
+console.log(`[BANNER_TEST] Original owner artwork OK: ${ownerBackground.width}x${ownerBackground.height} ${ownerBackground.format}`);
 
 const avatarSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#203d80"/><circle cx="128" cy="128" r="92" fill="#86c8ff"/></svg>';
 const avatarUrl = `data:image/svg+xml,${encodeURIComponent(avatarSvg)}`;
