@@ -87,7 +87,7 @@ export async function checkDailyReminders(client) {
                                 embeds: [{
                                     title: '🔔 Daily Reward Ready!',
                                     description:
-                                        'Your daily reward is ready to claim!\\n\\n' +
+                                        'Your daily reward is ready to claim!\n\n' +
                                         `Use **/daily** in <#${COMMAND_CHANNEL_ID}> to claim your Souls.`,
                                     color: 0x5865F2
                                 }]
