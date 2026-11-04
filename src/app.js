@@ -13,7 +13,6 @@ import {
     updateCounter
 } from './services/serverstatsService.js';
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
-import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { checkDailyReminders } from './services/dailyReminderService.js';
 import { checkVoiceEconomy } from './services/voiceEconomyService.js';
@@ -785,18 +784,6 @@ class NikoBot extends Client {
 
 
     setupCronJobs() {
-
-        cron.schedule(
-            '0 0 6 * * *',
-            runSafeTask(
-                'birthday_check',
-                () =>
-                    checkBirthdays(
-                        this
-                    )
-            )
-        );
-
 
         cron.schedule(
             '10 * * * * *',
