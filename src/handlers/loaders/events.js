@@ -1,8 +1,7 @@
 import { readdir } from 'fs/promises';
 import { join } from 'path';
-import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { pathToFileURL } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { logger } from '../../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
