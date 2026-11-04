@@ -39,11 +39,11 @@ export function resolveSslConfig() {
     const url = process.env.POSTGRES_URL || process.env.DATABASE_URL || '';
 
     if (/sslmode=(require|verify-ca|verify-full|prefer)/i.test(url)) {
-        return { rejectUnauthorized: false };
+        return { rejectUnauthorized: true };
     }
 
     if (process.env.NODE_ENV === 'production') {
-        return { rejectUnauthorized: false };
+        return { rejectUnauthorized: true };
     }
 
     return false;
