@@ -68,9 +68,6 @@ const PUBLIC_COMMANDS = new Set([
     'todo',
     'search',
     'verify',
-    'birthday-info',
-    'birthday-list',
-    'next-birthdays',
 ]);
 
 // Configuration/moderation areas should never become public just because a
@@ -180,7 +177,7 @@ export async function loadCommands(client) {
             try {
                 return {
                     filePath,
-                    commandModule: await import(`file://${filePath}`),
+                    commandModule: await import(pathToFileURL(filePath).href),
                 };
             } catch (error) {
                 logger.error(`Error loading command from ${filePath}:`, error);
