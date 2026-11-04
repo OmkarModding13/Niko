@@ -34,7 +34,7 @@ export function resolveSslConfig() {
     const sslEnv = process.env.POSTGRES_SSL?.toLowerCase();
 
     if (sslEnv === 'false' || sslEnv === '0') return false;
-    if (sslEnv === 'true' || sslEnv === '1') return { rejectUnauthorized: false };
+    if (sslEnv === 'true' || sslEnv === '1') return { rejectUnauthorized: true };
 
     const url = process.env.POSTGRES_URL || process.env.DATABASE_URL || '';
 
