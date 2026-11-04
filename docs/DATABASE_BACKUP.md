@@ -1,31 +1,27 @@
 # Niko database backups
 
-Niko's PostgreSQL database is separate from the GitHub code. These scripts create a portable PostgreSQL backup so the database can be moved from the PC to a future hosting provider.
+Niko's PostgreSQL database is separate from the GitHub repository and the bot hosting filesystem. Keep backups outside the bot's deploy directory so a redeploy cannot erase them.
 
-## Backup
+## Create a backup
 
-Run from the Niko folder:
+Set `POSTGRES_URL` in the environment and ensure PostgreSQL's `pg_dump` utility is installed:
 
-\`\`\`powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\backup-db.ps1
-\`\`\`
+```bash
+npm run backup:db
+```
 
-Backups are written to:
+Optional settings:
+- `BACKUP_DIR`: destination directory (defaults to `./backups`)
+- `BACKUP_RETENTION_DAYS`: number of days to retain local dump files (defaults to 14)
 
-\`\`\`
-D:\Niko-Backups
-\`\`\`
+## Restore a backup
 
-The script keeps the newest 14 dump files.
+Set `POSTGRES_URL` or `POSTGRES_RESTORE_URL` to the target database. Then run:
 
-## Restore / migration
+```bash
+npm run restore:db -- --input ./backups/niko-backup-YYYYMMDD-HHMMSS.dump --confirm
+```
 
-On the destination machine, place the \`.dump\` file on the machine and make sure its PostgreSQL database exists. Then run:
+Restore replaces matching database objects. Use a separate target database when testing a restore. The `--drop-schema` option is destructive and should only be used when intentionally rebuilding the target schema.
 
-\`\`\`powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\restore-db.ps1 -BackupFile "D:\Niko-Backups\niko_YYYYMMDD_HHMMSS.dump"
-\`\`\`
-
-The restore script asks for an explicit \`RESTORE\` confirmation because it replaces data in the target database.
-
-**Never commit \`.env\` or database dump files to GitHub.**
+**Important:** A backup stored only on the hosting instance may be lost with that instance or its volume. Copy dumps to durable external storage and never commit `.env` files or database dumps to GitHub.
