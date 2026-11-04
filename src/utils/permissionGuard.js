@@ -197,10 +197,10 @@ export function isModerator(member, guildConfig = null) {
   if (memberHasConfiguredModeratorRole(member, guildConfig)) {
     return true;
   }
-  return member.permissions.has([
-    PermissionFlagsBits.Administrator,
-    PermissionFlagsBits.ManageGuild
-  ]);
+  return (
+    member.permissions.has(PermissionFlagsBits.Administrator) ||
+    member.permissions.has(PermissionFlagsBits.ManageGuild)
+  );
 }
 
 export function hasPermission(member, permissions) {
