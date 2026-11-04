@@ -1,9 +1,13 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, PermissionFlagsBits } from 'discord.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CHARACTER_CATALOG } from '../../services/gacha/characters.js';
 import { getColor } from '../../config/bot.js';
 
 const CHARACTER_INFO_CHANNEL_ID = '1550118678396149910';
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/OmkarModding13/Niko/main/src/assets/Info';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const CHARACTER_INFO_IMAGE_DIR = path.join(__dirname, '../../assets/Info');
 
 const CHARACTER_ORDER = [
     'Carmine',
@@ -64,12 +68,13 @@ const RARITY_EMOJIS = {
 
 function createCharacterPost(character) {
     const imageFile = INFO_IMAGES[character.name];
-    const imageUrl = `${GITHUB_RAW_BASE}/${encodeURIComponent(imageFile)}`;
+    const imagePath = path.join(CHARACTER_INFO_IMAGE_DIR, imageFile);
+    const imageAttachment = new AttachmentBuilder(imagePath, { name: imageFile });
     const lore = CHARACTER_LORE[character.name];
 
     const bannerEmbed = new EmbedBuilder()
         .setColor(character.stars === 5 ? getColor('economy') : getColor('primary'))
-        .setImage(imageUrl);
+        .setImage(`attachment://${imageFile}`);
 
     const infoEmbed = new EmbedBuilder()
         
@@ -102,7 +107,10 @@ function createCharacterPost(character) {
         )
         .setFooter({ text: 'Hollow Devil • Character Ability Archive' });
 
-    return [bannerEmbed, infoEmbed];
+    return {
+        embeds: [bannerEmbed, infoEmbed],
+        files: [imageAttachment]
+    };
 }
 
 export default {
@@ -139,9 +147,7 @@ export default {
 
             if (!character) continue;
 
-            await channel.send({
-                embeds: createCharacterPost(character)
-            });
+            await channel.send(createCharacterPost(character));
 
             posted += 1;
         }
