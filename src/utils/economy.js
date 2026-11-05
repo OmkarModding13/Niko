@@ -551,6 +551,7 @@ export const addMoney =
                 );
             }
 
+            return withEconomyLock(getEconomyKey(guildId, userId), async () => {
             const userData =
                 await getEconomyData(
                     client,
@@ -627,6 +628,8 @@ export const addMoney =
                     }
                     : {})
             };
+
+            });
         },
         {
             service: 'economy',
@@ -687,6 +690,7 @@ export const removeMoney =
                 );
             }
 
+            return withEconomyLock(getEconomyKey(guildId, userId), async () => {
             const userData =
                 await getEconomyData(
                     client,
@@ -769,6 +773,8 @@ export const removeMoney =
                         ? userData.bank
                         : userData.wallet
             };
+
+            });
         },
         {
             service: 'economy',
