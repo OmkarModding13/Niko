@@ -9,8 +9,6 @@ import { resolvePostgresPoolConfig } from '../src/config/database/postgres.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-// Imported after dotenv.config so resolveSslConfig sees the loaded env vars.
-const { resolveSslConfig } = await import('../src/config/database/postgres.js');
 // The schema is the single source of truth shared with the runtime auto-create
 // path (src/utils/postgresDatabase.js), so this script can never diverge from it.
 const {
