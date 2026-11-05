@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from '../src/utils/logger.js';
 import { EXPECTED_SCHEMA_LABEL, EXPECTED_SCHEMA_VERSION } from '../src/config/database/schemaVersion.js';
+import { resolvePostgresPoolConfig } from '../src/config/database/postgres.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -22,10 +23,7 @@ const { assertAllowlistedIdentifier, quoteIdentifier } = await import('../src/ut
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: resolveSslConfig(),
-});
+const pool = new Pool(resolvePostgresPoolConfig());
 
 const migrationTable = process.env.POSTGRES_MIGRATION_TABLE || 'schema_migrations';
 const migrationTablePattern = /^[a-z_][a-z0-9_]*$/;
