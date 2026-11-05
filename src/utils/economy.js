@@ -24,6 +24,25 @@ const COOLDOWNS = ECONOMY_CONFIG.cooldowns || {
     rob: 4 * 60 * 60 * 1000,
 };
 
+// Serialize economy read-modify-write operations per account. Niko runs as a
+// single bot process, so this prevents two simultaneous commands from
+// overwriting each other's balance updates.
+const economyLocks = new Map();
+
+async function withEconomyLock(key, operation) {
+    const previous = economyLocks.get(key) || Promise.resolve();
+    const current = previous.then(operation, operation);
+    economyLocks.set(key, current);
+
+    try {
+        return await current;
+    } finally {
+        if (economyLocks.get(key) === current) {
+            economyLocks.delete(key);
+        }
+    }
+}
+
 export function getEconomyKey(guildId, userId) {
     const validGuildId = validateDiscordId(guildId, 'guildId');
     const validUserId = validateDiscordId(userId, 'userId');
@@ -162,7 +181,9 @@ export async function updateBalance(
     client,
     guildId,
     userId,
-    options = {}
+    options = {{
+    const key = getEconomyKey(guildId, userId);
+    return withEconomyLock(key, async () => {}
 ) {
     const data =
         await getEconomyData(
@@ -249,6 +270,9 @@ export async function updateBalance(
     }
 
     return data;
+}
+
+    });
 }
 
 export function checkCooldown(
@@ -535,6 +559,15 @@ export const addMoney =
                     userId
                 );
 
+            if (!userData) {
+                throw createError(
+                    'Economy data unavailable',
+                    ErrorTypes.DATABASE,
+                    'Your economy data could not be loaded. Please try again later.',
+                    { guildId, userId, operation: 'addMoney' }
+                );
+            }
+
             if (type === 'bank') {
                 const maxBank =
                     getMaxBankCapacity(
@@ -661,6 +694,15 @@ export const removeMoney =
                     guildId,
                     userId
                 );
+
+            if (!userData) {
+                throw createError(
+                    'Economy data unavailable',
+                    ErrorTypes.DATABASE,
+                    'Your economy data could not be loaded. Please try again later.',
+                    { guildId, userId, operation: 'removeMoney' }
+                );
+            }
 
             if (type === 'bank') {
                 if (
