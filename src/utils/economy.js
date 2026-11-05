@@ -181,97 +181,96 @@ export async function updateBalance(
     client,
     guildId,
     userId,
-    options = {{
-    const key = getEconomyKey(guildId, userId);
-    return withEconomyLock(key, async () => {}
+    options = {}
 ) {
-    const data =
-        await getEconomyData(
-            client,
-            guildId,
-            userId
-        );
+    const key = getEconomyKey(guildId, userId);
 
-    if (!data) {
-        throw createError(
-            'Economy data unavailable',
-            ErrorTypes.DATABASE,
-            'Your economy data could not be loaded. Please try again later.',
-            { guildId, userId }
-        );
-    }
-
-    if (options.wallet !== undefined) {
-        data.wallet =
-            Math.max(
-                0,
-                (data.wallet || 0) +
-                options.wallet
+    return withEconomyLock(key, async () => {
+        const data =
+            await getEconomyData(
+                client,
+                guildId,
+                userId
             );
-    }
 
-    if (options.bank !== undefined) {
-        const maxBank =
-            getMaxBankCapacity(data);
+        if (!data) {
+            throw createError(
+                'Economy data unavailable',
+                ErrorTypes.DATABASE,
+                'Your economy data could not be loaded. Please try again later.',
+                { guildId, userId }
+            );
+        }
 
-        data.bank =
-            Math.min(
+        if (options.wallet !== undefined) {
+            data.wallet =
                 Math.max(
                     0,
-                    (data.bank || 0) +
-                    options.bank
-                ),
-                maxBank
-            );
-    }
-
-    if (options.xp !== undefined) {
-        data.xp =
-            Math.max(
-                0,
-                (data.xp || 0) +
-                options.xp
-            );
-
-        const xpNeeded =
-            Math.floor(
-                5 *
-                Math.pow(
-                    data.level || 1,
-                    2
-                ) +
-                50 *
-                (data.level || 1) +
-                100
-            );
-
-        if (data.xp >= xpNeeded) {
-            data.xp -= xpNeeded;
-            data.level =
-                (data.level || 1) + 1;
-            data.leveledUp = true;
+                    (data.wallet || 0) +
+                    options.wallet
+                );
         }
-    }
 
-    const saved = await setEconomyData(
-        client,
-        guildId,
-        userId,
-        data
-    );
+        if (options.bank !== undefined) {
+            const maxBank =
+                getMaxBankCapacity(data);
 
-    if (!saved) {
-        throw createError(
-            'Economy save failed',
-            ErrorTypes.DATABASE,
-            'Your economy change could not be saved safely. Please try again.',
-            { guildId, userId }
+            data.bank =
+                Math.min(
+                    Math.max(
+                        0,
+                        (data.bank || 0) +
+                        options.bank
+                    ),
+                    maxBank
+                );
+        }
+
+        if (options.xp !== undefined) {
+            data.xp =
+                Math.max(
+                    0,
+                    (data.xp || 0) +
+                    options.xp
+                );
+
+            const xpNeeded =
+                Math.floor(
+                    5 *
+                    Math.pow(
+                        data.level || 1,
+                        2
+                    ) +
+                    50 *
+                    (data.level || 1) +
+                    100
+                );
+
+            if (data.xp >= xpNeeded) {
+                data.xp -= xpNeeded;
+                data.level =
+                    (data.level || 1) + 1;
+                data.leveledUp = true;
+            }
+        }
+
+        const saved = await setEconomyData(
+            client,
+            guildId,
+            userId,
+            data
         );
-    }
 
-    return data;
-}
+        if (!saved) {
+            throw createError(
+                'Economy save failed',
+                ErrorTypes.DATABASE,
+                'Your economy change could not be saved safely. Please try again.',
+                { guildId, userId }
+            );
+        }
 
+        return data;
     });
 }
 
