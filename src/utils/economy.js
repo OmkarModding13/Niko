@@ -606,12 +606,21 @@ export const addMoney =
                     validAmount;
             }
 
-            await setEconomyData(
+            const saved = await setEconomyData(
                 client,
                 guildId,
                 userId,
                 userData
             );
+
+            if (!saved) {
+                throw createError(
+                    'Economy save failed',
+                    ErrorTypes.DATABASE,
+                    'Your economy change could not be saved safely. Please try again.',
+                    { guildId, userId, operation: 'economyMutation' }
+                );
+            }
 
             return {
                 newBalance:
