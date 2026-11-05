@@ -1,37 +1,42 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const NIKO_NOTIFICATIONS_CHANNEL_ID = '1550119194811572244';
 const SHARD_EMOJI = '<:Shard:1548962748321374218>';
+const SOUL_EMOJI = '<:Souls:1547510037621112894>';
 
 const ANNOUNCEMENT = [
     'Hey @everyone! 👋',
     '',
-    'Niko has received a new update with a brand-new **Leaderboard system**, along with several bug fixes and stability improvements.',
+    'Niko has received another round of **improvements, bug fixes, and stability updates** this month. 💙',
     '',
-    '**🏆 NEW — LEADERBOARD SYSTEM**',
+    '**🆕 NEW & IMPROVED**',
     '',
-    'You can now compete with other members and track your progress on the server!',
+    '• ' + SOUL_EMOJI + ' **Souls Economy** — Improved balance handling and data saving to make your Souls progress more reliable.',
+    '• **Economy Reliability** — Improved how multiple economy actions are processed to prevent conflicting balance changes.',
+    '• **Rewards** — Improved reward handling and added protection against rewards being given incorrectly when a save fails.',
+    '• **Leaderboards** — Improved progress tracking and data consistency.',
+    '• ' + SHARD_EMOJI + ' **Shard System** — Improved reliability and persistence for Shards, Niko\'s rarest resource.',
+    '• **Overall Stability** — Improved Niko\'s stability when handling commands, events, and economy activity.',
     '',
-    '• 📊 Track your activity and progress',
-    '• 🎮 Game activity contributes to your leaderboard progress',
-    '• 🏅 Compete for the top positions',
-    '• 👑 Top 3 players are displayed on the leaderboard',
+    '**🛠️ BUG FIXES**',
     '',
-    '**🔧 BUG FIXES & IMPROVEMENTS**',
+    '• Fixed multiple economy-related saving issues',
+    '• Fixed balance updates that could conflict with each other',
+    '• Fixed failed economy saves being treated as successful',
+    '• Fixed several issues affecting persistent player data',
+    '• Fixed various system reliability issues',
+    '• Improved overall bot stability and consistency',
     '',
-    "We've also fixed and improved several systems based on recent testing:",
+    '**💙 WHAT THIS MEANS**',
     '',
-    '• Fixed multiple economy-related issues',
-    '• Fixed leaderboard tracking issues',
-    '• Fixed balance display formatting',
-    '• Improved data saving reliability',
-    '• Fixed several command and system issues',
-    '• Improved overall bot stability and reliability',
+    'The main focus of this update was making Niko\'s economy **more reliable and consistent**.',
     '',
-    'Niko is continuously being improved to provide a smoother and more reliable experience for everyone.',
+    'Your ' + SOUL_EMOJI + ' **Souls, ' + SHARD_EMOJI + ' Shards, rewards, and progress** should now be handled more safely, especially during rapid actions and system restarts.',
     '',
-    '🎮 Play • 🏆 Compete • ' + SHARD_EMOJI + ' Collect Souls • 👑 Reach the Top 3',
+    'Niko will continue receiving new features, improvements, and bug fixes as the community grows.',
+    '',
+    '🎮 Play • Earn ' + SOUL_EMOJI + ' Souls • Collect ' + SHARD_EMOJI + ' Shards • 🏆 Reach the Top',
     '',
     '— Niko 💙',
 ].join('\n');
@@ -80,7 +85,7 @@ export default {
 
         const embed = new EmbedBuilder()
             .setColor(0x5865F2)
-            .setTitle('📢 Niko — New Update is Live!')
+            .setTitle('📢 Niko — Monthly Update is Live!')
             .setDescription(ANNOUNCEMENT)
             .setTimestamp()
             .setFooter({ text: "Hollow Devil's Domain • Niko" });
