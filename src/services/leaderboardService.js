@@ -514,39 +514,90 @@ async function upsertLeaderboardMessage(client, guild, embed) {
         return false;
     }
 
-    const messageId =
-        await client.db.get(
-            LEADERBOARD_MESSAGE_KEY(guild.id),
-            null
-        );
+    const messageKey = LEADERBOARD_MESSAGE_KEY(guild.id);
+    let messageId = await client.db.get(messageKey, null);
+    let message = null;
 
     if (messageId) {
         try {
-            const message =
-                await channel.messages.fetch(messageId);
-
-            await message.edit({
-                embeds: [embed]
-            });
-
-            return true;
+            message = await channel.messages.fetch(messageId);
         } catch (error) {
             logger.debug(
-                `[Leaderboards] Stored message could not be edited: ${error.message}`
+                `[Leaderboards] Stored message could not be fetched: ${error.message}`
             );
         }
     }
 
-    const message =
-        await channel.send({
-            embeds: [embed]
-        });
+    // Recover the monthly leaderboard message if the stored ID is missing or
+    // stale. This prevents a new message from being posted every scheduler run.
+    if (!message) {
+        try {
+            const recentMessages = await channel.messages.fetch({ limit: 100 });
 
-    const saved =
-        await client.db.set(
-            LEADERBOARD_MESSAGE_KEY(guild.id),
-            message.id
-        );
+            message = recentMessages.find(candidate =>
+                candidate.author?.id === client.user.id &&
+                candidate.embeds?.[0]?.title === "🏆 Hollow Devil's Domain — Leaderboards"
+            ) || null;
+
+            if (message) {
+                messageId = message.id;
+                const saved = await client.db.set(messageKey, messageId);
+
+                if (!saved) {
+                    logger.warn(
+                        `[Leaderboards] Failed to persist recovered leaderboard message ID for guild ${guild.id}.`
+                    );
+                }
+            }
+        } catch (error) {
+            logger.debug(
+                `[Leaderboards] Could not scan recent leaderboard messages: ${error.message}`
+            );
+        }
+    }
+
+    if (message) {
+        try {
+            await message.edit({
+                embeds: [embed]
+            });
+
+            // Keep exactly one current monthly leaderboard message. Older
+            // duplicate Niko leaderboard messages are removed when found.
+            try {
+                const recentMessages = await channel.messages.fetch({ limit: 100 });
+
+                const duplicates = recentMessages.filter(candidate =>
+                    candidate.id !== message.id &&
+                    candidate.author?.id === client.user.id &&
+                    candidate.embeds?.[0]?.title === "🏆 Hollow Devil's Domain — Leaderboards"
+                );
+
+                await Promise.all(
+                    duplicates.map(candidate => candidate.delete().catch(() => null))
+                );
+            } catch (error) {
+                logger.debug(
+                    `[Leaderboards] Could not clean duplicate leaderboard messages: ${error.message}`
+                );
+            }
+
+            return true;
+        } catch (error) {
+            logger.debug(
+                `[Leaderboards] Stored leaderboard message could not be edited: ${error.message}`
+            );
+        }
+    }
+
+    const newMessage = await channel.send({
+        embeds: [embed]
+    });
+
+    const saved = await client.db.set(
+        messageKey,
+        newMessage.id
+    );
 
     if (!saved) {
         logger.warn(
